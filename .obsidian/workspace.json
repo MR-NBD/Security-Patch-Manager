@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "f512169a777a9b61",
+        "id": "0cec71c66cd8c169",
         "type": "tabs",
         "children": [
           {
-            "id": "c51958a09f14554e",
+            "id": "000e60132f61f445",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -194,12 +194,12 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "c51958a09f14554e",
+  "active": "000e60132f61f445",
   "lastOpenFiles": [
     "Utenze/ASL0603 1.md",
     "README.md",
-    "Utenze/ASL0603 2.md",
     "Utenze/ASL0603.md",
+    "Utenze/ASL0603 2.md",
     "Utenze",
     "png/HLD SPM v2.png",
     "png/General Workflow SPM v2.png",
