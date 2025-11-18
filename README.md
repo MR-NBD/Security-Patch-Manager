@@ -21,7 +21,7 @@ La soluzione è progettata con riferimento al contesto del **Polo Strategico Naz
 ## 🏗️ High-Level Architecture
 
 Il modello introduce due componenti principali:
-![[HLD SPM v2.png]]
+![png/HLD SPM v2.png]
 ### **Master Server**
 
 - Repository centrale per inventario, vulnerabilità, politiche e monitoraggio.
