@@ -14,7 +14,7 @@
               "type": "markdown",
               "state": {
                 "file": "README.md",
-                "mode": "preview",
+                "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
@@ -180,8 +180,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200,
-    "collapsed": true
+    "width": 200
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -197,13 +196,17 @@
   },
   "active": "c51958a09f14554e",
   "lastOpenFiles": [
-    "png/General Workflow SPM v2.png",
-    "Untitled.md",
-    "png/LLD SPM.png",
+    "Utenze/ASL0603 1.md",
+    "README.md",
+    "Utenze/ASL0603 2.md",
+    "Utenze/ASL0603.md",
+    "Utenze",
     "png/HLD SPM v2.png",
+    "png/General Workflow SPM v2.png",
+    "png/LLD SPM.png",
+    "Untitled.md",
     "png/PSN work flow v2.png",
     "png",
-    "README.md",
     "workflow/General Workflow SPM.drawio",
     "workflow/SECURITY PATCH MANAGER.drawio",
     "workflow/PSN work flow.drawio",
@@ -211,7 +214,6 @@
     "workflow/HLD SPM.drawio",
     "workflow/Active Environment Discovery-SPM.drawio",
     "workflow/Security Patch Discovery & Prioritization.drawio",
-    "workflow/PATCH TESTING VALIDATION.drawio",
-    "workflow/PATCH INSTALLATION ENGINE.drawio"
+    "workflow/PATCH TESTING VALIDATION.drawio"
   ]
 }
