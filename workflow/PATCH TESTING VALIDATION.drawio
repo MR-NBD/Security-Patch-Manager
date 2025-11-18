@@ -1,0 +1,393 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.8 Chrome/140.0.7339.240 Electron/38.4.0 Safari/537.36" version="28.2.8">
+  <diagram name="Page-1" id="PatchTestingValidation">
+    <mxGraphModel dx="6065" dy="6510" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="2200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title-1" value="PATCH TESTING &amp; VALIDATION" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0050ef;fontColor=#ffffff;strokeColor=#001DBC;fontSize=14;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="600" y="-200" width="400" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="start-arrow" value="" style="endArrow=classic;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="title-1" target="start-node" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="-100" as="sourcePoint" />
+            <mxPoint x="800" y="-50" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="start-node" value="Start Patch Testing" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#647687;fontColor=#ffffff;strokeColor=#314354;" parent="1" vertex="1">
+          <mxGeometry x="700" y="-110" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="timer-check-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="start-node" target="timer-check" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="timer-check" value="TIMER END?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="760" y="-20" width="80" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="timer-loop" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="timer-check" target="timer-check" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="timer-no-label" value="No" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="820" y="-30" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="load-priority-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="timer-check" target="load-priority-list" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="timer-yes-label" value="Yes" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="760" y="50" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="load-priority-list" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Load Priority Patches List for Target VM&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="700" y="90" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="read-label1" value="READ" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="420" y="90" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="list-empty-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="load-priority-list" target="check-list-empty" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-121" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="check-list-empty" target="start-node" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="960" y="245" />
+              <mxPoint x="960" y="-130" />
+              <mxPoint x="800" y="-130" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="check-list-empty" value="Is Patch List Empty?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" parent="1" vertex="1">
+          <mxGeometry x="730" y="190" width="140" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="empty-yes-label" value="Yes" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="860" y="220" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="get-vm-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="check-list-empty" target="get-vm-details" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="empty-no-label" value="No" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="760" y="290" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-67" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="get-vm-details" target="create-clone-vm" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="get-vm-details" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Get Original VM Details &amp;amp; Configuration&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="699.99" y="330" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="read-label2" value="READ" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="400" y="330" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="create-clone-vm" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Create Clone VM Test Environment (Azure VM Snapshot)&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="700.97" y="420" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-63" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.49;exitY=1.003;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="init-monitoring" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="800.49" y="570" as="sourcePoint" />
+            <mxPoint x="798" y="610" as="targetPoint" />
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="init-monitoring" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Initialize Baseline Monitoring (Azure Monitor)&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="699.99" y="510" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-72" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="init-patch-counter" target="check-more-patches" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="init-patch-counter" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Initialize: Current_Patch = First in List&lt;br&gt;Successful_Patches = []&lt;br&gt;Failed_Patches = []&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="697.9" y="610" width="200" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="wait-stabilization" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Wait Stabilization Period (Configurable Time)&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="697.9" y="1010" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="wait-stabilization" target="monitor-metrics" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor-metrics" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Monitor &amp;amp; Collect Metrics:&lt;br&gt;- CPU/Memory/Disk&lt;br&gt;- Running Processes&lt;br&gt;- Service Status&lt;br&gt;- Application Logs&lt;br&gt;- Error Events&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;align=left;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="697.9" y="1110" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="compare-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="monitor-metrics" target="compare-original" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="compare-original" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Compare Clone VM Metrics with Original VM Baseline&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="697.9" y="1250" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="validation-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="compare-original" target="validation-check" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="800" y="1330" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="validation-check" value="All Checks Passed?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" parent="1" vertex="1">
+          <mxGeometry x="727.9" y="1370" width="140" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="success-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="validation-check" target="mark-success" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="success-label" value="Yes" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="860" y="1400" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-89" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="mark-success" target="check-reboot" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="mark-success" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Add Current_Patch to Successful_Patches List&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#fad7ac;strokeColor=#b46504;" parent="1" vertex="1">
+          <mxGeometry x="950" y="1395" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-91" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="check-reboot" target="mark-reboot" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-128" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="check-reboot" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="800" y="1870" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1050" y="1740" />
+              <mxPoint x="800" y="1740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="check-reboot" value="Patch Requires Reboot?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" parent="1" vertex="1">
+          <mxGeometry x="980" y="1495" width="140" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-129" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="mark-reboot" target="move-next-patch" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1260" y="1740" />
+              <mxPoint x="800" y="1740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mark-reboot" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Flag Patch as Requiring Reboot&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+          <mxGeometry x="1170" y="1520" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="reboot-no-label" value="No" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1050" y="1600" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="failed-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="validation-check" target="rollback-vm" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="failed-label" value="No" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="680" y="1400" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="rollback-vm" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Rollback Clone VM to Last Successful State (Azure Snapshot Restore)&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="450" y="1395" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="mark-failed-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="rollback-vm" target="mark-failed" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="mark-failed" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Add Current_Patch to Failed_Patches List with Error Details&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#fad7ac;strokeColor=#b46504;" parent="1" vertex="1">
+          <mxGeometry x="450" y="1495" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="log-failed-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="mark-failed" target="log-failure" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="log-failure" value="Log Patch Failure Notification" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fa6800;strokeColor=#C73500;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="450" y="1595" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="check-cve-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="log-failure" target="check-cve-severity" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-126" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="check-cve-severity" target="move-next-patch" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="check-cve-severity" value="Failed Patch Has Critical/High CVE?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" parent="1" vertex="1">
+          <mxGeometry x="480" y="1685" width="140" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="cve-yes-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="check-cve-severity" target="generate-alert" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="1740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-127" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="generate-alert" target="move-next-patch" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="270" y="1830" />
+              <mxPoint x="800" y="1830" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="generate-alert" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Generate Critical Security Alert&lt;br&gt;Recommend Increased Security Measures&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e51400;fontColor=#ffffff;strokeColor=#B20000;" parent="1" vertex="1">
+          <mxGeometry x="170" y="1705" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-104" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="move-next-patch" target="init-patch-counter" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="801" y="1990" />
+              <mxPoint x="1400" y="1990" />
+              <mxPoint x="1400" y="590" />
+              <mxPoint x="798" y="590" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="move-next-patch" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Move to Next Patch in Priority List&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+          <mxGeometry x="699.99" y="1870" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="cleanup-clone" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Cleanup &amp;amp; Delete Clone VM Test Environment&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="699.9899999999999" y="2150" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="generate-lists-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="cleanup-clone" target="generate-output-lists" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-114" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="generate-output-lists" target="ahaTOM7-O3KhhMRM4o0F-113" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="generate-output-lists" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Generate Output:&lt;br&gt;1. Installable Patches List (with reboot flags)&lt;br&gt;2. Failed Patches List (with reasons)&lt;br&gt;3. Critical CVE Alerts&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#fad7ac;strokeColor=#b46504;align=left;" parent="1" vertex="1">
+          <mxGeometry x="669.9899999999999" y="2250" width="260" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-119" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1.036;entryY=0.497;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;strokeColor=#007FFF;" parent="1" source="save-results-db" target="ahaTOM7-O3KhhMRM4o0F-120" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="444" y="2520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="save-results-db" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Add Log Timestamp to the Final Output and SAVE IT&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="699.9899999999999" y="2490" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="client-report-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="save-results-db" target="generate-client-report" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="generate-client-report" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Generate Client Notification Report:&lt;br&gt;- Patches ready for deployment&lt;br&gt;- Critical vulnerabilities not fixable&lt;br&gt;- Recommended security actions&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#fad7ac;strokeColor=#b46504;align=left;" parent="1" vertex="1">
+          <mxGeometry x="669.9999999999999" y="2590" width="260" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="final-report-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="generate-client-report" target="generate-final-report" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="generate-final-report" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Generate Final Summary Report&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fad7ac;strokeColor=#b46504;" parent="1" vertex="1">
+          <mxGeometry x="699.9899999999999" y="2730" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="end-arrow" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="generate-final-report" target="end-node" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="end-node" value="End" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#647687;fontColor=#ffffff;strokeColor=#314354;" parent="1" vertex="1">
+          <mxGeometry x="699.9899999999999" y="2830" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-1" value="&lt;b&gt;LEGEND&lt;/b&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;fontStyle=1" parent="1" vertex="1">
+          <mxGeometry x="340" y="-278" width="180" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-2" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#647687;fontColor=#ffffff;strokeColor=#314354;" parent="1" vertex="1">
+          <mxGeometry x="340" y="-243" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-3" value="Start/End" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="380" y="-248" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-4" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffcc99;strokeColor=#36393d;" parent="1" vertex="1">
+          <mxGeometry x="340" y="-213" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-5" value="Process" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="380" y="-218" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-6" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" parent="1" vertex="1">
+          <mxGeometry x="340" y="-128" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-7" value="Decision" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="380" y="-128" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-8" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#6d8764;fontColor=#ffffff;strokeColor=#3A5431;" parent="1" vertex="1">
+          <mxGeometry x="340" y="-88" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-9" value="Process that require External Action" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="380" y="-93" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-10" value="" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=5;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" parent="1" vertex="1">
+          <mxGeometry x="340" y="-58" width="30" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-11" value="Database" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="380" y="-53" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-12" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e51400;fontColor=#ffffff;strokeColor=#B20000;" parent="1" vertex="1">
+          <mxGeometry x="340" y="-183" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-13" value="Error Handlig" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="380" y="-188" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-14" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fa6800;strokeColor=#C73500;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="340" y="-153" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-15" value="Error / Notification Log" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="380" y="-158" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-16" value="" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;gradientColor=#7ea6e0;" parent="1" vertex="1">
+          <mxGeometry x="340" y="-8" width="30" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-17" value="Internet" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="380" y="-13" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-20" value="" style="endArrow=classic;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#007FFF;" parent="1" source="ahaTOM7-O3KhhMRM4o0F-111" target="get-vm-details" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="230" y="369.94000000000005" as="sourcePoint" />
+            <mxPoint x="860" y="190" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-52" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" target="init-monitoring" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="800.0244827586207" y="480.00000000000045" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-76" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="check-more-patches" target="install-patch" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-110" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="check-more-patches" target="cleanup-clone" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="797.8850000000002" y="2111.818181818182" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1480" y="800" />
+              <mxPoint x="1480" y="2112" />
+              <mxPoint x="800" y="2112" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="check-more-patches" value="More Patches to Test?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e3c800;fontColor=#000000;strokeColor=#B09500;" parent="1" vertex="1">
+          <mxGeometry x="717.8799999999999" y="740" width="160.01" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-78" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="install-patch" target="wait-stabilization" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="install-patch" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Install Current_Patch on Clone VM (Azure Automation)&lt;/font&gt;" style="whiteSpace=wrap;html=1;fillColor=#6d8764;strokeColor=#3A5431;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="697.9" y="910" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-92" value="Yes" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1100" y="1520" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-101" value="Yes" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="450" y="1710" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-102" value="No" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="596.4" y="1710" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-105" value="Yes" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="788.75" y="850" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-106" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;dashed=1;strokeColor=#007FFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;" parent="1" source="ahaTOM7-O3KhhMRM4o0F-107" target="check-more-patches" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="230" y="120" as="sourcePoint" />
+            <mxPoint x="400" y="980" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="440" y="120" />
+              <mxPoint x="520" y="120" />
+              <mxPoint x="520" y="760" />
+              <mxPoint x="520" y="800" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-107" value="&lt;font style=&quot;color: rgb(255, 255, 255);&quot;&gt;Priority Patches List DB&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" parent="1" vertex="1">
+          <mxGeometry x="320" y="60" width="100" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-111" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;VM Versions and Dependencies&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" parent="1" vertex="1">
+          <mxGeometry x="320" y="320" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-115" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="ahaTOM7-O3KhhMRM4o0F-113" target="save-results-db" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-113" value="&lt;font style=&quot;color: rgb(0, 0, 0);&quot;&gt;Parsing and normalization Generate Output&lt;/font&gt;" style="whiteSpace=wrap;html=1;rounded=0;fillColor=#fad7ac;strokeColor=#b46504;" parent="1" vertex="1">
+          <mxGeometry x="739.99" y="2390" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-118" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;dashed=1;strokeColor=#007FFF;" parent="1" source="load-priority-list" target="ahaTOM7-O3KhhMRM4o0F-107" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-120" value="&lt;font color=&quot;#ffffff&quot;&gt;List Tested Patch&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#60a917;fontColor=#ffffff;strokeColor=#2D7600;" parent="1" vertex="1">
+          <mxGeometry x="280" y="2460" width="100" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-122" value="No" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="850" y="760" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ahaTOM7-O3KhhMRM4o0F-123" value="WRITE" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="380" y="2490" width="60" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
