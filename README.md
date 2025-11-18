@@ -53,19 +53,21 @@ Due modalità operative:
 
 - 🔑 [ASL0603](./Utenze/ASL0603.md)
 
+---
 ## ⚙️ Setup Git & Obsidian
 - 🎬 [Youtube Tutorial](https://www.youtube.com/watch?v=Cu4-BPcveBI)
 - git command
-Windows:
-Git: https://git-scm.com/download/win
-GitHub Desktop: https://desktop.github.com/download/
-Generate Keys (use your email): `ssh-keygen -t ed25519 -C "your-email@example.com"`
-Start SSH Agent: `eval "$(ssh-agent -s)"`
-Add Key: `ssh-add ~/.ssh/id_ed25519`
-Use Key: echo -e "Host github.com\n HostName github.com\n User git\n IdentityFile ~/.ssh/id_ed25519\n AddKeysToAgent yes" ❯❯ ~/.ssh/config
-Modify File Permissions: chmod 600 ~/.ssh/config
-Copy Key to Clipboard: clip ❮ ~/.ssh/id_ed25519.pub
-Add Key to GitHub: https://github.com/settings/keys
+## Windows:
+- Git: https://git-scm.com/download/win
+- GitHub Desktop: https://desktop.github.com/download/
+- Generate Keys (use your email): `ssh-keygen -t ed25519 -C "your-email@example.com"`
+- Start SSH Agent: `eval "$(ssh-agent -s)"`
+- Add Key: `ssh-add ~/.ssh/id_ed25519`
+- Use Key: `echo -e "Host github.com\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/id_ed25519\n  AddKeysToAgent yes" > ~/.ssh/config`
+- Modify File Permissions: `chmod 600 ~/.ssh/config`
+- Copy Key to Clipboard: `clip < ~/.ssh/id_ed25519.pub`
+- Add Key to GitHub: https://github.com/settings/keys
+
 ---
 ## 👤 Author
 
