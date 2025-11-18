@@ -1,2 +1,2 @@
-# Security-Patch-Manager
-Thesis Project
+# Security Patch Manager
+
