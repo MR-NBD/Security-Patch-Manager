@@ -1,6 +1,4 @@
-# Security Patch Manager
-
-## Automated Patch Management for B2B IaaS Environments
+# Automated Patch Management for B2B IaaS Environments
 ## 📌 Overview
 
 Questo progetto propone un modello preliminare di **Security Patch Management (SPM)** pensato per ambienti **B2B multi-tenant** in ambito **Infrastructure-as-a-Service (IaaS)**.  
