@@ -11,7 +11,10 @@ La soluzione è progettata con riferimento al contesto del **Polo Strategico Naz
 ---
 ## 🎯 Project Goals
 ![img](./png/PSN_work_flow_v2.png)
+<<<<<<< HEAD
 
+=======
+>>>>>>> 67a81b94d07841d66d58aabd80e6fb0a0eb7f237
 - Creare una **visione unificata e aggiornata** di tutte le risorse gestite (VM, sistemi operativi, patch installate o mancanti).
 - Definire un sistema che identifichi automaticamente patch di sicurezza, le classifichi e ne valuti l’impatto.
 - Minimizzare gli effetti sui sistemi di produzione, rispettando il principio di **zero downtime** e le esigenze dei tenant.
