@@ -4,11 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "0cec71c66cd8c169",
+        "id": "5061d3f6871198c1",
         "type": "tabs",
         "children": [
           {
-            "id": "000e60132f61f445",
+            "id": "6aa818adfcbbb5b1",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -194,26 +194,26 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "000e60132f61f445",
+  "active": "6aa818adfcbbb5b1",
   "lastOpenFiles": [
+    "Documentation/Ext_Doc/The_Recent_AutomatingSystem_Patching_Via_Satellite.pdf",
+    "README.md",
+    "Documentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf",
+    "Documentation/Ext_Doc/Smart_Patching_with_Cron_Jobs_An_Ops-Centric.pdf",
+    "Documentation/Ext_Doc/RED_HAT_SATELLITE_CRON-BASED_PATCHING_A_ZERO-TOUCH_APPROACH.pdf",
+    "Documentation/Ext_Doc",
+    "Documentation",
     "png/PSN_work_flow_v2.png",
     "png/LLD_SPM.png",
     "png/HLD_SPM_v2.png",
-    "README.md",
     "Utenze/ASL0603.md",
     "workflow/Security_Patch_Discovery_&_Prioritization.drawio",
     "workflow/SECURITY_PATCH_MANAGER.drawio",
     "workflow/PSN_workflow.drawio",
     "workflow/PATCH_INSTALLATION_ENGINE.drawio",
-    "workflow/LLD_SPM.drawio",
-    "workflow/HLD_SPM.drawio",
-    "workflow/General_Workflow_SPM.drawio",
-    "workflow/DISCOVERY_NVD.drawio",
-    "workflow/Active_Environment_Discovery-SPM.drawio",
     "png/General_Workflow_SPM_v2.png",
     "Utenze/ASL0603 1.md",
     "Utenze/ASL0603 2.md",
-    "Utenze",
     "png/HLD SPM v2.png",
     "png/General Workflow SPM v2.png",
     "png/LLD SPM.png",

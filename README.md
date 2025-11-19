@@ -11,10 +11,6 @@ La soluzione è progettata con riferimento al contesto del **Polo Strategico Naz
 ---
 ## 🎯 Project Goals
 ![img](./png/PSN_work_flow_v2.png)
-<<<<<<< HEAD
-
-=======
->>>>>>> 67a81b94d07841d66d58aabd80e6fb0a0eb7f237
 - Creare una **visione unificata e aggiornata** di tutte le risorse gestite (VM, sistemi operativi, patch installate o mancanti).
 - Definire un sistema che identifichi automaticamente patch di sicurezza, le classifichi e ne valuti l’impatto.
 - Minimizzare gli effetti sui sistemi di produzione, rispettando il principio di **zero downtime** e le esigenze dei tenant.
@@ -57,6 +53,12 @@ Due modalità operative:
 - 🔑 [ASL0603](./Utenze/ASL0603.md)
 
 ---
+## 📝Documetazione prodotta
+- [Automated Patch Management for B2B IaaS Environments](./Documentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf)
+## 📝Relevant documents
+- [RED HAT SATELLITE CRON-BASED PATCHING A ZERO-TOUCH APPROACH](./Documentation/Ext_Doc/RED_HAT_SATELLITE_CRON-BASED_PATCHING_A_ZERO-TOUCH_APPROACH.pdf)
+- [Smart Patching with Cron Jobs An Ops-Centric](./Documentation/Ext_Doc/Smart_Patching_with_Cron_Jobs_An_Ops-Centric.pdf)
+- [The Recent AutomatingSystem Patching Via Satellite](./Documentation/Ext_Doc/The_Recent_AutomatingSystem_Patching_Via_Satellite.pdf)
 ## ⚙️ Setup Git & Obsidian
 - 🎬 [Youtube Tutorial](https://www.youtube.com/watch?v=Cu4-BPcveBI)
 - git command
