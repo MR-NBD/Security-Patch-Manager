@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Utenze/ASL0603.md",
+                "file": "Setting/Installation.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ASL0603"
+              "title": "Installation"
             }
           }
         ]
@@ -195,13 +195,15 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "fcae071421e98e82",
+  "active": "6aa818adfcbbb5b1",
   "lastOpenFiles": [
+    "Setting/Create Vm.md",
+    "Setting/Installation.md",
+    "Utenze/ASL0603.md",
     "png/2025-11-21 16_59_48-.png",
     "png/2025-11-21 16_57_36-.png",
     "png/2025-11-21 16_58_34-.png",
     "png/2025-11-21 16_59_19-.png",
-    "Setting/Create Vm.md",
     "README.md",
     "Setting",
     "Documentation/Ext_Doc/The_Recent_AutomatingSystem_Patching_Via_Satellite.pdf",
@@ -213,7 +215,6 @@
     "png/PSN_work_flow_v2.png",
     "png/LLD_SPM.png",
     "png/HLD_SPM_v2.png",
-    "Utenze/ASL0603.md",
     "workflow/Security_Patch_Discovery_&_Prioritization.drawio",
     "workflow/SECURITY_PATCH_MANAGER.drawio",
     "workflow/PSN_workflow.drawio",
@@ -222,7 +223,6 @@
     "Utenze/ASL0603 2.md",
     "png/HLD SPM v2.png",
     "png/General Workflow SPM v2.png",
-    "png/LLD SPM.png",
     "Untitled.md"
   ]
 }
