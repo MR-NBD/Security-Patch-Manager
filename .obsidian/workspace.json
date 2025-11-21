@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Setting/Create Vm.md",
+                "file": "Utenze/ASL0603.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Create Vm"
+              "title": "ASL0603"
             }
           }
         ]
@@ -195,10 +195,14 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "6aa818adfcbbb5b1",
+  "active": "fcae071421e98e82",
   "lastOpenFiles": [
-    "README.md",
+    "png/2025-11-21 16_59_48-.png",
+    "png/2025-11-21 16_57_36-.png",
+    "png/2025-11-21 16_58_34-.png",
+    "png/2025-11-21 16_59_19-.png",
     "Setting/Create Vm.md",
+    "README.md",
     "Setting",
     "Documentation/Ext_Doc/The_Recent_AutomatingSystem_Patching_Via_Satellite.pdf",
     "Documentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf",
@@ -219,7 +223,6 @@
     "png/HLD SPM v2.png",
     "png/General Workflow SPM v2.png",
     "png/LLD SPM.png",
-    "Untitled.md",
-    "png/PSN work flow v2.png"
+    "Untitled.md"
   ]
 }
