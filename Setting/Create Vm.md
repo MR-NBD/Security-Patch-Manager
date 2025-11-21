@@ -9,3 +9,5 @@ Virtual network : `ASL0603-spoke10-rg-spoke-italynorth`
 Subnet : `default`
 Tags 
 Name : `Data Classification` : Value : `Ordinary`
+
+Standard D8as v5 (8 vcpus, 32 GiB memory)

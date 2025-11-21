@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Setting/Installation.md",
+                "file": "Setting/Create Vm.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installation"
+              "title": "Create Vm"
             }
           }
         ]
@@ -197,8 +197,8 @@
   },
   "active": "6aa818adfcbbb5b1",
   "lastOpenFiles": [
-    "Setting/Create Vm.md",
     "Setting/Installation.md",
+    "Setting/Create Vm.md",
     "Utenze/ASL0603.md",
     "png/2025-11-21 16_59_48-.png",
     "png/2025-11-21 16_57_36-.png",
