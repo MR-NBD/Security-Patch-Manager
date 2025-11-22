@@ -54,8 +54,8 @@ Due modalità operative:
 ## 🔬 LAB
 In questo momento il laboratorio si concentrando sull'utilizzo di Foreman+Katello+Puppet
 [DOC](https://theforeman.org/)
-![[2025-11-22 15_54_42-Downloads - File Explorer.png]]
-- SETUP [CREATE VM](./Setting/Create Vm.md) [INSTALLATION](./Setting/Installation.md)
+![[2025-11-22-15_54_42-Downloads - File Explorer.png]]
+- SETUP [CREATE VM](./Setting/CreateVM.md) [INSTALLATION](./Setting/Installation.md)
 - GUIDE 
 - CONFIGURAZIONI
 

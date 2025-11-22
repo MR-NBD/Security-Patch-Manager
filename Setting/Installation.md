@@ -37,13 +37,13 @@ Dopo il riavvio controllare se la verione è stata aggiornata correttamente.
 ```bash
 rpm -q selinux-policy
 ```
-![[2025-11-22 13_56_50-.png]]
+![[2025-11-22-13_56_50-.png]]
 - assicuriamoci di avere un hostname statico
 - Ricaviamoci il NIC a IP 
 ```bash
 ifconfig
 ```
-![[2025-11-22 14_28_19-.png]]
+![[2025-11-22-14_28_19-.png]]
 In questo caso il NIC eth0 e l'IP 10.172.2.17
 - verifichiamo l'hostname se non se siamo sicuri
 ```bash
@@ -66,7 +66,7 @@ Essendo noi in un laboratorio test ed unico interesse in questo momento che il s
 sudo nano /etc/hosts
 ```
 IL dominio per la mappatura di un nuov host dovrebbe essere: `<host name+routers domain> <host name>` nel nostro ambiente di test seguendo l'esempio di prima inseriremo l'IP 10.172.2.17 hostname della macchina e `.localdomain` seguendo la logical del file. Dovremmo ottenere un risultato simile.
-![[2025-11-22 14_40_15-.png]]
+![[2025-11-22-14_40_15-.png]]
 nel caso di una nonn limitazione di laboratorio per il DNS il risultato sarebbe stato `10.172.2.17 foreman-katello-test2speedport.ip. foreman-katello-test2` o qualcosa di simile.
 ## Settiamo le regole del firewall
 ```bash
@@ -95,7 +95,7 @@ Verifichiamo che tutto sia venuto correttamente.
 firewall-cmd --list-all
 ```
 Ci aspettiamo un output simile
-![[2025-11-21 16_59_19-.png]]
+![[2025-11-21-16_59_19-.png]]
 Ora possiamo iniziare con l'installazione dei Foreman-Katello. Seguima dunque quanto riporato dalla guida per instllare verione di Foreman 3.15 Katello 4.17 e Puppet 8 https://docs.theforeman.org/3.15/Quickstart/index-katello.html
 ## Configurazione dei repository
 1. Cancelliamo tutti i metadati:
@@ -119,7 +119,7 @@ Verifichiamo che tutto sia vvenuto correttamente.
 dnf repolist enabled
 ```
 Dovremmo ottenere un risultato simile.
-![[2025-11-22 15_04_48-.png]]
+![[2025-11-22-15_04_48-.png]]
 ## Installazione dei pacchetti del server Foreman
 1. Aggiorniamo tutti i pacchetti:
 ```bash
@@ -135,7 +135,7 @@ L'installazione non è interattiva, ma la configurazione può essere personalizz
 foreman-installer --scenario katello
 ```
 Dovremmo ottenere un risultato simile. 
-![[2025-11-22 15_22_27-.png]]
+![[2025-11-22-15_22_27-.png]]
 Come si vede nell'output queste sono le credenziali con la password generate per accedere a foreman. `Initial credentials are admin / aXEYxdbKpCSFC6Gi`
 Il servizio è operativo a `https://foreman-katello-test2.localdomain` però nel nostro in assenza di DNS possiamo contattare la macchina al'indirizzo ip https://10.172.2.17
 
@@ -144,5 +144,5 @@ In caso non riuscimmo ad ottenere le password dall'output possiamo andarle a ric
 sudo grep admin_password /etc/foreman-installer/scenarios.d/katello-answers.yaml
 ```
 User di default rimane sempre admin.
-![[2025-11-22 15_30_02-.png]]
+![[2025-11-22-15_30_02-.png]]
 
