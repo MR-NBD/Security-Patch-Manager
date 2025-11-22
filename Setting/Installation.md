@@ -1,3 +1,33 @@
+In questa guida mostrerò come installare Forman con Puppet, Katello e il plugin Discovery. Vedremop come installare e configurare i server DHCP e TFTP. Mostrerò anche come configurare Foreman e come utilizzare l'immagine di avvio di Foreman tramite PXE.
+## Setup check
+```bash
+cat /etc/os-release
+rpm -q selinux-policy
+```
+![[image.png]]
+Si vede la versione `selinux-policy-38.1.35-2.el9_4.3 ← è troppo vecchia`. Per questo setup stiamo usando **RHEL 9.4** OS presente come ISO su azure, ma i pacchetti SELinux di Foreman/Katello che vogliamo installanlare richiedono almeno : 
+- `selinux-policy >= 38.1.45-3.el9_5`
+- `selinux-policy >= 38.1.53-5.el9_6`
+Aggiorniamola: 
+```bash
+sudo su
+sudo subscription-manager register
+sudo subscription-manager attach --auto
+```
+E' necessario registrare una sottoscrizione RHEL, in quasteso caso sto usando la mia personale gratuita, _situazione da migliorare magari caricando su azure una ISO già compatibile è più aggionata_. 
+```bash
+sudo subscription-manager repos --enable=rhel-9-for-x86_64-baseos-rpms
+sudo subscription-manager repos --enable=rhel-9-for-x86_64-appstream-rpms
+sudo dnf upgrade --releasever=9.6 -y
+sudo reboot
+```
+Dopo il riavvio controllare se la verione è stata aggiornata correttamente.
+```bash
+rpm -q selinux-policy
+```
+![[2025-11-22 13_56_50-.png]]
+
+## Assicurati di avere un host statico
 ifconfig 
 hostname 
 sudo su 
@@ -8,7 +38,7 @@ sudo dnf update -y
 sudo reboot
 cat /etc/os-release
 rpm -q selinux-policy
-Devi avere una versione del tipo:
+Si vede versione del tipo:
 
 `selinux-policy-38.1.53-5.el9_6`
 
@@ -22,12 +52,8 @@ Stai usando **RHEL 9.4**, ma i pacchetti SELinux di Foreman/Katello che stai ins
 La tua versione è:
 
 `selinux-policy-38.1.35-2.el9_4.4  ← troppo vecchia`
-sudo subscription-manager register
-sudo subscription-manager attach --auto
-sudo subscription-manager repos --enable=rhel-9-for-x86_64-baseos-rpms
-sudo subscription-manager repos --enable=rhel-9-for-x86_64-appstream-rpms
-sudo dnf upgrade --releasever=9.6 -y
-sudo reboot
+
+
 
 ## Firewall Settings
 
