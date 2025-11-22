@@ -7,6 +7,7 @@ cat /etc/os-release
 rpm -q selinux-policy
 ```
 ![img](../img/screenshot.png)
+
 Si vede la versione `selinux-policy-38.1.35-2.el9_4.3 ← è troppo vecchia`. Per questo setup stiamo usando **RHEL 9.4** OS presente come ISO su azure, ma i pacchetti SELinux di Foreman/Katello che vogliamo installanlare richiedono almeno : 
 - `selinux-policy >= 38.1.45-3.el9_5`
 - `selinux-policy >= 38.1.53-5.el9_6`
@@ -44,6 +45,7 @@ rpm -q selinux-policy
 ifconfig
 ```
 ![img](../img/img6.png)
+
 In questo caso il NIC eth0 e l'IP 10.172.2.17
 - verifichiamo l'hostname se non se siamo sicuri
 ```bash
@@ -67,7 +69,7 @@ sudo nano /etc/hosts
 ```
 IL dominio per la mappatura di un nuov host dovrebbe essere: `<host name+routers domain> <host name>` nel nostro ambiente di test seguendo l'esempio di prima inseriremo l'IP 10.172.2.17 hostname della macchina e `.localdomain` seguendo la logical del file. Dovremmo ottenere un risultato simile.
 ![img](../img/img5.png)
-nel caso di una nonn limitazione di laboratorio per il DNS il risultato sarebbe stato `10.172.2.17 foreman-katello-test2speedport.ip. foreman-katello-test2` o qualcosa di simile.
+nel caso di una non limitazione di laboratorio per il DNS il risultato sarebbe stato `10.172.2.17 foreman-katello-test2speedport.ip. foreman-katello-test2` o qualcosa di simile.
 ## Settiamo le regole del firewall
 ```bash
 firewall-cmd --add-port="5646/tcp"
@@ -95,7 +97,9 @@ Verifichiamo che tutto sia venuto correttamente.
 firewall-cmd --list-all
 ```
 Ci aspettiamo un output simile
+
 ![img](../img/img1.png)
+
 Ora possiamo iniziare con l'installazione dei Foreman-Katello. Seguima dunque quanto riporato dalla guida per instllare verione di Foreman 3.15 Katello 4.17 e Puppet 8 https://docs.theforeman.org/3.15/Quickstart/index-katello.html
 ## Configurazione dei repository
 1. Cancelliamo tutti i metadati:
