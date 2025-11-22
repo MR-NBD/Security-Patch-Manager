@@ -8,7 +8,7 @@ La soluzione è progettata con riferimento al contesto del **Polo Strategico Naz
 
 ---
 ## 🎯 Project Goals
-![img](./png/PSN_work_flow_v2.png)
+![img](PSN_work_flow_v2.png)
 - Creare una **visione unificata e aggiornata** di tutte le risorse gestite (VM, sistemi operativi, patch installate o mancanti).
 - Definire un sistema che identifichi automaticamente patch di sicurezza, le classifichi e ne valuti l’impatto.
 - Minimizzare gli effetti sui sistemi di produzione, rispettando il principio di **zero downtime** e le esigenze dei tenant.
@@ -18,7 +18,7 @@ La soluzione è progettata con riferimento al contesto del **Polo Strategico Naz
 ## 🏗️ High-Level Architecture
 
 Il modello introduce due componenti principali:
-![img](./png/HLD_SPM_v2.png)
+![img](HLD_SPM_v2.png)
 ### **Master Server**
 
 - Repository centrale per inventario, vulnerabilità, politiche e monitoraggio.
