@@ -51,25 +51,21 @@ Due modalità operative:
 - 🔑 [ASL0603](./Utenze/ASL0603.md)
 
 ---
+## 🔬 LAB
+In questo momento il laboratorio si concentrando sull'utilizzo di Foreman+Katello+Puppet
+[DOC](https://theforeman.org/)
+![[2025-11-22 15_54_42-Downloads - File Explorer.png]]
+- SETUP [CREATE VM](./Setting/Create Vm.md) [INSTALLATION](./Setting/Installation.md)
+- GUIDE 
+- CONFIGURAZIONI
+
+---
 ## 📝Documetazione prodotta
 - [Automated Patch Management for B2B IaaS Environments](./Documentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf)
 ## 📝Relevant documents
 - [RED HAT SATELLITE CRON-BASED PATCHING A ZERO-TOUCH APPROACH](./Documentation/Ext_Doc/RED_HAT_SATELLITE_CRON-BASED_PATCHING_A_ZERO-TOUCH_APPROACH.pdf)
 - [Smart Patching with Cron Jobs An Ops-Centric](./Documentation/Ext_Doc/Smart_Patching_with_Cron_Jobs_An_Ops-Centric.pdf)
 - [The Recent AutomatingSystem Patching Via Satellite](./Documentation/Ext_Doc/The_Recent_AutomatingSystem_Patching_Via_Satellite.pdf)
-## ⚙️ Setup Git & Obsidian
-- 🎬 [Youtube Tutorial](https://www.youtube.com/watch?v=Cu4-BPcveBI)
-- git command
-## Windows:
-- Git: https://git-scm.com/download/win
-- GitHub Desktop: https://desktop.github.com/download/
-- Generate Keys (use your email): `ssh-keygen -t ed25519 -C "your-email@example.com"`
-- Start SSH Agent: `eval "$(ssh-agent -s)"`
-- Add Key: `ssh-add ~/.ssh/id_ed25519`
-- Use Key: `echo -e "Host github.com\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/id_ed25519\n  AddKeysToAgent yes" > ~/.ssh/config`
-- Modify File Permissions: `chmod 600 ~/.ssh/config`
-- Copy Key to Clipboard: `clip < ~/.ssh/id_ed25519.pub`
-- Add Key to GitHub: https://github.com/settings/keys
 
 ---
 ## 👤 Author
