@@ -1,5 +1,5 @@
 # Automated Patch Management for B2B IaaS Environments
-## 📌 Overview
+## Overview
 
 Questo progetto propone un modello preliminare di **Security Patch Management (SPM)** pensato per ambienti **B2B multi-tenant** in ambito **Infrastructure-as-a-Service (IaaS)**.  
 L’obiettivo è definire un processo centralizzato, automatizzato e sicuro per la gestione delle patch, ponendo le basi per una futura architettura completa.
@@ -7,7 +7,7 @@ L’obiettivo è definire un processo centralizzato, automatizzato e sicuro per 
 La soluzione è progettata con riferimento al contesto del **Polo Strategico Nazionale (PSN)** e integra standard internazionali come **IEC/ISO 62443**, **ISO/IEC 27002**, **NIST SP 800-40**, e **NERC CIP-007**.
 
 ---
-## 🎯 Project Goals
+## Project Goals
 ![img](./img/PSN_work_flow_v2.png)
 - Creare una **visione unificata e aggiornata** di tutte le risorse gestite (VM, sistemi operativi, patch installate o mancanti).
 - Definire un sistema che identifichi automaticamente patch di sicurezza, le classifichi e ne valuti l’impatto.
@@ -15,7 +15,7 @@ La soluzione è progettata con riferimento al contesto del **Polo Strategico Naz
 - Strutturare un processo scalabile e automatizzabile, per supportare ambienti **eterogenei e multi-cloud**.
 
 ---
-## 🏗️ High-Level Architecture
+## High-Level Architecture
 
 Il modello introduce due componenti principali:
 ![img](./img/HLD_SPM_v2.png)
@@ -32,7 +32,7 @@ Il modello introduce due componenti principali:
 - Garantisce isolamento, sicurezza e coerenza.
 
 ---
-## 🔄 Patch Management Workflow
+## Patch Management Workflow
 
 ### **P1 — [Active Environment Discovery](./workflow/Active_Environment_Discovery-SPM.drawio)**
 ### **P2 — [Security Discovery & Prioritization](./workflow/Security_Patch_Discovery_&_Prioritization.drawio)**
@@ -46,12 +46,12 @@ Due modalità operative:
 ### **(Opzionale) P5 — Post-Deployment Assessment**
 
 ---
-## 🔐 Utenze
+## Utenze
 
-- 🔑 [ASL0603](./Utenze/ASL0603.md)
+- [ASL0603](./Utenze/ASL0603.md)
 
 ---
-## 🔬 LAB
+## LAB
 In questo momento il laboratorio si concentrando sull'utilizzo di Foreman+Katello+Puppet
 [DOC](https://theforeman.org/)
 ![img](./img/ForemanLOGO.png)
@@ -60,14 +60,14 @@ In questo momento il laboratorio si concentrando sull'utilizzo di Foreman+Katell
 - CONFIGURAZIONI
 
 ---
-## 📝Documetazione prodotta
+## Documetazione prodotta
 - [Automated Patch Management for B2B IaaS Environments](./Documentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf)
-## 📝Relevant documents
+## Relevant documents
 - [RED HAT SATELLITE CRON-BASED PATCHING A ZERO-TOUCH APPROACH](./Documentation/Ext_Doc/RED_HAT_SATELLITE_CRON-BASED_PATCHING_A_ZERO-TOUCH_APPROACH.pdf)
 - [Smart Patching with Cron Jobs An Ops-Centric](./Documentation/Ext_Doc/Smart_Patching_with_Cron_Jobs_An_Ops-Centric.pdf)
 - [The Recent AutomatingSystem Patching Via Satellite](./Documentation/Ext_Doc/The_Recent_AutomatingSystem_Patching_Via_Satellite.pdf)
 
 ---
-## 👤 Author
+## Author
 
 **Alberto Ameglio**  

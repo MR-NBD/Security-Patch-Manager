@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Setting/Installation.md",
+                "file": "README.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installation"
+              "title": "README"
             }
           }
         ]
@@ -197,9 +197,9 @@
   },
   "active": "6aa818adfcbbb5b1",
   "lastOpenFiles": [
+    "Setting/Installation.md",
     "README.md",
     "Utenze/ASL0603.md",
-    "Setting/Installation.md",
     "img/img7.png",
     "img/img6.png",
     "img/img5.png",
