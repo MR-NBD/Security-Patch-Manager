@@ -35,7 +35,8 @@
               "title": "ASL0603"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -210,10 +211,10 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "6aa818adfcbbb5b1",
+  "active": "21042f075ef0a5cb",
   "lastOpenFiles": [
-    "Utenze/ASL0603.md",
     "Setting/Installation.md",
+    "Utenze/ASL0603.md",
     "Setting/CreateVM.md",
     "Guide/Understanding Foreman and Katello.md",
     "Guide/Appunti.md",
