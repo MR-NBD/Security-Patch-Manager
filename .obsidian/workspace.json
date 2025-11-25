@@ -20,8 +20,21 @@
               "icon": "lucide-file",
               "title": "Installation"
             }
+          },
+          {
+            "id": "b52a5c2a0e87d9f0",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.10.6"
+              },
+              "icon": "lucide-book-up",
+              "title": "Release Notes 1.10.6"
+            }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -78,8 +91,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "2e443e30fb5653f7",
@@ -196,7 +208,7 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "6aa818adfcbbb5b1",
+  "active": "b52a5c2a0e87d9f0",
   "lastOpenFiles": [
     "Setting/CreateVM.md",
     "Guide/Appunti Utili.md",
