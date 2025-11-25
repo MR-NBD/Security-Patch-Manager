@@ -92,7 +92,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "2e443e30fb5653f7",
@@ -212,8 +213,8 @@
   "active": "6aa818adfcbbb5b1",
   "lastOpenFiles": [
     "Utenze/ASL0603.md",
-    "Setting/CreateVM.md",
     "Setting/Installation.md",
+    "Setting/CreateVM.md",
     "Guide/Understanding Foreman and Katello.md",
     "Guide/Appunti.md",
     "Guide/Guida_Pratica_Collegamento_Host_Azure.md",

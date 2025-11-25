@@ -72,9 +72,9 @@ nel caso di una non limitazione di laboratorio per il DNS il risultato sarebbe s
 firewall-cmd --add-port="5646/tcp"
 ```
 ```bash
-firewall-cmd \  
---add-port="5647/tcp" \  
---add-port="8000/tcp" \  
+firewall-cmd \
+--add-port="5647/tcp" \
+--add-port="8000/tcp" \
 --add-port="9090/tcp"
 ```
 ```bash
