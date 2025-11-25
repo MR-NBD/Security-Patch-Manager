@@ -91,8 +91,38 @@ df -h /var/lib/pulp
 ```
 Dovresti ottenere qualcosa di similie:
 ![img](../img9.png)
-
-- assicuriamoci di avere un hostname statico
+## Impostare un host statico (==NON TESTATO==)
+```bash
+nano /etc/sysconfig/network-scripts/ifcfg-eth0
+```
+eg. → Change e set `BOOTPROTO=static` add `IPADDR=172.20.10.10` add `PREFIX=24` add `GATEWAY=172.20.10.1`
+Spegni e accendi l'interfaccia di rete
+```bash
+ifdown eth0
+```
+```bash
+ifup eth0
+```
+Verifica
+```bash
+ip a
+```
+```bash
+route -n
+```
+## Set di un DNS statico pubblico
+```bash
+nano /etc/resolv.conf
+```
+add `nameserver 4.2.2.2`
+## Set del hostname
+```bash
+hostname foreman-katello-test
+```
+```bash
+hostnamectl set-hostname foreman-katello-test
+```
+(==FINE==)
 - Ricaviamoci il NIC a IP 
 ```bash
 ifconfig
@@ -154,6 +184,17 @@ Ci aspettiamo un output simile
 ![img](../img/img1.png)
 
 Ora possiamo iniziare con l'installazione dei Foreman-Katello. Seguima dunque quanto riporato dalla guida per instllare verione di Foreman 3.15 Katello 4.17 e Puppet 8 https://docs.theforeman.org/3.15/Quickstart/index-katello.html
+
+## Installazione repository EPEL (==NON TESTATO==)
+Abilita il repository CodeReady Linux Builder
+```bash
+sudo subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
+```
+Installa il pacchetto EPEL:
+```bash
+sudo dnf install epel-release
+```
+(==FINE==)
 ## Configurazione dei repository
 1. Cancelliamo tutti i metadati:
 ```bash
