@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Utenze/ASL0603.md",
+                "file": "Guide/Appunti Utili.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ASL0603"
+              "title": "Appunti Utili"
             }
           },
           {
@@ -211,12 +211,15 @@
   },
   "active": "6aa818adfcbbb5b1",
   "lastOpenFiles": [
+    "Guide/Understanding Foreman and Katello.md",
+    "Guide/Untitled.md",
     "Setting/Installation.md",
     "Utenze/ASL0603.md",
-    "Guide/Untitled.md",
+    "img/HLD_SPM_v2.png",
+    "img/img9.png",
+    "img/img8.png",
     "Setting/CreateVM.md",
-    "Guide/Understanding Foreman and Katello.md",
-    "Guide/Appunti.md",
+    "Guide/Appunti Utili.md",
     "Guide/Guida_Pratica_Collegamento_Host_Azure.md",
     "README.md",
     "Untitled.base",
@@ -227,11 +230,8 @@
     "img/img2.png",
     "img/ForemanLOGO.png",
     "img/img3.png",
-    "img/img1.png",
     "Untitled/Untitled",
     "Guide",
-    "img/screenshot.png",
-    "2025-11-22 14_49_23-.png",
     "Setting",
     "Documentation/Ext_Doc/The_Recent_AutomatingSystem_Patching_Via_Satellite.pdf",
     "Documentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf",

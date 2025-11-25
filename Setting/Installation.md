@@ -36,6 +36,62 @@ Dopo il riavvio controllare se la verione è stata aggiornata correttamente.
 rpm -q selinux-policy
 ```
 ![img](../img/img7.png)
+## Mount di un disco dedicato alle repository su `/var/lib/pulp` tramite **LVM**
+Verifica la presenza del secondo disco:
+```bash
+lsblk
+```
+!![img](../img8.png)
+## Inizializza il disco dedicato con LVM
+Crea la tabella delle partizioni sul disco sdb
+```bash
+sudo parted /dev/sdb --script mklabel gpt
+```
+```bash
+sudo parted /dev/sdb --script mkpart primary 0% 100%
+```
+#### Crea Physical Volume (PV)
+```bash
+sudo pvcreate /dev/sdb1
+```
+#### Crea Volume Group (VG)
+Lo definisci in modo che sia dedicato a Pulp:
+```bash
+sudo vgcreate pulpgvg /dev/sdb1
+```
+#### Crea Logical Volume (LV)
+```bash
+sudo lvcreate -n pulplv -l 100%FREE pulpgvg
+```
+#### Formatta il filesystem
+Consigliato: **XFS** (Pulp lavora meglio con blocchi grandi)
+```bash
+sudo mkfs.xfs /dev/pulpgvg/pulplv
+```
+## Monta il volume su /var/lib/pulp
+Crea la directory se non esiste:
+```bash
+sudo mkdir -p /var/lib/pulp
+```
+Aggiungi la entry in fstab:
+```bash
+echo '/dev/pulpgvg/pulplv /var/lib/pulp xfs defaults 0 0' | sudo tee -a /etc/fstab
+```
+Monta tutto:
+```bash
+sudo mount -a
+```
+Esegui il reload di systemd
+```bash
+sudo systemctl daemon-reload
+```
+## Verifica che il mount sia attivo
+```bash
+df -h /var/lib/pulp
+```
+Dovresti ottenere qualcosa di similie:
+!![img](../img9.png)
+
 - assicuriamoci di avere un hostname statico
 - Ricaviamoci il NIC a IP 
 ```bash
