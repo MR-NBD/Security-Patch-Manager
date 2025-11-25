@@ -90,7 +90,7 @@ sudo systemctl daemon-reload
 df -h /var/lib/pulp
 ```
 Dovresti ottenere qualcosa di similie:
-!![img](../img9.png)
+![img](../img9.png)
 
 - assicuriamoci di avere un hostname statico
 - Ricaviamoci il NIC a IP 
