@@ -18,9 +18,6 @@ sudo su
 ```bash
 sudo subscription-manager register
 ```
-```bash
-sudo subscription-manager attach --auto
-```
 E' necessario registrare una sottoscrizione RHEL, in quasteso caso sto usando la mia personale gratuita, _situazione da migliorare magari caricando su azure una ISO già compatibile è più aggionata_. 
 ```bash
 sudo subscription-manager repos --enable=rhel-9-for-x86_64-baseos-rpms
