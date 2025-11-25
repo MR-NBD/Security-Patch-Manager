@@ -78,12 +78,12 @@ firewall-cmd \
 --add-port="9090/tcp"
 ```
 ```bash
-firewall-cmd \  
---add-service=dns \  
---add-service=dhcp \  
---add-service=tftp \  
---add-service=http \  
---add-service=https \  
+firewall-cmd \
+--add-service=dns \
+--add-service=dhcp \
+--add-service=tftp \
+--add-service=http \
+--add-service=https \
 --add-service=puppetmaster
 ```
 ```bash
@@ -105,15 +105,15 @@ dnf clean all
 ```
 2. Installare il pacchetto foreman-release.rpm:
 ```bash
-dnf install https://yum.theforeman.org/releases/3.15/el9/x86_64/foreman-release.rpm
+dnf install -y https://yum.theforeman.org/releases/3.15/el9/x86_64/foreman-release.rpm
 ```
 3. Installa il pacchetto katello-repos-latest.rpm:
 ```bash
-dnf install https://yum.theforeman.org/katello/4.17/katello/el9/x86_64/katello-repos-latest.rpm
+dnf install -y https://yum.theforeman.org/katello/4.17/katello/el9/x86_64/katello-repos-latest.rpm
 ```
 4. Installa il pacchetto puppet-release.
 ```bash
-dnf install https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
+dnf install -y https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
 ```
 Verifichiamo che tutto sia vvenuto correttamente. 
 ```bash
@@ -124,11 +124,11 @@ Dovremmo ottenere un risultato simile.
 ## Installazione dei pacchetti del server Foreman
 1. Aggiorniamo tutti i pacchetti:
 ```bash
-dnf upgrade
+dnf upgrade -y
 ```
 1. Installiamo `foreman-installer-katello`:
 ```bash
-dnf install foreman-installer-katello
+dnf install -y foreman-installer-katello
 ```
 ## Lanciamo l'installer di Foreman per katello
 L'installazione non è interattiva, ma la configurazione può essere personalizzata specificando una qualsiasi delle opzioni elencate in foreman-installer --help, oppure eseguendo foreman-installer -i per la modalità interattiva. Ulteriori esempi sono descritti nella sezione Opzioni di installazione. L'opzione -v disabilita la barra di avanzamento e visualizza tutte le modifiche.
