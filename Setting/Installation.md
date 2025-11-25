@@ -41,7 +41,7 @@ Verifica la presenza del secondo disco:
 ```bash
 lsblk
 ```
-!![img](../img8.png)
+![img](../img8.png)
 ## Inizializza il disco dedicato con LVM
 Crea la tabella delle partizioni sul disco sdb
 ```bash
