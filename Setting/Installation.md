@@ -45,19 +45,19 @@ lsblk
 ## Inizializza il disco dedicato con LVM
 Crea la tabella delle partizioni sul disco sdb o sba da individuare nel passaggio precedente
 ```bash
-sudo parted /dev/sdb --script mklabel gpt
+sudo parted /dev/sda --script mklabel gpt
 ```
 ```bash
-sudo parted /dev/sdb --script mkpart primary 0% 100%
+sudo parted /dev/sda --script mkpart primary 0% 100%
 ```
 #### Crea Physical Volume (PV)
 ```bash
-sudo pvcreate /dev/sdb1
+sudo pvcreate /dev/sda1
 ```
 #### Crea Volume Group (VG)
 Lo definisci in modo che sia dedicato a Pulp:
 ```bash
-sudo vgcreate pulpgvg /dev/sdb1
+sudo vgcreate pulpgvg /dev/sda1
 ```
 #### Crea Logical Volume (LV)
 ```bash
@@ -91,7 +91,7 @@ df -h /var/lib/pulp
 ```
 Dovresti ottenere qualcosa di similie:
 ![img](../img9.png)
-## Impostare un host statico (==NON TESTATO==)
+## Impostare un host statico
 ```bash
 nano /etc/sysconfig/network-scripts/ifcfg-eth0
 ```
@@ -120,7 +120,6 @@ hostname foreman-katello-test
 ```bash
 hostnamectl set-hostname foreman-katello-test
 ```
-(==FINE==)
 - Ricaviamoci il NIC a IP 
 ```bash
 ifconfig
@@ -135,11 +134,11 @@ hostname
 Per una procedura standard in questo momento dovremmo cercare il dominio del DNS per una corretta configurazione del hest. 
 in questo modo
 ```bash
-nmcli device show enp2s0 | grep IP4.DNS
+nmcli device show eth0 | grep IP4.DNS
 ```
 ci aspetta un Output simile `DNS-Server-IP: IP4.DNS[1]: 192.168.2.1`
 ```bash
-nslookup 192.168.2.1
+nslookup 4.2.2.2
 ```
 ci aspetta un Output simile `1.2.168.192.in-addr.arpa name = speedport.ip.`
 Essendo noi in un laboratorio test ed unico interesse in questo momento che il servizio venga raggiunto solamente da un host all'interno della stessa subnet aggiriamo il problema.
