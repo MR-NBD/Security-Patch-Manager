@@ -128,3 +128,21 @@ Seleziona → **Promote**
 Promuovi in ordine:  
 Development → Testing → Production
 
+---
+# **Aggiungere un nuovo OS**
+Vai su:  
+**Hosts → Provisioning Setup → Operating Systems**
+Seleziona → **Create Operating System**
+
+![](../img/img17.png)
+
+- Name : Ubuntu
+- Major Version : 24
+- Minor Version : 04
+- Description : ubuntu 24.04
+- Family : Debian
+- Release Name : noble-security
+- Root Password Hash : SHA512
+ - Architectures : x86_64
+
+![](../img/img18.png)
