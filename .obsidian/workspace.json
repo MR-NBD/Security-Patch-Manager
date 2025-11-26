@@ -13,28 +13,15 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Setting/Installation.md",
+                "file": "README.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installation"
-            }
-          },
-          {
-            "id": "b52a5c2a0e87d9f0",
-            "type": "leaf",
-            "state": {
-              "type": "release-notes",
-              "state": {
-                "currentVersion": "1.10.6"
-              },
-              "icon": "lucide-book-up",
-              "title": "Release Notes 1.10.6"
+              "title": "README"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -208,13 +195,13 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "b52a5c2a0e87d9f0",
+  "active": "6aa818adfcbbb5b1",
   "lastOpenFiles": [
+    "Setting/Installation.md",
     "Setting/CreateVM.md",
     "Guide/Appunti Utili.md",
     "Guide/Understanding Foreman and Katello.md",
     "Guide/Untitled.md",
-    "Setting/Installation.md",
     "Utenze/ASL0603.md",
     "img/HLD_SPM_v2.png",
     "img/img9.png",
