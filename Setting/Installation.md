@@ -1,4 +1,4 @@
-suIn questa guida mostrerò come installare Forman con Puppet, Katello e il plugin Discovery. Vedremop come installare e configurare i server DHCP e TFTP. Mostrerò anche come configurare Foreman e come utilizzare l'immagine di avvio di Foreman tramite PXE.
+
 ## Setup check
 ```bash
 cat /etc/os-release
@@ -96,6 +96,7 @@ Dovresti ottenere qualcosa di similie:
 nano /etc/sysconfig/network-scripts/ifcfg-eth0
 ```
 eg. → Change e set `BOOTPROTO=static` add `IPADDR=172.20.10.10` add `PREFIX=24` add `GATEWAY=172.20.10.1`
+![img](../img/img10.png)
 Spegni e accendi l'interfaccia di rete
 ```bash
 sudo ip link set eth0 down && sudo ip link set eth0 up
@@ -113,6 +114,7 @@ route -n
 nano /etc/resolv.conf
 ```
 add `nameserver 4.2.2.2`
+![img](../img/img11.png)
 ## Set del hostname
 ```bash
 hostname foreman-katello-test
@@ -125,7 +127,6 @@ hostnamectl set-hostname foreman-katello-test
 ifconfig
 ```
 ![img](../img/img6.png)
-
 In questo caso il NIC eth0 e l'IP 10.172.2.17
 - verifichiamo l'hostname se non se siamo sicuri
 ```bash
@@ -140,16 +141,15 @@ ci aspetta un Output simile `DNS-Server-IP: IP4.DNS[1]: 192.168.2.1`
 ```bash
 nslookup 4.2.2.2
 ```
-ci aspetta un Output simile `1.2.168.192.in-addr.arpa name = speedport.ip.`
-Essendo noi in un laboratorio test ed unico interesse in questo momento che il servizio venga raggiunto solamente da un host all'interno della stessa subnet aggiriamo il problema.
+ci aspetta un Output simile `1.2.168.192.in-addr.arpa name = b.resolvers.level3.net.
 ## edit il file hosts
 - edit `/etc/hosts`
 ```bash
 sudo nano /etc/hosts
 ```
-IL dominio per la mappatura di un nuov host dovrebbe essere: `<host name+routers domain> <host name>` nel nostro ambiente di test seguendo l'esempio di prima inseriremo l'IP 10.172.2.17 hostname della macchina e `.localdomain` seguendo la logical del file. Dovremmo ottenere un risultato simile.
-![img](../img/img5.png)
-nel caso di una non limitazione di laboratorio per il DNS il risultato sarebbe stato `10.172.2.17 foreman-katello-test2speedport.ip. foreman-katello-test2` o qualcosa di simile.
+IL dominio per la mappatura di un nuov host dovrebbe essere: `<host name+routers domain> <host name>` nel nostro ambiente di test seguendo l'esempio di prima inseriremo l'IP 10.172.2.15 hostname della macchina e `b.resolvers.level3.net.` seguendo la logical del file. Dovremmo ottenere un risultato simile.
+![img](../img/img12.png)
+Nel caso di una non limitazione di laboratorio per il DNS il risultato sarebbe stato `10.172.2.15 foreman-katello-test.b.resolvers.level3.net. foreman-katello-test` o qualcosa di simile.
 ## Settiamo le regole del firewall
 ```bash
 firewall-cmd --add-port="5646/tcp"
@@ -220,7 +220,7 @@ Verifichiamo che tutto sia vvenuto correttamente.
 dnf repolist enabled
 ```
 Dovremmo ottenere un risultato simile.
-![img](../img/img4.png)
+![img](../img/img13.png)
 ## Installazione dei pacchetti del server Foreman
 1. Aggiorniamo tutti i pacchetti:
 ```bash
@@ -233,10 +233,25 @@ dnf install -y foreman-installer-katello
 ## Lanciamo l'installer di Foreman per katello
 L'installazione non è interattiva, ma la configurazione può essere personalizzata specificando una qualsiasi delle opzioni elencate in foreman-installer --help, oppure eseguendo foreman-installer -i per la modalità interattiva. Ulteriori esempi sono descritti nella sezione Opzioni di installazione. L'opzione -v disabilita la barra di avanzamento e visualizza tutte le modifiche.
 ```bash
-foreman-installer --scenario katello
+sudo foreman-installer --scenario katello \
+  --enable-foreman-plugin-remote-execution \
+  --enable-foreman-plugin-ansible \
+  --enable-foreman-proxy-plugin-ansible \
+  --enable-foreman-plugin-discovery
 ```
 Dovremmo ottenere un risultato simile. 
 ![img](../img/img2.png)
+
+Opzione|Significato
+---|---
+`--scenario katello`|Installa Foreman + Katello (Content Management)|
+`--enable-foreman-plugin-remote-execution`|Abilita il plugin Remote Execution su Foreman
+`--enable-foreman-proxy-plugin-remote-execution-ssh`|Abilita il proxy SSH per Remote Execution, necessario per connettersi agli host via SSH
+`--enable-foreman-plugin-ansible`|Abilita il plugin Ansible per integrare job template, playbook e automation
+`--enable-foreman-proxy-plugin-ansible`|Abilita il proxy per Ansible, per eseguire playbook su host
+`--enable-foreman-plugin-discovery`|Abilita il plugin Discovery per rilevare nuovi host in rete (PXE boot)
+Verifica che il portale sia accessibile: 
+![img](../img/img4.png)
 Come si vede nell'output queste sono le credenziali con la password generate per accedere a foreman. `Initial credentials are admin / aXEYxdbKpCSFC6Gi`
 Il servizio è operativo a `https://foreman-katello-test2.localdomain` però nel nostro in assenza di DNS possiamo contattare la macchina al'indirizzo ip https://10.172.2.17
 
