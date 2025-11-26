@@ -26,15 +26,10 @@ Accedi alla Web UI:
 Compila:
 
 - **Name**: `Ubuntu-24.04`
-    
 - **Label**: automatico
-    
-- **Vendor**: `Ubuntu`
-    
 - **Description**: opzionale
-    
 
-👉 **Save**
+ **Save**
 
 ---
 
