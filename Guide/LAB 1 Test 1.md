@@ -1,11 +1,10 @@
-Ecco **la guida completa e aggiornata (Ubuntu 22.04/24.04)** per gestire il **patch management** con Foreman + Katello.
+**Guida per (Ubuntu 22.04/24.04)** per gestire il **patch management** con Foreman + Katello.
 
-> ⚠️ **Nota importante**  
+> ⚠️ **Nota**  
 > Katello gestisce nativamente repository _yum/dnf_ (RHEL-based).  
 > Per **Ubuntu/Debian** serve usare:
 > 
 > - **apt repositories** tramite la funzione _Debian/Ubuntu repo sync_ (supportata da Foreman ≥ 3.6 / Katello ≥ 4.8)
->     
 > - Oppure usare **Pulp Deb plugin**, incluso nelle versioni moderne di Katello.
 >     
 > 
@@ -13,11 +12,9 @@ Ecco **la guida completa e aggiornata (Ubuntu 22.04/24.04)** per gestire il **pa
 
 ---
 
-# ✅ **PATCH MANAGEMENT CON FOREMAN/KATELLO SU UBUNTU 24.04 (GUIDA COMPLETA)**
-
+# **PATCH MANAGEMENT CON FOREMAN/KATELLO SU UBUNTU 24.04**
 ---
-
-# **1. Creare il Product per Ubuntu**
+# **1. Creare il Product per Ubuntu-24.04**
 
 Accedi alla Web UI:
 
@@ -32,13 +29,10 @@ Compila:
  **Save**
 
 ---
-
 # **2. Creare i Repository APT**
 
 Vai su:
-
 **Content → Products → Ubuntu-24.04 → New Repository**
-
 Compila:
 
 |Campo|Valore|
@@ -49,48 +43,26 @@ Compila:
 |**Distribution**|`noble`|
 |**Components**|`main restricted universe multiverse`|
 |**Architectures**|`amd64`|
-
-Clicca **Save**.
+**Save**.
 
 Ripeti per gli altri repository:
-
 ### Repository Updates
-
 - **Name**: `Ubuntu-24.04-Updates`
-    
 - URL: `http://archive.ubuntu.com/ubuntu/`
-    
 - Distribution: `noble-updates`
-    
 - Components: `main restricted universe multiverse`
-    
-
 ### Repository Security
-
 - **Name**: `Ubuntu-24.04-Security`
-    
 - URL: `http://security.ubuntu.com/ubuntu/`
-    
 - Distribution: `noble-security`
-    
 - Components: `main restricted universe multiverse`
-    
-
 ---
-
-# **3. Sincronizzare i Repository Ubuntu**
-
+# **3. Sincronizzare i Repository**
 Vai su:
-
 **Content → Sync Status**
-
 Seleziona i repo → **Sync Now**
 
-Oppure CLI:
-
-```bash
-hammer repository synchronize --product "Ubuntu-24.04" --name "Ubuntu-24.04-Main"
-```
+![Sync Status](../img/SyncStatus.png)
 
 ---
 

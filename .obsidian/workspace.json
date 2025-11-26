@@ -41,12 +41,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Guide/Untitled.md",
+                "file": "Guide/LAB 1 Test 1.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Untitled"
+              "title": "LAB 1 Test 1"
             }
           }
         ],
@@ -226,9 +226,10 @@
   },
   "active": "bba07e3d7d06ad34",
   "lastOpenFiles": [
+    "img/SyncStatus.png",
     "Utenze/ASL0603.md",
     "Setting/Installation.md",
-    "Guide/Untitled.md",
+    "Guide/LAB 1 Test 1.md",
     "img/img4.png",
     "img/img2.png",
     "img/img11.png",
