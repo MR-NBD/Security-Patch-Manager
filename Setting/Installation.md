@@ -93,6 +93,13 @@ df -h /var/lib/pulp
 Dovresti ottenere qualcosa di similie:
 ![img](../img/img9.png)
 ## Impostare un host statico
+- Ricaviamoci il NIC a IP 
+```bash
+ifconfig
+```
+![img](../img/img6.png)
+
+In questo caso il NIC eth0 e l'IP 10.172.2.17
 ```bash
 nano /etc/sysconfig/network-scripts/ifcfg-eth0
 ```
@@ -125,13 +132,6 @@ hostname foreman-katello-test
 ```bash
 hostnamectl set-hostname foreman-katello-test
 ```
-- Ricaviamoci il NIC a IP 
-```bash
-ifconfig
-```
-![img](../img/img6.png)
-
-In questo caso il NIC eth0 e l'IP 10.172.2.17
 - verifichiamo l'hostname se non se siamo sicuri
 ```bash
 hostname 
