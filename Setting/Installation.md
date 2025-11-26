@@ -1,4 +1,4 @@
-In questa guida mostrerò come installare Forman con Puppet, Katello e il plugin Discovery. Vedremop come installare e configurare i server DHCP e TFTP. Mostrerò anche come configurare Foreman e come utilizzare l'immagine di avvio di Foreman tramite PXE.
+suIn questa guida mostrerò come installare Forman con Puppet, Katello e il plugin Discovery. Vedremop come installare e configurare i server DHCP e TFTP. Mostrerò anche come configurare Foreman e come utilizzare l'immagine di avvio di Foreman tramite PXE.
 ## Setup check
 ```bash
 cat /etc/os-release
@@ -43,7 +43,7 @@ lsblk
 ```
 ![img](../img8.png)
 ## Inizializza il disco dedicato con LVM
-Crea la tabella delle partizioni sul disco sdb
+Crea la tabella delle partizioni sul disco sdb o sba da individuare nel passaggio precedente
 ```bash
 sudo parted /dev/sdb --script mklabel gpt
 ```
