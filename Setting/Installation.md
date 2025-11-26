@@ -98,10 +98,8 @@ nano /etc/sysconfig/network-scripts/ifcfg-eth0
 eg. → Change e set `BOOTPROTO=static` add `IPADDR=172.20.10.10` add `PREFIX=24` add `GATEWAY=172.20.10.1`
 Spegni e accendi l'interfaccia di rete
 ```bash
-ifdown eth0
-```
-```bash
-ifup eth0
+sudo ip link set eth0 down && sudo ip link set eth0 up
+
 ```
 Verifica
 ```bash

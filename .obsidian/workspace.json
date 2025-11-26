@@ -50,7 +50,7 @@
             }
           }
         ],
-        "currentTab": 1
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -224,10 +224,10 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "daf2ab1d7f21ed0e",
+  "active": "5bb7fe6e0a8f9fd0",
   "lastOpenFiles": [
-    "Utenze/ASL0603.md",
     "Setting/Installation.md",
+    "Utenze/ASL0603.md",
     "Setting/CreateVM.md",
     "Guide/Untitled.md",
     "Guide/Appunti Utili.md",
