@@ -17,8 +17,9 @@
 # **1. Creare il Product per Ubuntu-24.04**
 
 Accedi alla Web UI:
-
 **Content → Products → Create Product**
+
+![Create Product](../img/CreateProduct.png)
 
 Compila:
 
@@ -33,6 +34,8 @@ Compila:
 
 Vai su:
 **Content → Products → Ubuntu-24.04 → New Repository**
+
+![Create Product](../img/CreateProduct.png)
 Compila:
 
 |Campo|Valore|
@@ -65,38 +68,34 @@ Seleziona i repo → **Sync Now**
 ![Sync Status](../img/SyncStatus.png)
 
 ---
-
 # **4. Creare una Content View**
 
 Vai su:
+**Content → Lifecycle → Content Views → Create New View**
 
-**Content → Content Views → Create New View**
-
+![Create Content View](../img/CreateContentView.png)
 Compila:
-
 - Name: `Ubuntu-24.04-CV`
-    
 - Type: `Normal`
-    
 
 **Save**
 
-### Aggiungi i repository
+# **Aggiungi i repository**
+![img](../img/img14.png)
 
-Tab **Repositories → Add**
+**Repositories → Add**
 
 Aggiungi:
 
 - Ubuntu-24.04-Main
-    
 - Ubuntu-24.04-Updates
-    
 - Ubuntu-24.04-Security
-    
 
-### Pubblica la Content View
+# Pubblica la Content View
 
 Vai su **Versions → Publish New Version**
+
+![Publish New Version](../img/PublishNewVersion.png)
 
 Commento: “Initial Ubuntu 24.04 version”
 
@@ -106,16 +105,14 @@ Commento: “Initial Ubuntu 24.04 version”
 
 Se non ci sono già environment:
 
-**Content → Lifecycle Environments → Create**
+**Content → Lifecycle Environments → Create Environment Path**
 
+![Create Environment Path][../img/CreateEnvironmentPath.png]
 Crea ad esempio:
 
 - Development
-    
 - Testing
-    
 - Production
-    
 
 ### Promuovere la Content View
 
