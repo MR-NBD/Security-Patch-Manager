@@ -207,17 +207,17 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "fcae071421e98e82",
+  "active": "ae78345ed27dd016",
   "lastOpenFiles": [
+    "Setting/Installation.md",
+    "Guide/LAB 1 Test 1.md",
     "img/img16.png",
     "img/img15.png",
     "img/img5.png",
     "img/CreateEnvironmentPath.png",
     "img/PublishNewVersion.png",
-    "Guide/LAB 1 Test 1.md",
     "img/img14.png",
     "CreateProduct.png",
-    "Setting/Installation.md",
     "Guide/Understanding Foreman and Katello.md",
     "img/CreateContentView.png",
     "Utenze/ASL0603.md",
@@ -225,7 +225,6 @@
     "Setting/CreateVM.md",
     "img/CreateProduct.png",
     "img/SyncStatus.png",
-    "img/img4.png",
     "Guide/Appunti Utili.md",
     "README.md",
     "Guide/Guida_Pratica_Collegamento_Host_Azure.md",
