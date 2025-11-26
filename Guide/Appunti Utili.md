@@ -20,3 +20,10 @@ Cosa fa:
 - elenca _tutti_ i servizi gestiti (httpd, dynflow, pulp services, candlepin, foreman, postgres…)
 - mostra se sono attivi, inattivi o falliti
 - è molto più dettagliato di `hammer ping`
+
+
+
+```bash
+rpm -qa | grep ansible
+```
+
