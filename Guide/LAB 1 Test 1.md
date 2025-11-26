@@ -6,7 +6,6 @@
 > 
 > - **apt repositories** tramite la funzione _Debian/Ubuntu repo sync_ (supportata da Foreman ≥ 3.6 / Katello ≥ 4.8)
 > - Oppure usare **Pulp Deb plugin**, incluso nelle versioni moderne di Katello.
->     
 > 
 > La guida sottostante usa **Pulp Deb**, attualmente lo standard per Ubuntu.
 
