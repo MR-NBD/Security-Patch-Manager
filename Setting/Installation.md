@@ -181,17 +181,23 @@ Ci aspettiamo un output simile
 ![img](../img/img1.png)
 
 Ora possiamo iniziare con l'installazione dei Foreman-Katello. Seguima dunque quanto riporato dalla guida per instllare verione di Foreman 3.15 Katello 4.17 e Puppet 8 https://docs.theforeman.org/3.15/Quickstart/index-katello.html
-
-## Installazione repository EPEL (==NON TESTATO==)
+## Installazione repository EPEL
 Abilita il repository CodeReady Linux Builder
 ```bash
 sudo subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
 ```
-Installa il pacchetto EPEL:
+Scaricare il pacchetto EPEL per RHEL 9
 ```bash
-sudo dnf install epel-release
+sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
 ```
-(==FINE==)
+Abilitare EPEL
+```bash
+sudo dnf config-manager --set-enabled epel
+```
+Aggiornare la cache dei repository
+```bash
+sudo dnf makecache
+```
 ## Configurazione dei repository
 1. Cancelliamo tutti i metadati:
 ```bash
