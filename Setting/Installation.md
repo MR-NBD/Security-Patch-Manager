@@ -41,7 +41,7 @@ Verifica la presenza del secondo disco:
 ```bash
 lsblk
 ```
-![img](../img8.png)
+![img](../img/img8.png)
 ## Inizializza il disco dedicato con LVM
 Crea la tabella delle partizioni sul disco sdb o sba da individuare nel passaggio precedente
 ```bash
@@ -90,13 +90,14 @@ sudo systemctl daemon-reload
 df -h /var/lib/pulp
 ```
 Dovresti ottenere qualcosa di similie:
-![img](../img9.png)
+![img](../img/img9.png)
 ## Impostare un host statico
 ```bash
 nano /etc/sysconfig/network-scripts/ifcfg-eth0
 ```
 eg. → Change e set `BOOTPROTO=static` add `IPADDR=172.20.10.10` add `PREFIX=24` add `GATEWAY=172.20.10.1`
 ![img](../img/img10.png)
+
 Spegni e accendi l'interfaccia di rete
 ```bash
 sudo ip link set eth0 down && sudo ip link set eth0 up
@@ -114,6 +115,7 @@ route -n
 nano /etc/resolv.conf
 ```
 add `nameserver 4.2.2.2`
+
 ![img](../img/img11.png)
 ## Set del hostname
 ```bash
@@ -127,6 +129,7 @@ hostnamectl set-hostname foreman-katello-test
 ifconfig
 ```
 ![img](../img/img6.png)
+
 In questo caso il NIC eth0 e l'IP 10.172.2.17
 - verifichiamo l'hostname se non se siamo sicuri
 ```bash
@@ -250,6 +253,7 @@ Opzione|Significato
 `--enable-foreman-plugin-ansible`|Abilita il plugin Ansible per integrare job template, playbook e automation
 `--enable-foreman-proxy-plugin-ansible`|Abilita il proxy per Ansible, per eseguire playbook su host
 `--enable-foreman-plugin-discovery`|Abilita il plugin Discovery per rilevare nuovi host in rete (PXE boot)
+
 Verifica che il portale sia accessibile: 
 ![img](../img/img4.png)
 Come si vede nell'output queste sono le credenziali con la password generate per accedere a foreman. `Initial credentials are admin / aXEYxdbKpCSFC6Gi`

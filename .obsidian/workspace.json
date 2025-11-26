@@ -93,7 +93,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "2e443e30fb5653f7",
@@ -210,7 +211,7 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "ae78345ed27dd016",
+  "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
     "Utenze/ASL0603.md",
     "img/img4.png",
