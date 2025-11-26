@@ -20,18 +20,6 @@
               "icon": "lucide-file",
               "title": "LAB 1 Test 1"
             }
-          },
-          {
-            "id": "0bbe82f79da00649",
-            "type": "leaf",
-            "state": {
-              "type": "image",
-              "state": {
-                "file": "img/img14.png"
-              },
-              "icon": "lucide-image",
-              "title": "img14"
-            }
           }
         ]
       }
@@ -211,6 +199,8 @@
   "lastOpenFiles": [
     "Setting/Installation.md",
     "Guide/LAB 1 Test 1.md",
+    "img/img14.png",
+    "image.png",
     "img/img18.png",
     "img/img17.png",
     "img/img17 1.png",
@@ -219,8 +209,6 @@
     "img/img5.png",
     "img/CreateEnvironmentPath.png",
     "img/PublishNewVersion.png",
-    "img/img14.png",
-    "CreateProduct.png",
     "Guide/Understanding Foreman and Katello.md",
     "Utenze/ASL0603.md",
     "().md",

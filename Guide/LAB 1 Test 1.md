@@ -146,3 +146,7 @@ Seleziona → **Create Operating System**
  - Architectures : x86_64
 
 ![](../img/img18.png)
+
+
+---
+![[image.png]]
