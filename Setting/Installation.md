@@ -11,6 +11,7 @@ rpm -q selinux-policy
 Si vede la versione `selinux-policy-38.1.35-2.el9_4.3 ← è troppo vecchia`. Per questo setup stiamo usando **RHEL 9.4** OS presente come ISO su azure, ma i pacchetti SELinux di Foreman/Katello che vogliamo installanlare richiedono almeno : 
 - `selinux-policy >= 38.1.45-3.el9_5`
 - `selinux-policy >= 38.1.53-5.el9_6`
+
 Aggiorniamola: 
 ```bash
 sudo su
