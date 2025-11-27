@@ -8,20 +8,35 @@
         "type": "tabs",
         "children": [
           {
-            "id": "c0a2618662e967a3",
+            "id": "78403f10cd07c3c7",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "README.md",
+                "file": "Setting/Installation.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README"
+              "title": "Installation"
+            }
+          },
+          {
+            "id": "3831f0df43d14014",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Setting/Installation_V2.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Installation_V2"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -195,19 +210,20 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "fcae071421e98e82",
+  "active": "3831f0df43d14014",
   "lastOpenFiles": [
+    "Setting/Installation.md",
+    "Setting/Installation_V2.md",
+    "Utenze/ASL0603.md",
+    "Guide/Understanding_Foreman_and_Katello.md",
+    "README.md",
     "workflow/PATCH_TESTING_VALIDATION.drawio",
     "image.png",
-    "README.md",
     "Documentation/Tabella_Comparativa.md",
-    "Guide/Understanding_Foreman_and_Katello.md",
     "Guide/LAB_1-Test_1.md",
     "Guide/Appunti_Utili.md",
     "Documentation/ATIXOrcharrhino.pdf",
     "Documentation/ATIXOrcharrhino.pdff.md",
-    "Utenze/ASL0603.md",
-    "Setting/Installation.md",
     "img/img14.png",
     "img/img18.png",
     "img/img17.png",
@@ -228,7 +244,6 @@
     "Documentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf",
     "Documentation/Ext_Doc/Smart_Patching_with_Cron_Jobs_An_Ops-Centric.pdf",
     "Documentation/Ext_Doc/RED_HAT_SATELLITE_CRON-BASED_PATCHING_A_ZERO-TOUCH_APPROACH.pdf",
-    "Documentation/Ext_Doc",
     "Utenze/ASL0603 1.md",
     "Utenze/ASL0603 2.md",
     "Untitled.md"
