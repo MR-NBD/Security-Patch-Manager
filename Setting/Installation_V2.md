@@ -98,33 +98,6 @@ Dovresti ottenere qualcosa di similie:
 ifconfig
 ```
 ![img](../img/img6.png)
-
-In questo caso il NIC eth0 e l'IP 10.172.2.17
-```bash
-nano /etc/sysconfig/network-scripts/ifcfg-eth0
-```
-eg. → Change e set `BOOTPROTO=static` add `IPADDR=172.20.10.10` add `PREFIX=24` add `GATEWAY=172.20.10.1`
-![img](../img/img10.png)
-
-Spegni e accendi l'interfaccia di rete
-```bash
-sudo ip link set eth0 down && sudo ip link set eth0 up
-
-```
-Verifica
-```bash
-ip a
-```
-```bash
-route -n
-```
-## Set di un DNS statico pubblico
-```bash
-nano /etc/resolv.conf
-```
-add `nameserver 4.2.2.2`
-
-![img](../img/img11.png)
 ## Set del hostname
 ```bash
 hostname foreman-katello-test
@@ -136,24 +109,13 @@ hostnamectl set-hostname foreman-katello-test
 ```bash
 hostname 
 ```
-Per una procedura standard in questo momento dovremmo cercare il dominio del DNS per una corretta configurazione del hest. 
-in questo modo
-```bash
-nmcli device show eth0 | grep IP4.DNS
-```
-ci aspetta un Output simile `DNS-Server-IP: IP4.DNS[1]: 192.168.2.1`
-```bash
-nslookup 4.2.2.2
-```
-ci aspetta un Output simile `1.2.168.192.in-addr.arpa name = b.resolvers.level3.net.
 ## edit il file hosts
 - edit `/etc/hosts`
 ```bash
 sudo nano /etc/hosts
 ```
-IL dominio per la mappatura di un nuov host dovrebbe essere: `<host name+routers domain> <host name>` nel nostro ambiente di test seguendo l'esempio di prima inseriremo l'IP 10.172.2.15 hostname della macchina e `b.resolvers.level3.net.` seguendo la logical del file. Dovremmo ottenere un risultato simile.
-![img](../img/img12.png)
-Nel caso di una non limitazione di laboratorio per il DNS il risultato sarebbe stato `10.172.2.15 foreman-katello-test.b.resolvers.level3.net. foreman-katello-test` o qualcosa di simile.
+IL dominio per la mappatura di un nuovo host dovrebbe essere: `<host name+routers domain> <host name>` nel nostro ambiente di test seguendo l'esempio di prima inseriremo l'IP 10.172.2.15 hostname della macchina e `.localdomain` seguendo la logical del file. Dovremmo ottenere un risultato simile.
+![img](../img/etc-hosts.png)
 ## Settiamo le regole del firewall
 ```bash
 firewall-cmd --add-port="5646/tcp"
