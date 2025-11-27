@@ -189,8 +189,8 @@ L'installazione non è interattiva, ma la configurazione può essere personalizz
 ```bash
 sudo foreman-installer --scenario katello
 ```
-Dovremmo ottenere un risultato simile. 
-![img](../img/img2.png)
+Dovremmo ottenere un risultato simile.
+![img](../img/katelloresutl.png)
 
 Verifica che il portale sia accessibile: 
 ![img|700x548](../img/img4.png)

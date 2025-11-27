@@ -209,13 +209,14 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "f76e3691fbfccb78",
+  "active": "3831f0df43d14014",
   "lastOpenFiles": [
+    "img/katelloresutl.png",
+    "Setting/Installation_V2.md",
+    "Utenze/ASL0603.md",
     "img/foremancheck.png",
     "img/fwrule.png",
-    "Setting/Installation_V2.md",
     "img/etc-hosts.png",
-    "Utenze/ASL0603.md",
     "Setting/Installation.md",
     "Guide/Understanding_Foreman_and_Katello.md",
     "README.md",
@@ -231,8 +232,6 @@
     "img/img17.png",
     "img/img17 1.png",
     "img/img16.png",
-    "img/img15.png",
-    "img/img5.png",
     "().md",
     "Setting/CreateVM.md",
     "Guide/Guida_Pratica_Collegamento_Host_Azure.md",
