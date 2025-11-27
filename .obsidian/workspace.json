@@ -92,8 +92,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "2e443e30fb5653f7",
@@ -212,9 +211,10 @@
   },
   "active": "3831f0df43d14014",
   "lastOpenFiles": [
+    "img/fwrule.png",
+    "Setting/Installation_V2.md",
     "img/etc-hosts.png",
     "Utenze/ASL0603.md",
-    "Setting/Installation_V2.md",
     "Setting/Installation.md",
     "Guide/Understanding_Foreman_and_Katello.md",
     "README.md",
@@ -232,8 +232,6 @@
     "img/img16.png",
     "img/img15.png",
     "img/img5.png",
-    "img/CreateEnvironmentPath.png",
-    "img/PublishNewVersion.png",
     "().md",
     "Setting/CreateVM.md",
     "Guide/Guida_Pratica_Collegamento_Host_Azure.md",

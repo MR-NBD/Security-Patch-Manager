@@ -118,22 +118,10 @@ IL dominio per la mappatura di un nuovo host dovrebbe essere: `<host name+router
 ![img](../img/etc-hosts.png)
 ## Settiamo le regole del firewall
 ```bash
-firewall-cmd --add-port="5646/tcp"
+firewall-cmd --add-port="5646/tcp" --add-port="5647/tcp" --add-port="443/tcp" --add-port="9090/tcp" --add-port="8000/tcp" --add-port="22/tcp"
 ```
 ```bash
-firewall-cmd \
---add-port="5647/tcp" \
---add-port="8000/tcp" \
---add-port="9090/tcp"
-```
-```bash
-firewall-cmd \
---add-service=dns \
---add-service=dhcp \
---add-service=tftp \
---add-service=http \
---add-service=https \
---add-service=puppetmaster
+firewall-cmd --add-service=http --add-service=https --add-service=puppetmaster
 ```
 ```bash
 firewall-cmd --runtime-to-permanent
@@ -144,7 +132,7 @@ firewall-cmd --list-all
 ```
 Ci aspettiamo un output simile
 
-![img](../img/img1.png)
+![img](fwrule.png)
 
 Ora possiamo iniziare con l'installazione dei Foreman-Katello. Seguima dunque quanto riporato dalla guida per instllare verione di Foreman 3.15 Katello 4.17 e Puppet 8 https://docs.theforeman.org/3.15/Quickstart/index-katello.html
 ## Installazione repository EPEL
