@@ -174,7 +174,7 @@ Verifichiamo che tutto sia vvenuto correttamente.
 dnf repolist enabled
 ```
 Dovremmo ottenere un risultato simile.
-![img](../img/img13.png)
+![img](../img/foremancheck.png)
 ## Installazione dei pacchetti del server Foreman
 1. Aggiorniamo tutti i pacchetti:
 ```bash
@@ -187,26 +187,13 @@ dnf install -y foreman-installer-katello
 ## Lanciamo l'installer di Foreman per katello
 L'installazione non è interattiva, ma la configurazione può essere personalizzata specificando una qualsiasi delle opzioni elencate in foreman-installer --help, oppure eseguendo foreman-installer -i per la modalità interattiva. Ulteriori esempi sono descritti nella sezione Opzioni di installazione. L'opzione -v disabilita la barra di avanzamento e visualizza tutte le modifiche.
 ```bash
-sudo foreman-installer --scenario katello \
-  --enable-foreman-plugin-remote-execution \
-  --enable-foreman-plugin-ansible \
-  --enable-foreman-proxy-plugin-ansible \
-  --enable-foreman-plugin-discovery
+sudo foreman-installer --scenario katello
 ```
 Dovremmo ottenere un risultato simile. 
 ![img](../img/img2.png)
 
-Opzione|Significato
----|---
-`--scenario katello`|Installa Foreman + Katello (Content Management)|
-`--enable-foreman-plugin-remote-execution`|Abilita il plugin Remote Execution su Foreman
-`--enable-foreman-proxy-plugin-remote-execution-ssh`|Abilita il proxy SSH per Remote Execution, necessario per connettersi agli host via SSH
-`--enable-foreman-plugin-ansible`|Abilita il plugin Ansible per integrare job template, playbook e automation
-`--enable-foreman-proxy-plugin-ansible`|Abilita il proxy per Ansible, per eseguire playbook su host
-`--enable-foreman-plugin-discovery`|Abilita il plugin Discovery per rilevare nuovi host in rete (PXE boot)
-
 Verifica che il portale sia accessibile: 
-![img](../img/img4.png)
+![img|700x548](../img/img4.png)
 Come si vede nell'output queste sono le credenziali con la password generate per accedere a foreman. `Initial credentials are admin / aXEYxdbKpCSFC6Gi`
 Il servizio è operativo a `https://foreman-katello-test2.localdomain` però nel nostro in assenza di DNS possiamo contattare la macchina al'indirizzo ip https://10.172.2.17
 
