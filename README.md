@@ -34,16 +34,16 @@ Il modello introduce due componenti principali:
 ---
 ## Patch Management Workflow
 
-### **P1 — [Active Environment Discovery](./workflow/Active_Environment_Discovery-SPM.drawio)**
-### **P2 — [Security Discovery & Prioritization](./workflow/Security_Patch_Discovery_&_Prioritization.drawio)**
+### **P1 → [Active Environment Discovery](./workflow/Active_Environment_Discovery-SPM.drawio)**
+### **P2 → [Security Discovery & Prioritization](./workflow/Security_Patch_Discovery_&_Prioritization.drawio)**
 
 Due modalità operative:
 - **Security Mode** — priorità basate esclusivamente sul rischio.
 - **Smart Mode** — valutazione combinata di rischio, dipendenze, stabilità e impatto operativo.
-### **P3 — [Patch Testing](./workflow/PATCHTESTING_VALIDATION.drawio)**
-### **P4 — [Patch Deployment](./workflow/PATCH_INSTALLATION_ENGINE.drawio)**
+### **P3 → [Patch Testing](./workflow/PATCHTESTING_VALIDATION.drawio)**
+### **P4 →[Patch Deployment](./workflow/PATCH_INSTALLATION_ENGINE.drawio)**
 
-### **(Opzionale) P5 — Post-Deployment Assessment**
+### **(Opzionale) P5 → Post-Deployment Assessment**
 
 ---
 ## Utenze
@@ -52,6 +52,7 @@ Due modalità operative:
 
 ---
 ## LAB
+Ecco una prima analisi riassuntiva degli strumenti inizialmente proposti nel [documento](./Documentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf). → [TABELLA](../Documentation/Tabella_Comparativa.md)
 In questo momento il laboratorio si concentrando sull'utilizzo di Foreman+Katello+Puppet
 [DOC](https://theforeman.org/)
 ![img](./img/ForemanLOGO.png)
