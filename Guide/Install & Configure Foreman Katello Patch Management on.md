@@ -114,3 +114,7 @@ create content credential
 
 hammer repository create
 ![[image-3.png]]
+
+
+environment list 
+new environment
