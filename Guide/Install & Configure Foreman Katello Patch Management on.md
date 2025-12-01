@@ -122,3 +122,5 @@ Create content view
 Add repositories
 Publish new version
 New Activation Key
+
+Associations -> conncet to hosts
