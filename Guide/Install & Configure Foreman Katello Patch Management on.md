@@ -118,3 +118,7 @@ hammer repository create
 
 environment list 
 new environment
+Create content view
+Add repositories
+Publish new version
+New Activation Key
