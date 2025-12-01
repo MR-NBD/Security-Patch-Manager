@@ -124,3 +124,9 @@ Publish new version
 New Activation Key
 
 Associations -> conncet to hosts
+
+ls -lthr /etc/rhsm/ca/katello-*
+subcription-manager register --org="DEfault_Organization" --activationkey="CentOS7_Prod"
+subcription-manager status
+yum install iotop -y
+Add foreman package with GPG KEY
