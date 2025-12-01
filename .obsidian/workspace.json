@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Setting/Installation_V2.md",
+                "file": "Guide/Install & Configure Foreman Katello Patch Management on.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installation_V2"
+              "title": "Install & Configure Foreman Katello Patch Management on"
             }
           },
           {
@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Utenze/ASL0603.md",
+                "file": "Setting/Installation.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ASL0603"
+              "title": "Installation"
             }
           }
         ]
@@ -211,13 +211,15 @@
   },
   "active": "3831f0df43d14014",
   "lastOpenFiles": [
-    "img/katelloresutl.png",
+    "image-1.png",
     "Setting/Installation_V2.md",
+    "Guide/Install & Configure Foreman Katello Patch Management on.md",
+    "Setting/Installation.md",
     "Utenze/ASL0603.md",
+    "img/katelloresutl.png",
     "img/foremancheck.png",
     "img/fwrule.png",
     "img/etc-hosts.png",
-    "Setting/Installation.md",
     "Guide/Understanding_Foreman_and_Katello.md",
     "README.md",
     "workflow/PATCH_TESTING_VALIDATION.drawio",
