@@ -75,3 +75,42 @@ yum install katello -y
 
 
 foreman-installer --scenario katello --foreman-initial-adim-username admin --foreman-initial-password 'password'
+
+nano /etc/foreman-installer/scenarios.d/katello.yaml
+- postgresql
+- pulp
+- candlepin
+- qpid
+- tftp
+- dhcp
+- apt
+nano /etc/foreman-installer/scenarios.d/katello-answers.yaml
+foreman::plugin::ansible: true
+
+foreman-installer --scenario katello --foreman-initial-adim-username admin --foreman-initial-password 'password'
+
+tail -f /var/log/foreman-installer/katello.log
+katello-service status | grep -i "Active"
+
+
+hammer user list
+hammer organization list
+
+
+create a product
+- Name : name
+- Labe : label
+- -> save
+hammer product create --organization-id 1 --name "name" --description "description"
+
+ mkdir -p /etc/pki/rpm-gpg/import
+![[image-2.png]]
+GPG kwy form red hat
+
+hammer gpg create --organization-id 1 --key "RPM-GPC-KEY-CentOS-7" --name "RPM-GPG-KEY-CentOS-7"
+
+content Credential
+create content credential
+
+hammer repository create
+![[image-3.png]]
