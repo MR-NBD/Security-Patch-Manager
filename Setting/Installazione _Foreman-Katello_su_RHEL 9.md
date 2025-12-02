@@ -529,6 +529,15 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 ![](../img/foremanfeatures.png)
 
 ---
+### Ambiente di Riferimento
+
+| Componente       | Valore                           |
+| ---------------- | -------------------------------- |
+| Server Foreman   | foreman-katello-test.localdomain |
+| Organization     | PSN-ASL06                        |
+| Location         | Italy-North                      |
+| VM Ubuntu Target | 10.172.2.5                       |
+| OS Target        | Ubuntu 24.04 LTS                 |
 ## FASE 9: Configurazione Post-Installazione
 
 ### 9.1 Configura Organization e Location
@@ -544,18 +553,7 @@ hammer location create --name "Italy-North"
 ```bash
 hammer organization add-location --name "PSN-ASL06" --location "Italy-North"
 ```
-
-### 9.2 Importa chiavi GPG per i repository
-#### Crea directory per le chiavi GPG
-```bash
-mkdir -p /etc/pki/rpm-gpg/import
-```
-#### Scarica chiavi GPG Ubuntu (per gestire VM Ubuntu)
-```bash
-curl -o /etc/pki/rpm-gpg/import/ubuntu-archive-keyring.gpg \
-  "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg"
-```
-### 9.3 Verifica plugin Remote Execution
+### 9.2 Verifica plugin Remote Execution
 #### Verifica che il plugin REX sia attivo
 ```bash
 hammer settings list | grep remote_execution
@@ -578,7 +576,7 @@ cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub
 
 > **IMPORTANTE**: Questa chiave pubblica dovrà essere copiata sulle VM Ubuntu chesi vogliono gestire.
 
-### 9.4 Verifica Smart Proxy esistente
+### 9.3 Verifica Smart Proxy esistente
 #### Lista gli Smart Proxy disponibili
 ```bash
 hammer proxy list
@@ -587,7 +585,7 @@ Output atteso:
 
 ![](../img/image15-v2.png)
 
-### 9.5 Associa Smart Proxy all'Organization e alla Location
+### 9.4 Associa Smart Proxy all'Organization e alla Location
 #### Associa il proxy all'organizzazione PSN-ASL06
 ```bash
 hammer organization add-smart-proxy \
@@ -600,16 +598,210 @@ hammer location add-smart-proxy \
   --name "Italy-North" \
   --smart-proxy "foreman-katello-test.localdomain"
 ```
-### 9.6 Verifica associazioni
+### 9.5 Verifica associazioni
 #### Verifica Organization
 ```bash
-hammer organization info --name "PSN-ASL06" | grep -A5 "Smart Proxies"
+hammer organization info --name "PSN-ASL06"
 ```
-#### Verifica Location
-```bash
-hammer location info --name "Italy-North" | grep -A5 "Smart Proxies"
-```
+
+#### Verifica dalla Web UI andando **Infrastructure → Smart Proxies**
+
+![[image-4.png]]
+
+1. Vai su **Administer → Organizations → PSN-ASL06 → Smart Proxies**
+2. Verifica che `foreman-katello-test.localdomain` sia presente
+3. Ripeti per **Administer → Locations → Italy-North → Smart Proxies**
+
 ---
+## FASE 10: Configurazione Content Credentials (Chiavi GPG)
+
+Le chiavi GPG sono necessarie per verificare l'autenticità dei pacchetti Ubuntu.
+
+### 10.1 Scarica le chiavi GPG di Ubuntu
+#### Crea directory se non esiste
+```bash
+mkdir -p /etc/pki/rpm-gpg/import
+```
+#### Scarica Ubuntu Archive Keyring
+```bash
+curl -o /etc/pki/rpm-gpg/import/ubuntu-archive-keyring.gpg \
+  "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg"
+```
+#### Scarica Ubuntu Archive Signing Key (2018)
+```bash
+curl -o /etc/pki/rpm-gpg/import/ubuntu-archive-key-2018.asc \
+  "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C"
+```
+### 10.2 Estrai le chiavi in formato ASCII
+#### Converti il keyring in formato ASCII per l'import in Foreman
+```bash
+gpg --no-default-keyring \
+  --keyring /etc/pki/rpm-gpg/import/ubuntu-archive-keyring.gpg \
+  --export --armor > /etc/pki/rpm-gpg/import/ubuntu-keys-ascii.asc
+```
+### 10.3 Crea Content Credential in Foreman
+**Via Web UI (raccomandato):**
+1. Vai su **Content → Content Credentials**
+2. Clicca **Create Content Credential**
+3. Compila:
+    - **Name**: `Ubuntu Archive Key`
+    - **Content Credential Type**: `GPG Key`
+    - **Content Credential Contents**: Copia il contenuto del file:
+
+```bash
+cat /etc/pki/rpm-gpg/import/ubuntu-keys-ascii.asc
+```
+4. Clicca **Save**
+
+**Via CLI:**
+```bash
+hammer content-credentials create \
+  --organization "PSN-ASL06" \
+  --name "Ubuntu Archive Key" \
+  --content-type "gpg_key" \
+  --path "/etc/pki/rpm-gpg/import/ubuntu-keys-ascii.asc"
+```
+
+---
+
+## FASE 11: Creazione Product e Repository Ubuntu 24.04
+### 11.1 Crea il Product
+#### Via Web UI
+
+1. Vai su **Content → Products**
+2. Clicca **Create Product**
+3. Compila:
+    - **Name**: `Ubuntu 24.04 LTS`
+    - **Label**: `ubuntu_2404_lts` (auto-generato)
+    - **GPG Key**: lascia vuoto (lo assegniamo ai singoli repository)
+    - **Description**: `Repository Ubuntu 24.04 Noble Numbat per patch management - TEST`
+4. Clicca **Save**
+![Create Product](../img/CreateProduct.png)
+#### Via Hammer CLI
+
+```bash
+hammer product create \
+  --organization "PSN-ASL06" \
+  --name "Ubuntu 24.04 LTS" \
+  --label "ubuntu_2404_lts" \
+  --description "Repository Ubuntu 24.04 Noble Numbat per patch management"
+```
+### 11.2 Crea Repository Security
+#### Via Web UI
+
+1. Vai su **Content → Products → Ubuntu 24.04 LTS**
+2. Clicca tab **Repositories** → **New Repository**
+3. Compila:
+    - **Name**: `Ubuntu 24.04 Security`
+    - **Label**: `ubuntu_24_04_security`
+    - **Description**: `TEST`
+    - **Type**: `deb`
+    - **URL**: `http://security.ubuntu.com/ubuntu`
+    - **Releases**: `noble-security`
+    - **Components**: `main universe restricted multiverse`
+    - **Architectures**: `amd64`
+    - **GPG Key**: `Ubuntu Archive Key` (creato in FASE 10)
+    - **Download Policy**: `On Demand`
+4. Clicca **Save**
+![Create Product](../img/CreateProduct.png)
+
+| Versione Ubuntu  | Codename            |
+| ---------------- | ------------------- |
+| Ubuntu 20.04 LTS | **Focal** Fossa     |
+| Ubuntu 22.04 LTS | **Jammy** Jellyfish |
+| Ubuntu 24.04 LTS | **Noble** Numbat    |
+#### Via Hammer CLI
+
+```bash
+hammer repository create \
+  --organization "PSN-ASL06" \
+  --product "Ubuntu 24.04 LTS" \
+  --name "Ubuntu 24.04 Security" \
+  --label "ubuntu_2404_security" \
+  --content-type "deb" \
+  --url "http://security.ubuntu.com/ubuntu" \
+  --deb-releases "noble-security" \
+  --deb-components "main,universe,restricted,multiverse" \
+  --deb-architectures "amd64" \
+  --download-policy "on_demand" \
+  --gpg-key "Ubuntu Archive Key"
+```
+
+### 11.3 Crea Repository Updates
+#### Via Web UI
+
+1. In **Content → Products → Ubuntu 24.04 LTS → Repositories**
+2. Clicca **New Repository**
+3. Compila: (Riporto unicamente i campi che subiscono una modifica)
+    - **Name**: `Ubuntu 24.04 Updates`
+    - **Label**: `ubuntu_2404_updates`
+    - **URL**: `http://archive.ubuntu.com/ubuntu`
+    - **Releases**: `noble-updates`
+4. Clicca **Save**
+### 11.4 Crea Repository Base
+#### Via Web UI
+
+1. In **Content → Products → Ubuntu 24.04 LTS → Repositories**
+2. Clicca **New Repository**
+3. Compila:
+    - **Name**: `Ubuntu 24.04 Base`
+    - **Label**: `ubuntu_2404_base`
+    - **URL**: `http://archive.ubuntu.com/ubuntu`
+    - **Releases**: `noble`
+    - **Components**: `main universe restricted multiverse`
+4. Clicca **Save
+### 11.5 Verifica Repository Creati
+#### Via Web UI
+
+1. Vai su **Content → Products → Ubuntu 24.04 LTS → Repositories**
+2. Dovresti vedere 3 repository elencati
+#### Via Hammer CLI
+
+```bash
+hammer repository list --organization "PSN-ASL06" --product "Ubuntu 24.04 LTS"
+```
+
+---
+
+## FASE 12: Sincronizzazione Repository
+
+### 12.1 Sincronizza Tutti i Repository
+
+#### Via Web UI
+
+1. Vai su **Content → Products → Ubuntu 24.04 LTS**
+2. Seleziona tutti i repository (checkbox)
+3. Clicca **Sync Now**
+
+Oppure:
+
+1. Vai su **Content → Sync Status**
+2. Espandi **Ubuntu 24.04 LTS**
+3. Seleziona i repository da sincronizzare
+4. Clicca **Synchronize Now**
+
+![Sync Status](../img/SyncStatus.png)
+#### Via Hammer CLI
+##### Sync di tutto il product
+```bash
+hammer product synchronize \
+  --organization "PSN-ASL06" \
+  --name "Ubuntu 24.04 LTS" \
+  --async
+```
+
+Oppure singolarmente:
+##### e.g. Sync Security
+```bash
+hammer repository synchronize \
+  --organization "PSN-ASL06" \
+  --product "Ubuntu 24.04 LTS" \
+  --name "Ubuntu 24.04 Security" \
+  --async
+```
+
+---
+
 
 ## FASE 10: Configurazione Repository per Ubuntu
 
