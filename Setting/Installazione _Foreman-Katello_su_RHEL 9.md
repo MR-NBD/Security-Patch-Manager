@@ -1231,7 +1231,7 @@ chmod 600 /root/.ssh/authorized_keys
 ```bash
 chown root:root /root/.ssh/authorized_keys
 ```
-### 18.3 Configura SSHD
+### 18.3 Configura SSH
 Edita configurazione SSH
 ```bash
 nano /etc/ssh/sshd_config
