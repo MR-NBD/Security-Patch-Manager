@@ -3,13 +3,13 @@ Questa guida descrive l'installazione di **Foreman 3.15** con **Katello 4.17** e
 
 ### Requisiti Hardware Minimi
 
-|Componente|Minimo|Raccomandato|
-|---|---|---|
-|CPU|4 core|8 core|
-|RAM|20 GB|32 GB|
-|Disco OS|50 GB|100 GB|
-|Disco Pulp (`/var/lib/pulp`)|100 GB|300+ GB|
-|Disco PostgreSQL (`/var/lib/pgsql`)|20 GB|50 GB|
+| Componente                          | Minimo | Raccomandato |
+| ----------------------------------- | ------ | ------------ |
+| CPU                                 | 4 core | 8 core       |
+| RAM                                 | 20 GB  | 32 GB        |
+| Disco OS                            | 50 GB  | 100 GB       |
+| Disco Pulp (`/var/lib/pulp`)        | 100 GB | 300+ GB      |
+| Disco PostgreSQL (`/var/lib/pgsql`) | 20 GB  | 50 GB        |
 
 ### Architettura Target
 
@@ -100,100 +100,81 @@ Output atteso: `selinux-policy-38.1.53-5.el9_6` o superiore.
 La sincronizzazione temporale è **critica** per il corretto funzionamento di Katello e dei certificati SSL.
 
 ### 2.1 Installazione e Configurazione Chrony
-
+#### Installa chrony
 ```bash
-# Installa chrony
+sudo su -
+```
+```bash
 dnf install -y chrony
 ```
-
+#### Abilita e avvia il servizio
 ```bash
-# Abilita e avvia il servizio
 systemctl enable --now chronyd
 ```
-
+#### Verifica le sorgenti NTP
 ```bash
-# Verifica le sorgenti NTP
 chronyc sources
 ```
-
+#### Abilita NTP via timedatectl
 ```bash
-# Abilita NTP via timedatectl
 timedatectl set-ntp true
 ```
-
+#### Verifica stato sincronizzazione
 ```bash
-# Verifica stato sincronizzazione
 timedatectl status
 ```
 
 Output atteso:
 
-```
-               Local time: ...
-           Universal time: ...
-                 RTC time: ...
-                Time zone: ...
-System clock synchronized: yes
-              NTP service: active
-          RTC in local TZ: no
-```
+![](../img/image6-v2.png)
 
 ---
 
 ## FASE 3: Configurazione Hostname e Networking
 
 ### 3.1 Identifica l'interfaccia di rete e l'IP
-
+#### Visualizza interfacce di rete
 ```bash
-# Visualizza interfacce di rete
 ip addr show
 ```
 
 Annota l'indirizzo IP della tua interfaccia principale (es. `eth0` o `ens192`).
 
 ### 3.2 Configura l'hostname
-
+#### Imposta hostname (sostituisci con il tuo FQDN)
 ```bash
-# Imposta hostname (sostituisci con il tuo FQDN)
-hostnamectl set-hostname foreman-katello.localdomain
+hostnamectl set-hostname foreman-katello-test.localdomain
 ```
-
+#### Verifica hostname
 ```bash
-# Verifica hostname
 hostname
+```
+```bash
 hostname -f
 ```
-
 ### 3.3 Configura il file /etc/hosts
-
+#### Backup del file hosts originale (backup)
 ```bash
-# Backup del file hosts originale
 cp /etc/hosts /etc/hosts.bak
 ```
-
+#### Edita il file hosts
 ```bash
-# Edita il file hosts
 nano /etc/hosts
 ```
 
 Aggiungi la seguente riga (sostituisci con i tuoi valori):
 
 ```
-10.172.2.17    foreman-katello.localdomain    foreman-katello
+10.172.2.15    foreman-katello-test.localdomain    foreman-katello-test
 ```
 
 Il file dovrebbe apparire così:
 
-```
-127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
-::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
-10.172.2.17 foreman-katello.localdomain foreman-katello
-```
-
+![](../img/image9-v2.png)
 ### 3.4 Verifica la configurazione
 
+#### Verifica risoluzione hostname
 ```bash
-# Verifica risoluzione hostname
 ping -c 2 $(hostname -f)
 ```
 
@@ -239,13 +220,7 @@ firewall-cmd --list-all
 
 Output atteso:
 
-```
-public (active)
-  target: default
-  services: cockpit dhcp dns http https puppetmaster ssh tftp
-  ports: 53/tcp 80/tcp 443/tcp 5646/tcp 5647/tcp 8000/tcp 8140/tcp 9090/tcp 53/udp 67/udp 68/udp 69/udp
-  ...
-```
+![](../img/image8-v2.png)
 
 ---
 
@@ -261,71 +236,62 @@ lsblk
 
 Identifica il disco aggiuntivo (es. `/dev/sdb` o `/dev/sda` se non è il disco OS).
 
+
 > **ATTENZIONE**: Assicurati di selezionare il disco corretto! Non formattare il disco del sistema operativo.
 
+![](../img/image7-v2.png)
 ### 5.2 Crea la struttura LVM
 
+#### Crea tabella delle partizioni GPT (sostituisci /dev/sdb con il tuo disco)
 ```bash
-# Crea tabella delle partizioni GPT (sostituisci /dev/sdb con il tuo disco)
-parted /dev/sdb --script mklabel gpt
+parted /dev/sda --script mklabel gpt
 ```
-
+#### Crea partizione primaria
 ```bash
-# Crea partizione primaria
-parted /dev/sdb --script mkpart primary 0% 100%
+parted /dev/sda --script mkpart primary 0% 100%
 ```
-
+#### Crea Physical Volume
 ```bash
-# Crea Physical Volume
-pvcreate /dev/sdb1
+pvcreate /dev/sda1
 ```
-
+#### Crea Volume Group
 ```bash
-# Crea Volume Group
-vgcreate vg_pulp /dev/sdb1
+vgcreate vg_pulp /dev/sda1
 ```
-
+#### Crea Logical Volume (usa tutto lo spazio disponibile)
 ```bash
-# Crea Logical Volume (usa tutto lo spazio disponibile)
 lvcreate -l 100%FREE -n lv_pulp vg_pulp
 ```
 
 ### 5.3 Formatta e monta il volume
-
+#### Formatta con filesystem XFS (raccomandato per Pulp)
 ```bash
-# Formatta con filesystem XFS (raccomandato per Pulp)
 mkfs.xfs /dev/mapper/vg_pulp-lv_pulp
 ```
-
+#### Crea directory mount point
 ```bash
-# Crea directory mount point
 mkdir -p /var/lib/pulp
 ```
-
+#### Monta il volume
 ```bash
-# Monta il volume
 mount /dev/mapper/vg_pulp-lv_pulp /var/lib/pulp
 ```
 
 ### 5.4 Configura mount persistente
-
+#### Aggiungi entry in fstab per mount automatico al boot
 ```bash
-# Aggiungi entry in fstab per mount automatico al boot
 echo "/dev/mapper/vg_pulp-lv_pulp /var/lib/pulp xfs defaults 0 0" >> /etc/fstab
 ```
-
+#### Verifica la entry aggiunta
 ```bash
-# Verifica la entry aggiunta
 tail -n1 /etc/fstab
 ```
 
 ### 5.5 Ripristina contesto SELinux
-
+#### Ripristina il contesto SELinux corretto per la directory
 ```bash
-# Ripristina il contesto SELinux corretto per la directory
 restorecon -Rv /var/lib/pulp/
 ```
-
 ### 5.6 Verifica il mount
 
 ```bash
@@ -334,38 +300,72 @@ df -hP /var/lib/pulp/
 
 Output atteso:
 
-```
-Filesystem                    Size  Used Avail Use% Mounted on
-/dev/mapper/vg_pulp-lv_pulp   200G   33M  200G   1% /var/lib/pulp
-```
+![](../img/image10-v2.png)
 
+#### Reload systemd per riconoscere le nuove configurazioni
 ```bash
-# Reload systemd per riconoscere le nuove configurazioni
 systemctl daemon-reload
 ```
 
+## FASE 5-bis : Configurazione Storage LVM per PostgreSQL
+
+#### Stesso processo, device diverso (es. /dev/sdc)
+```bash
+parted /dev/sdb --script mklabel gpt
+```
+```bash
+parted /dev/sdb --script mkpart primary 0% 100%
+```
+```bash
+pvcreate /dev/sdb1
+```
+```bash
+vgcreate vg_pgsql /dev/sdb1
+```
+```bash
+lvcreate -l 100%FREE -n lv_pgsql vg_pgsql
+```
+```bash
+mkfs.xfs /dev/mapper/vg_pgsql-lv_pgsql
+```
+```bash
+mkdir -p /var/lib/pgsql
+```
+```bash
+mount /dev/mapper/vg_pgsql-lv_pgsql /var/lib/pgsql
+```
+```bash
+echo "/dev/mapper/vg_pgsql-lv_pgsql /var/lib/pgsql xfs defaults 0 0" >> /etc/fstab
+```
+```bash
+restorecon -Rv /var/lib/pgsql/
+```
+```bash
+df -hP /var/lib/pgsql/
+```
+```bash
+systemctl daemon-reload
+```
 ---
 
 ## FASE 6: Installazione Repository
 
 ### 6.1 Abilita CodeReady Builder e EPEL
-
+#### Abilita CodeReady Linux Builder
 ```bash
-# Abilita CodeReady Linux Builder
 subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
 ```
-
+#### Installa EPEL per RHEL 9
 ```bash
-# Installa EPEL per RHEL 9
 dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
 ```
-
+#### Abilita EPEL
 ```bash
-# Abilita EPEL
 dnf config-manager --set-enabled epel
 ```
 
 ### 6.2 Pulisci e aggiorna cache
+Ora possiamo iniziare con l'installazione dei Foreman-Katello. Seguima dunque quanto riporato dalla guida per instllare verione di Foreman 3.15 Katello 4.17 e Puppet 8 https://docs.theforeman.org/3.15/Quickstart/index-katello.html
 
 ```bash
 # Pulisci tutti i metadati
