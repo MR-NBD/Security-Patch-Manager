@@ -1,5 +1,6 @@
 ## Panoramica
 Questa guida descrive l'installazione di **Foreman 3.15** con **Katello 4.17** e **Puppet 8** su **RHEL 9.x**. L'obiettivo finale è gestire il patch management di VM Linux (incluse Ubuntu) tramite SSH.
+![](../img/image12-v2.png)
 
 ### Requisiti Hardware Minimi
 
@@ -12,34 +13,17 @@ Questa guida descrive l'installazione di **Foreman 3.15** con **Katello 4.17** e
 | Disco PostgreSQL (`/var/lib/pgsql`) | 20 GB  | 50 GB        |
 
 ### Architettura Target
-
-```
-┌─────────────────────────────────────────────────────┐
-│           FOREMAN + KATELLO SERVER                  │
-│                  (RHEL 9.6)                         │
-│  ┌───────────────────────────────────────────────┐  │
-│  │ Componenti:                                   │  │
-│  │ • Foreman 3.15                                │  │
-│  │ • Katello 4.17                                │  │
-│  │ • Puppet 8                                    │  │
-│  │ • Pulp (Content Management)                   │  │
-│  │ • PostgreSQL                                  │  │
-│  │ • Candlepin                                   │  │
-│  │                                               │  │
-│  │ Plugin Attivi:                                │  │
-│  │ • Remote Execution (SSH)                      │  │
-│  │ • Ansible                                     │  │
-│  │ • Discovery                                   │  │
-│  └───────────────────────────────────────────────┘  │
-│                        │                            │
-│                        │ SSH (porta 22)             │
-│                        ▼                            │
-│              ┌─────────────────┐                    │
-│              │   VM Ubuntu     │                    │
-│              │  (stessa subnet)│                    │
-│              └─────────────────┘                    │
-└─────────────────────────────────────────────────────┘
-```
+### FOREMAN + KATELLO SERVER - (RHEL 9.6)   
+##### Componenti:
+- Foreman 3.15 
+- Katello 4.17
+- Puppet 8
+- Pulp (Content Management)
+- PostgreSQL
+- Candlepin
+##### Plugin Attivi:
+- Remote Execution (SSH)
+- Ansible
 
 ---
 
@@ -367,30 +351,26 @@ dnf config-manager --set-enabled epel
 ### 6.2 Pulisci e aggiorna cache
 Ora possiamo iniziare con l'installazione dei Foreman-Katello. Seguima dunque quanto riporato dalla guida per instllare verione di Foreman 3.15 Katello 4.17 e Puppet 8 https://docs.theforeman.org/3.15/Quickstart/index-katello.html
 
+#### Pulisci tutti i metadati
 ```bash
-# Pulisci tutti i metadati
 dnf clean all
 ```
-
+#### Aggiorna cache repository
 ```bash
-# Aggiorna cache repository
 dnf makecache
 ```
 
 ### 6.3 Installa repository Foreman, Katello e Puppet
-
+#### Repository Foreman 3.15
 ```bash
-# Repository Foreman 3.15
 dnf install -y https://yum.theforeman.org/releases/3.15/el9/x86_64/foreman-release.rpm
 ```
-
+#### Repository Katello 4.17
 ```bash
-# Repository Katello 4.17
 dnf install -y https://yum.theforeman.org/katello/4.17/katello/el9/x86_64/katello-repos-latest.rpm
 ```
-
+#### Repository Puppet 8
 ```bash
-# Repository Puppet 8
 dnf install -y https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
 ```
 
@@ -400,36 +380,23 @@ dnf install -y https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
 dnf repolist enabled
 ```
 
-Output atteso (dovrai vedere):
+Output atteso:
 
-```
-repo id                              repo name
-epel                                 Extra Packages for Enterprise Linux 9 - x86_64
-foreman                              Foreman 3.15
-foreman-plugins                      Foreman plugins 3.15
-katello                              Katello 4.17
-puppet8                              Puppet 8 Repository el 9 - x86_64
-pulpcore                             Pulpcore
-rhel-9-for-x86_64-appstream-rpms     Red Hat Enterprise Linux 9 for x86_64 - AppStream (RPMs)
-rhel-9-for-x86_64-baseos-rpms        Red Hat Enterprise Linux 9 for x86_64 - BaseOS (RPMs)
-...
-```
+![](../img/image11-v2.png)
 
 ---
 
 ## FASE 7: Installazione Foreman-Katello
 
 ### 7.1 Aggiorna il sistema
-
+#### Aggiorna tutti i pacchetti prima dell'installazione
 ```bash
-# Aggiorna tutti i pacchetti prima dell'installazione
 dnf upgrade -y
 ```
 
 ### 7.2 Installa il pacchetto installer
-
+#### Installa foreman-installer per scenario Katello
 ```bash
-# Installa foreman-installer per scenario Katello
 dnf install -y foreman-installer-katello
 ```
 
@@ -453,18 +420,17 @@ foreman-installer --scenario katello \
 
 #### Opzioni installer spiegate:
 
-|Opzione|Descrizione|
-|---|---|
-|`--scenario katello`|Installa Foreman con Katello per content management|
-|`--foreman-initial-admin-username`|Username admin iniziale|
-|`--foreman-initial-admin-password`|Password admin iniziale|
-|`--enable-foreman-plugin-remote-execution`|Abilita esecuzione comandi remoti via SSH|
-|`--enable-foreman-proxy-plugin-remote-execution-script`|Proxy per remote execution|
-|`--enable-foreman-plugin-ansible`|Integrazione Ansible|
-|`--enable-foreman-proxy-plugin-ansible`|Proxy per Ansible|
-|`--enable-foreman-plugin-discovery`|Auto-discovery di nuovi host|
-|`--enable-foreman-plugin-templates`|Gestione template|
-|`--enable-foreman-cli-katello`|CLI hammer per Katello|
+| Opzione                                                 | Descrizione                                         |
+| ------------------------------------------------------- | --------------------------------------------------- |
+| `--scenario katello`                                    | Installa Foreman con Katello per content management |
+| `--foreman-initial-admin-username`                      | Username admin iniziale                             |
+| `--foreman-initial-admin-password`                      | Password admin iniziale                             |
+| `--enable-foreman-plugin-remote-execution`              | Abilita esecuzione comandi remoti via SSH           |
+| `--enable-foreman-proxy-plugin-remote-execution-script` | Proxy per remote execution                          |
+| `--enable-foreman-plugin-ansible`                       | Integrazione Ansible                                |
+| `--enable-foreman-proxy-plugin-ansible`                 | Proxy per Ansible                                   |
+| `--enable-foreman-plugin-templates`                     | Gestione template                                   |
+| `--enable-foreman-cli-katello`                          | CLI hammer per Katello                              |
 
 ### 7.4 Monitora l'installazione (opzionale)
 
@@ -478,33 +444,22 @@ tail -f /var/log/foreman-installer/katello.log
 
 Al termine dell'installazione vedrai un output simile:
 
-```
-  Success!
-  * Foreman is running at https://foreman-katello.localdomain
-      Initial credentials are admin / Temporanea1234
-
-  * To install an additional Foreman proxy on separate machine continue by running:
-
-      foreman-proxy-certs-generate --foreman-proxy-fqdn "$FOREMAN_PROXY" --certs-tar "/root/$FOREMAN_PROXY-certs.tar"
-
-  The full log is at /var/log/foreman-installer/katello.log
-```
+![[image13-v2.png]]
 
 ---
 
 ## FASE 8: Verifica dell'Installazione
 
 ### 8.1 Verifica stato servizi
-
+#### Verifica stato di tutti i servizi Katello
 ```bash
-# Verifica stato di tutti i servizi Katello
 foreman-maintain service status
 ```
 
 Oppure:
 
+#### Verifica servizi singoli
 ```bash
-# Verifica servizi singoli
 systemctl status foreman
 systemctl status httpd
 systemctl status postgresql
@@ -516,7 +471,7 @@ systemctl status pulpcore-content
 
 Apri un browser e accedi a:
 
-- **URL**: `https://foreman-katello.localdomain` (o l'IP del server: `https://10.172.2.17`)
+- **URL**: `https://foreman-katello.localdomain` (o l'IP del server: `https://10.172.2.15`)
 - **Username**: `admin`
 - **Password**: `Temporanea1234` (o quella specificata durante l'installazione)
 
