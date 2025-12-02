@@ -578,6 +578,37 @@ cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub
 
 > **IMPORTANTE**: Questa chiave pubblica dovrà essere copiata sulle VM Ubuntu chesi vogliono gestire.
 
+### 9.4 Verifica Smart Proxy esistente
+#### Lista gli Smart Proxy disponibili
+```bash
+hammer proxy list
+```
+Output atteso:
+
+![](../img/image15-v2.png)
+
+### 9.5 Associa Smart Proxy all'Organization e alla Location
+#### Associa il proxy all'organizzazione PSN-ASL06
+```bash
+hammer organization add-smart-proxy \
+  --name "PSN-ASL06" \
+  --smart-proxy "foreman-katello-test.localdomain"
+```
+#### Associa il proxy alla location Italy-North
+```bash
+hammer location add-smart-proxy \
+  --name "Italy-North" \
+  --smart-proxy "foreman-katello-test.localdomain"
+```
+### 9.6 Verifica associazioni
+#### Verifica Organization
+```bash
+hammer organization info --name "PSN-ASL06" | grep -A5 "Smart Proxies"
+```
+#### Verifica Location
+```bash
+hammer location info --name "Italy-North" | grep -A5 "Smart Proxies"
+```
 ---
 
 ## FASE 10: Configurazione Repository per Ubuntu

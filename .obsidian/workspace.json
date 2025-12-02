@@ -34,6 +34,40 @@
               "icon": "lucide-file",
               "title": "Install & Configure Foreman Katello Patch Management on"
             }
+          },
+          {
+            "id": "6c39d7d656715262",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Utenze/ASL0603.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "ASL0603"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ca30a838d43e1aaf",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "b56e831e8851dda8",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Guide/Untitled.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Untitled"
+            }
           }
         ]
       }
@@ -92,7 +126,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "2e443e30fb5653f7",
@@ -194,7 +229,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200
+    "width": 200,
+    "collapsed": true
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -211,10 +247,13 @@
   },
   "active": "3831f0df43d14014",
   "lastOpenFiles": [
-    "Guide/Install & Configure Foreman Katello Patch Management on.md",
-    "Guide/LAB_1-Test_1.md",
-    "Guide/Understanding_Foreman_and_Katello.md",
+    "Guide/Untitled.md",
     "Setting/Installazione _Foreman-Katello_su_RHEL 9.md",
+    "img/image15-v2.png",
+    "Guide/LAB_1-Test_1.md",
+    "Guide/Install & Configure Foreman Katello Patch Management on.md",
+    "Utenze/ASL0603.md",
+    "Guide/Understanding_Foreman_and_Katello.md",
     "img/foremanfeatures.png",
     "img/foremanlogin.png",
     "img/fwrule.png",
@@ -225,9 +264,7 @@
     "img/etc-hosts.png",
     "Setting/Installation.md",
     "img/CreateProduct.png",
-    "img/CreateEnvironmentPath.png",
     "Setting/Installation_V2.md",
-    "Utenze/ASL0603.md",
     "Setting/CreateVM.md",
     "README.md",
     "workflow/PATCH_TESTING_VALIDATION.drawio",
