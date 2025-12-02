@@ -140,8 +140,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "2e443e30fb5653f7",
@@ -261,8 +260,9 @@
   },
   "active": "3831f0df43d14014",
   "lastOpenFiles": [
-    "Guide/Untitled.md",
+    "img/CreateHostGroup.png",
     "Setting/Installazione _Foreman-Katello_su_RHEL 9.md",
+    "Guide/Untitled.md",
     "Guide/LAB_1-Test_1.md",
     "img/AddEnvironmentPath.png",
     "img/CreateEnvironmentPath 1.png",
@@ -276,7 +276,6 @@
     "img/foremanlogin.png",
     "img/fwrule.png",
     "img/HLD_SPM_v2.png",
-    "img/General_Workflow_SPM_v2.png",
     "Setting/Installation.md",
     "Setting/Installation_V2.md",
     "Setting/CreateVM.md",

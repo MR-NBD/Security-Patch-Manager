@@ -1075,6 +1075,19 @@ hammer os info --title "Ubuntu 24.04"
 
 ---
 ## FASE 16: Host Group
+
+> NOTA : **Differenza TRA** Host Groups e Host Collections
+
+|Concetto|Posizione|Scopo|
+|---|---|---|
+|**Host Groups**|**Configure → Host Groups**|Configurazioni comuni (OS, Content View, Lifecycle, parametri)|
+|**Host Collections**|Hosts → Host Collections|Raggruppamento per azioni bulk (errata, pacchetti)|
+#### Quando usare Host Collections?
+Le Host Collections sono utili **dopo** aver registrato gli host, per:
+
+- Applicare errata a gruppi di host
+- Installare/rimuovere pacchetti in bulk
+- Azioni di content management
 ### 16.1 Crea Host Group
 #### Via Web UI
 
@@ -1093,6 +1106,7 @@ hammer os info --title "Ubuntu 24.04"
 6. Tab **Organizations**: seleziona ☑ `PSN-ASL06`
 7. Clicca **Submit**
 
+![Create Host Groups](../img/CreateHostGroup.png)
 #### Via Hammer CLI
 
 ```bash
