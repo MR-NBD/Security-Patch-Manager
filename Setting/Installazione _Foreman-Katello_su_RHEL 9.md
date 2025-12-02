@@ -25,8 +25,19 @@ Questa guida descrive l'installazione di **Foreman 3.15** con **Katello 4.17** e
 - Remote Execution (SSH)
 - Ansible
 
+```
+sda                     
+ └─/var/lib/pulp
+sdb 
+ └─/var/lib/pgsql
+sdc                     
+ └─root
+	├─/tmp
+	├─/usr
+	├─/home
+	├─/var
+``` 
 ---
-
 ## FASE 1: Verifica e Preparazione del Sistema
 
 ### 1.1 Verifica versione OS e SELinux
@@ -477,6 +488,7 @@ Apri un browser e accedi a:
 
 > **NOTA**: Se il browser mostra un avviso certificato, è normale (certificato self-signed). Procedi accettando il rischio.
 
+![](../img/foremanlogin.png)
 ### 8.3 Recupera credenziali (se necessario)
 
 Se hai dimenticato la password:
@@ -486,74 +498,85 @@ grep admin_password /etc/foreman-installer/scenarios.d/katello-answers.yaml
 ```
 
 ### 8.4 Test CLI Hammer
-
+#### Login con hammer
 ```bash
-# Login con hammer
 hammer auth login basic --username admin --password 'Temporanea1234'
 ```
-
+#### Verifica utenti
 ```bash
-# Verifica utenti
 hammer user list
 ```
-
+#### Verifica organizzazioni
 ```bash
-# Verifica organizzazioni
 hammer organization list
 ```
-
+#### Verifica locations
 ```bash
-# Verifica locations
 hammer location list
 ```
 
----
+### 8.5 Verificare i plugin attivi
+#### Via RPM
+```bash
+rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
+```
 
+![](../img/image14-v2.png)
+
+### Via Web UI
+#### Administer → About → Scorri fino a "Plugins" e vedrai la lista completa con versioni.
+
+![](../img/foremanfeatures.png)
+
+---
 ## FASE 9: Configurazione Post-Installazione
 
 ### 9.1 Configura Organization e Location
-
+#### L'organizzazione di default è già creata, ma puoi crearne altre
 ```bash
-# L'organizzazione di default è già creata, ma puoi crearne altre
-hammer organization create --name "MyOrganization" --label "myorg"
+hammer organization create --name "PSN-ASL06" --label "myorg"
 ```
-
+#### Crea location per il tuo ambiente Azure
 ```bash
-# Crea location per il tuo ambiente Azure
 hammer location create --name "Italy-North"
 ```
-
+#### Associa location all'organizzazione
 ```bash
-# Associa location all'organizzazione
-hammer organization add-location --name "MyOrganization" --location "Italy-North"
+hammer organization add-location --name "PSN-ASL06" --location "Italy-North"
 ```
 
 ### 9.2 Importa chiavi GPG per i repository
-
+#### Crea directory per le chiavi GPG
 ```bash
-# Crea directory per le chiavi GPG
 mkdir -p /etc/pki/rpm-gpg/import
 ```
-
+#### Scarica chiavi GPG Ubuntu (per gestire VM Ubuntu)
 ```bash
-# Scarica chiavi GPG Ubuntu (per gestire VM Ubuntu)
 curl -o /etc/pki/rpm-gpg/import/ubuntu-archive-keyring.gpg \
-  https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C
+  "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg"
 ```
-
 ### 9.3 Verifica plugin Remote Execution
-
+#### Verifica che il plugin REX sia attivo
 ```bash
-# Verifica che il plugin REX sia attivo
 hammer settings list | grep remote_execution
 ```
 
+Le impostazioni chiave sono:
+
+| Setting                                  | Valore                           | Significato               |
+| ---------------------------------------- | -------------------------------- | ------------------------- |
+| `remote_execution_ssh_user`              | **root**                         | Connessione SSH come root |
+| `remote_execution_ssh_port`              | **22**                           | Porta standard SSH        |
+| `remote_execution_effective_user`        | **root**                         | Esegue comandi come root  |
+| `remote_execution_effective_user_method` | **sudo**                         | Usa sudo se necessario    |
+| `remote_execution_global_proxy`          | **true**                         | Cerca proxy disponibili   |
+| `remote_execution_form_job_template`     | **Run Command - Script Default** | Template default pronto   |
+#### Verifica la chiave SSH di Foreman
 ```bash
-# Verifica la chiave SSH di Foreman
 cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub
 ```
 
-> **IMPORTANTE**: Questa chiave pubblica dovrà essere copiata sulle VM Ubuntu che vuoi gestire.
+> **IMPORTANTE**: Questa chiave pubblica dovrà essere copiata sulle VM Ubuntu chesi vogliono gestire.
 
 ---
 
