@@ -83,8 +83,7 @@
               "title": "LAB_1-Test_1"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -260,11 +259,14 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "3831f0df43d14014",
+  "active": "b56e831e8851dda8",
   "lastOpenFiles": [
-    "Guide/LAB_1-Test_1.md",
     "Setting/Installazione _Foreman-Katello_su_RHEL 9.md",
     "Guide/Untitled.md",
+    "img/AddEnvironmentPath.png",
+    "img/CreateEnvironmentPath 1.png",
+    "img/Image16-v2.png",
+    "Guide/LAB_1-Test_1.md",
     "image-4.png",
     "Utenze/ASL0603.md",
     "img/image15-v2.png",
@@ -275,9 +277,6 @@
     "img/fwrule.png",
     "img/HLD_SPM_v2.png",
     "img/General_Workflow_SPM_v2.png",
-    "img/ForemanLOGO.png",
-    "img/foremancheck.png",
-    "img/etc-hosts.png",
     "Setting/Installation.md",
     "Setting/Installation_V2.md",
     "Setting/CreateVM.md",

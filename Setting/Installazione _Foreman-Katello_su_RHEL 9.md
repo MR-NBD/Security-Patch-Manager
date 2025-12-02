@@ -11,7 +11,6 @@ Questa guida descrive l'installazione di **Foreman 3.15** con **Katello 4.17** e
 | Disco OS                            | 50 GB  | 100 GB       |
 | Disco Pulp (`/var/lib/pulp`)        | 100 GB | 300+ GB      |
 | Disco PostgreSQL (`/var/lib/pgsql`) | 20 GB  | 50 GB        |
-
 ### Architettura Target
 ### FOREMAN + KATELLO SERVER - (RHEL 9.6)   
 ##### Componenti:
@@ -39,7 +38,6 @@ sdc
 ``` 
 ---
 ## FASE 1: Verifica e Preparazione del Sistema
-
 ### 1.1 Verifica versione OS e SELinux
 #### Verifica versione OS
 ```bash
@@ -53,7 +51,6 @@ rpm -q selinux-policy
 ```
 
 > **IMPORTANTE**: Foreman/Katello 4.17 richiede almeno `selinux-policy >= 38.1.45-3.el9_5`. Se la versione è inferiore (es. `38.1.35-2.el9_4`), è necessario aggiornare il sistema.
-
 ### 1.2 Registrazione RHEL e Aggiornamento Sistema
 #### Diventa root
 ```bash
@@ -89,11 +86,9 @@ Output atteso: `selinux-policy-38.1.53-5.el9_6` o superiore.
 ![](../img/image5-v2.png)
 
 ---
-
 ## FASE 2: Configurazione NTP con Chrony
 
 La sincronizzazione temporale è **critica** per il corretto funzionamento di Katello e dei certificati SSL.
-
 ### 2.1 Installazione e Configurazione Chrony
 #### Installa chrony
 ```bash
@@ -124,9 +119,7 @@ Output atteso:
 ![](../img/image6-v2.png)
 
 ---
-
 ## FASE 3: Configurazione Hostname e Networking
-
 ### 3.1 Identifica l'interfaccia di rete e l'IP
 #### Visualizza interfacce di rete
 ```bash
@@ -134,7 +127,6 @@ ip addr show
 ```
 
 Annota l'indirizzo IP della tua interfaccia principale (es. `eth0` o `ens192`).
-
 ### 3.2 Configura l'hostname
 #### Imposta hostname (sostituisci con il tuo FQDN)
 ```bash
@@ -167,16 +159,13 @@ Il file dovrebbe apparire così:
 
 ![](../img/image9-v2.png)
 ### 3.4 Verifica la configurazione
-
 #### Verifica risoluzione hostname
 ```bash
 ping -c 2 $(hostname -f)
 ```
 
 ---
-
 ## FASE 4: Configurazione Firewall
-
 ### 4.1 Abilita le porte necessarie
 #### Porte TCP per Foreman/Katello
 ```bash
@@ -206,7 +195,6 @@ firewall-cmd --add-service={http,https,dns,dhcp,tftp,puppetmaster} --permanent
 ```bash
 firewall-cmd --reload
 ```
-
 ### 4.2 Verifica configurazione firewall
 
 ```bash
@@ -218,9 +206,7 @@ Output atteso:
 ![](../img/image8-v2.png)
 
 ---
-
 ## FASE 5: Configurazione Storage LVM per Pulp
-
 Pulp richiede un volume dedicato montato su `/var/lib/pulp` per la gestione dei repository.
 
 ### 5.1 Identifica il disco dedicato
@@ -230,7 +216,6 @@ lsblk
 ```
 
 Identifica il disco aggiuntivo (es. `/dev/sdb` o `/dev/sda` se non è il disco OS).
-
 
 > **ATTENZIONE**: Assicurati di selezionare il disco corretto! Non formattare il disco del sistema operativo.
 
@@ -257,7 +242,6 @@ vgcreate vg_pulp /dev/sda1
 ```bash
 lvcreate -l 100%FREE -n lv_pulp vg_pulp
 ```
-
 ### 5.3 Formatta e monta il volume
 #### Formatta con filesystem XFS (raccomandato per Pulp)
 ```bash
@@ -271,7 +255,6 @@ mkdir -p /var/lib/pulp
 ```bash
 mount /dev/mapper/vg_pulp-lv_pulp /var/lib/pulp
 ```
-
 ### 5.4 Configura mount persistente
 #### Aggiungi entry in fstab per mount automatico al boot
 ```bash
@@ -301,10 +284,8 @@ Output atteso:
 ```bash
 systemctl daemon-reload
 ```
-
 ## FASE 5-bis : Configurazione Storage LVM per PostgreSQL
-
-#### Stesso processo, device diverso (es. /dev/sdc)
+Stesso processo, device diverso (es. /dev/sdc)
 ```bash
 parted /dev/sdb --script mklabel gpt
 ```
@@ -342,9 +323,7 @@ df -hP /var/lib/pgsql/
 systemctl daemon-reload
 ```
 ---
-
 ## FASE 6: Installazione Repository
-
 ### 6.1 Abilita CodeReady Builder e EPEL
 #### Abilita CodeReady Linux Builder
 ```bash
@@ -361,7 +340,6 @@ dnf config-manager --set-enabled epel
 
 ### 6.2 Pulisci e aggiorna cache
 Ora possiamo iniziare con l'installazione dei Foreman-Katello. Seguima dunque quanto riporato dalla guida per instllare verione di Foreman 3.15 Katello 4.17 e Puppet 8 https://docs.theforeman.org/3.15/Quickstart/index-katello.html
-
 #### Pulisci tutti i metadati
 ```bash
 dnf clean all
@@ -370,7 +348,6 @@ dnf clean all
 ```bash
 dnf makecache
 ```
-
 ### 6.3 Installa repository Foreman, Katello e Puppet
 #### Repository Foreman 3.15
 ```bash
@@ -384,7 +361,6 @@ dnf install -y https://yum.theforeman.org/katello/4.17/katello/el9/x86_64/katell
 ```bash
 dnf install -y https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
 ```
-
 ### 6.4 Verifica i repository abilitati
 
 ```bash
@@ -396,15 +372,12 @@ Output atteso:
 ![](../img/image11-v2.png)
 
 ---
-
 ## FASE 7: Installazione Foreman-Katello
-
 ### 7.1 Aggiorna il sistema
 #### Aggiorna tutti i pacchetti prima dell'installazione
 ```bash
 dnf upgrade -y
 ```
-
 ### 7.2 Installa il pacchetto installer
 #### Installa foreman-installer per scenario Katello
 ```bash
@@ -412,7 +385,6 @@ dnf install -y foreman-installer-katello
 ```
 
 ### 7.3 Esegui l'installazione con plugin
-
 Questa è l'installazione completa con tutti i plugin necessari per gestire VM Ubuntu via SSH:
 
 ```bash
@@ -444,7 +416,6 @@ foreman-installer --scenario katello \
 | `--enable-foreman-cli-katello`                          | CLI hammer per Katello                              |
 
 ### 7.4 Monitora l'installazione (opzionale)
-
 In un altro terminale puoi monitorare il log:
 
 ```bash
@@ -452,15 +423,12 @@ tail -f /var/log/foreman-installer/katello.log
 ```
 
 ### 7.5 Output installazione completata
-
 Al termine dell'installazione vedrai un output simile:
 
 ![[image13-v2.png]]
 
 ---
-
 ## FASE 8: Verifica dell'Installazione
-
 ### 8.1 Verifica stato servizi
 #### Verifica stato di tutti i servizi Katello
 ```bash
@@ -490,13 +458,11 @@ Apri un browser e accedi a:
 
 ![](../img/foremanlogin.png)
 ### 8.3 Recupera credenziali (se necessario)
-
 Se hai dimenticato la password:
 
 ```bash
 grep admin_password /etc/foreman-installer/scenarios.d/katello-answers.yaml
 ```
-
 ### 8.4 Test CLI Hammer
 #### Login con hammer
 ```bash
@@ -514,7 +480,6 @@ hammer organization list
 ```bash
 hammer location list
 ```
-
 ### 8.5 Verificare i plugin attivi
 #### Via RPM
 ```bash
@@ -523,8 +488,8 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 
 ![](../img/image14-v2.png)
 
-### Via Web UI
-#### Administer → About → Scorri fino a "Plugins" e vedrai la lista completa con versioni.
+#### Via Web UI
+##### Administer → About → Scorri fino a "Plugins" e vedrai la lista completa con versioni.
 
 ![](../img/foremanfeatures.png)
 
@@ -539,7 +504,6 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 | VM Ubuntu Target | 10.172.2.5                       |
 | OS Target        | Ubuntu 24.04 LTS                 |
 ## FASE 9: Configurazione Post-Installazione
-
 ### 9.1 Configura Organization e Location
 #### L'organizzazione di default è già creata, ma puoi crearne altre
 ```bash
@@ -584,7 +548,6 @@ hammer proxy list
 Output atteso:
 
 ![](../img/image15-v2.png)
-
 ### 9.4 Associa Smart Proxy all'Organization e alla Location
 #### Associa il proxy all'organizzazione PSN-ASL06
 ```bash
@@ -614,9 +577,7 @@ hammer organization info --name "PSN-ASL06"
 
 ---
 ## FASE 10: Configurazione Content Credentials (Chiavi GPG)
-
 Le chiavi GPG sono necessarie per verificare l'autenticità dei pacchetti Ubuntu.
-
 ### 10.1 Scarica le chiavi GPG di Ubuntu
 #### Crea directory se non esiste
 ```bash
@@ -663,7 +624,6 @@ hammer content-credentials create \
 ```
 
 ---
-
 ## FASE 11: Creazione Product e Repository Ubuntu 24.04
 ### 11.1 Crea il Product
 #### Via Web UI
@@ -676,6 +636,7 @@ hammer content-credentials create \
     - **GPG Key**: lascia vuoto (lo assegniamo ai singoli repository)
     - **Description**: `Repository Ubuntu 24.04 Noble Numbat per patch management - TEST`
 4. Clicca **Save**
+
 ![Create Product](../img/CreateProduct.png)
 #### Via Hammer CLI
 
@@ -703,6 +664,7 @@ hammer product create \
     - **GPG Key**: `Ubuntu Archive Key` (creato in FASE 10)
     - **Download Policy**: `On Demand`
 4. Clicca **Save**
+
 ![Create Product](../img/CreateProduct.png)
 
 | Versione Ubuntu  | Codename            |
@@ -726,7 +688,6 @@ hammer repository create \
   --download-policy "on_demand" \
   --gpg-key "Ubuntu Archive Key"
 ```
-
 ### 11.3 Crea Repository Updates
 #### Via Web UI
 
@@ -762,11 +723,8 @@ hammer repository list --organization "PSN-ASL06" --product "Ubuntu 24.04 LTS"
 ```
 
 ---
-
 ## FASE 12: Sincronizzazione Repository
-
 ### 12.1 Sincronizza Tutti i Repository
-
 #### Via Web UI
 
 1. Vai su **Content → Products → Ubuntu 24.04 LTS**
@@ -799,9 +757,139 @@ hammer repository synchronize \
   --name "Ubuntu 24.04 Security" \
   --async
 ```
+### 12.2 Monitora Sincronizzazione
+#### Via Web UI
+
+1. Vai su **Content → Sync Status**
+2. Visualizza lo stato in tempo reale per ogni repository
+
+Oppure:
+
+1. Vai su **Monitor → Tasks**
+2. Filtra per `state = running`
+#### Via Hammer CLI
+
+```bash
+# Lista task in esecuzione
+hammer task list --search "state=running"
+
+# Dettaglio task specifico
+hammer task progress --id <TASK_ID>
+```
+### 12.3 Crea Sync Plan (Sincronizzazione Automatica) - NON FATTO AL MOMENTO
+
+#### Via Web UI
+
+1. Vai su **Content → Sync Plans**
+2. Clicca **Create Sync Plan**
+3. Compila:
+    - **Name**: `Daily-Ubuntu-Sync`
+    - **Description**: `Sincronizzazione giornaliera repository Ubuntu`
+    - **Interval**: `daily`
+    - **Start Date**: seleziona data
+    - **Start Time**: `02:00` (orario notturno)
+4. Clicca **Save**
+5. Nella pagina del Sync Plan, vai tab **Products**
+6. Clicca **Add** → seleziona **Ubuntu 24.04 LTS** → **Add Selected**
+#### Via Hammer CLI
+
+```bash
+# Crea sync plan
+hammer sync-plan create \
+  --organization "PSN-ASL06" \
+  --name "Daily-Ubuntu-Sync" \
+  --description "Sincronizzazione giornaliera repository Ubuntu" \
+  --enabled true \
+  --interval "daily" \
+  --sync-date "2025-01-01 02:00:00"
+
+# Associa product al sync plan
+hammer product set-sync-plan \
+  --organization "PSN-ASL06" \
+  --name "Ubuntu 24.04 LTS" \
+  --sync-plan "Daily-Ubuntu-Sync"
+```
 
 ---
+## FASE 13: Lifecycle Environments
+### 13.1 Crea Ambiente Development
+#### Via Web UI
 
+1. Vai su **Content → Lifecycle → Lifecycle Environments**
+2. Clicca **Create Environment Path**
+3. Compila:
+    - **Name**: `Development`
+    - **Label**: `development`
+    - **Description**: `Ambiente di sviluppo e test`
+4. Clicca **Save**
+
+![Create Environment Path](../img/CreateEnvironmentPath.png)
+#### Via Hammer CLI
+
+```bash
+hammer lifecycle-environment create \
+  --organization "PSN-ASL06" \
+  --name "Development" \
+  --label "development" \
+  --prior "Library" \
+  --description "Ambiente di sviluppo e test"
+```
+### 13.2 Aggiungi Ambiente Test
+#### Via Web UI
+
+1. In **Lifecycle Environments**, clicca su **Add New Environment** dopo "Test"
+2. Compila:
+    - **Name**: `Test`
+    - **Label**: `test`
+    - **Description**: `Ambiente di test pre-produzione`
+3. Clicca **Save**
+
+![](../img/AddEnvironmentPath.png)
+#### Via Hammer CLI
+
+```bash
+hammer lifecycle-environment create \
+  --organization "PSN-ASL06" \
+  --name "Test" \
+  --label "test" \
+  --prior "Development" \
+  --description "Ambiente di staging pre-produzione"
+```
+### 13.3 Aggiungi Ambiente Production
+#### Via Web UI
+
+1. In **Lifecycle Environments**, clicca su **Add New Environment** dopo "Staging"
+2. Compila:
+    - **Name**: `Production`
+    - **Label**: `production`
+    - **Description**: `Ambiente di produzione`
+3. Clicca **Save**
+### 13.4 Verifica Lifecycle Path
+#### Via Web UI
+
+Vai su **Content → Lifecycle → Lifecycle Environments**
+#### Via Hammer CLI
+
+```bash
+hammer lifecycle-environment paths --organization "PSN-ASL06"
+```
+Output atteso :
+
+![](../img/Image16-v2.png)
+
+---
+## FASE 14: Content View
+### 14.1 Crea Content View
+#### Via Web UI
+
+1. Vai su **Content → Lifecycle → Content Views**
+2. Clicca **Create Content View**
+3. Compila:
+    - **Name**: `CV-Ubuntu-2404`
+    - **Label**: `cv_ubuntu_2404`
+    - **Description**: `Content View per Ubuntu 24.04 LTS`
+    - **Type**: `Content View` (non Composite)
+4. Clicca **Create Content View**
 
 ## FASE 10: Configurazione Repository per Ubuntu
 
