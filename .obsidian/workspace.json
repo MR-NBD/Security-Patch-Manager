@@ -140,7 +140,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "right": {
     "id": "2e443e30fb5653f7",
@@ -260,22 +261,22 @@
   },
   "active": "3831f0df43d14014",
   "lastOpenFiles": [
-    "img/CreateHostGroup.png",
+    "Guide/Install & Configure Foreman Katello Patch Management on.md",
+    "Utenze/ASL0603.md",
     "Setting/Installazione _Foreman-Katello_su_RHEL 9.md",
     "Guide/Untitled.md",
+    "img/ActivationKeys.png",
+    "img/Image16-v2.png",
+    "img/CreateHostGroup.png",
     "Guide/LAB_1-Test_1.md",
     "img/AddEnvironmentPath.png",
     "img/CreateEnvironmentPath 1.png",
-    "img/Image16-v2.png",
     "image-4.png",
-    "Utenze/ASL0603.md",
     "img/image15-v2.png",
-    "Guide/Install & Configure Foreman Katello Patch Management on.md",
     "Guide/Understanding_Foreman_and_Katello.md",
     "img/foremanfeatures.png",
     "img/foremanlogin.png",
     "img/fwrule.png",
-    "img/HLD_SPM_v2.png",
     "Setting/Installation.md",
     "Setting/Installation_V2.md",
     "Setting/CreateVM.md",

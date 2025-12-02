@@ -1094,8 +1094,8 @@ Le Host Collections sono utili **dopo** aver registrato gli host, per:
 1. Vai su **Configure → Host Groups**
 2. Clicca **Create Host Group**
 3. Tab **Host Group**:
-    - **Name**: `Ubuntu-2404-Servers`
-    - **Description**: `Server Ubuntu 24.04 LTS`
+    - **Name**: `Ubuntu-2404-Groups`
+    - **Description**: `Groups Ubuntu 24.04 LTS`
     - **Lifecycle Environment**: `Production`
     - **Content View**: `CV-Ubuntu-2404`
     - **Content Source**: `foreman-katello-test.localdomain`
@@ -1120,7 +1120,141 @@ hammer hostgroup create \
   --content-source "foreman-katello-test.localdomain" \
   --operatingsystem "Ubuntu 24.04"
 ```
+### 16.2 Configura Parametri SSH per Host Group
+#### Via Web UI
 
+1. In **Host Groups → Ubuntu-2404-Servers**
+2. Vai tab **Parameters**
+3. Clicca **Add Parameter**:
+    - **Name**: `remote_execution_ssh_user`
+    - **Type**: `string`
+    - **Value**: `root`
+4. Clicca **Add Parameter**:
+    - **Name**: `remote_execution_connect_by_ip`
+    - **Type**: `boolean`
+    - **Value**: `true`
+5. Clicca **Submit**
+#### Via Hammer CLI
+
+```bash
+# Utente SSH
+hammer hostgroup set-parameter \
+  --hostgroup "Ubuntu-2404-Servers" \
+  --name "remote_execution_ssh_user" \
+  --parameter-type "string" \
+  --value "root"
+
+# Connessione via IP
+hammer hostgroup set-parameter \
+  --hostgroup "Ubuntu-2404-Servers" \
+  --name "remote_execution_connect_by_ip" \
+  --parameter-type "boolean" \
+  --value "true"
+```
+
+---
+## FASE 17: Activation Key
+### 17.1 Crea Activation Key
+#### Via Web UI
+
+1. Vai su **Content → Lifecycle → Activation Keys**
+2. Clicca **Create Activation Key**
+3. Compila:
+    - **Name**: `ak-ubuntu-2404-prod`
+    - **Description**: `Activation Key per Ubuntu 24.04 Production`
+    - **Environment**: `Production`
+    - **Content View**: `CV-Ubuntu-2404`
+    - **Unlimited Hosts**: ☑ abilitato
+4. Clicca **Save**
+
+![Activation Keys](../img/ActivationKeys.png)
+
+#### Via Hammer CLI
+
+```bash
+hammer activation-key create \
+  --organization "PSN-ASL06" \
+  --name "ak-ubuntu-2404-prod" \
+  --description "Activation Key per Ubuntu 24.04 Production" \
+  --lifecycle-environment "Production" \
+  --content-view "CV-Ubuntu-2404" \
+  --unlimited-hosts
+```
+### 17.2 Verifica Activation Key
+#### Via Web UI
+
+In **Activation Keys** dovresti vedere `ak-ubuntu-2404-prod`
+
+#### Via Hammer CLI
+
+```bash
+hammer activation-key info \
+  --organization "PSN-ASL06" \
+  --name "ak-ubuntu-2404-prod"
+```
+
+---
+## FASE 18: Preparazione VM Ubuntu (10.172.2.5)
+Questa fase richiede accesso alla VM Ubuntu target in questo caso `test-Lorenzo-1` vedere [ASL0603](../Utenze/ASL0603.md) per le Utenze
+### 18.1 Ottieni la Chiave SSH di Foreman
+
+#### Sul Server Foreman
+
+```bash
+cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub
+```
+
+Copia l'output (inizia con `ssh-rsa ...`)
+### 18.2 Configura SSH sulla VM Ubuntu
+#### Sulla VM Ubuntu (10.172.2.5)
+Connettiti alla VM con le credenziali attuali
+```bash
+sudo su -
+```
+Crea directory .ssh se non esiste
+```bash
+mkdir -p /root/.ssh
+```
+```bash
+chmod 700 /root/.ssh
+```
+Aggiungi la chiave pubblica di Foreman
+```bash
+nano /root/.ssh/authorized_keys
+```
+Incolla la chiave pubblica copiata prima e salva.
+
+Imposta permessi corretti
+```bash
+chmod 600 /root/.ssh/authorized_keys
+```
+```bash
+chown root:root /root/.ssh/authorized_keys
+```
+### 18.3 Configura SSHD
+Edita configurazione SSH
+```bash
+nano /etc/ssh/sshd_config
+```
+
+Verifica/modifica queste righe:
+
+```
+PermitRootLogin prohibit-password
+PubkeyAuthentication yes
+```
+Riavvia SSH
+```bash
+sudo systemctl restart ssh
+```
+### 18.4 Test Connessione SSH
+#### Sul Server Foreman
+
+```bash
+ssh -i /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy root@10.172.2.5 "hostname && uptime"
+```
+
+Se vedi hostname e uptime della VM, la connessione funziona! ✅
 
 ## FASE 10: Configurazione Repository per Ubuntu
 
