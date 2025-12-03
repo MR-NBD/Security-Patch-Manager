@@ -37,6 +37,7 @@ sdc
 	├─/var
 ``` 
 ---
+
 ## FASE 1: Verifica la Preparazione del Sistema
 ### 1.1 Verifica versione OS e SELinux
 #### Verifica versione OS

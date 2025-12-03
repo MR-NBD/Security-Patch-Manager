@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Guide/Install & Configure Foreman Katello Patch Management on.md",
+                "file": "Setting/Installazione.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Install & Configure Foreman Katello Patch Management on"
+              "title": "Installazione"
             }
           }
         ]
@@ -197,6 +197,8 @@
   },
   "active": "72efad550cc96c2c",
   "lastOpenFiles": [
+    "Guide/Limitazioni di katello-host-tools.md",
+    "Guide/Install & Configure Foreman Katello Patch Management on.md",
     "Setting/Installazione.md",
     "Setting/CreateVM.md",
     "Utenze/ASL0603.md",
@@ -209,11 +211,9 @@
     "img/image-5.png",
     "img/image-1.png",
     "Guide/Installation.md",
-    "Guide/Install & Configure Foreman Katello Patch Management on.md",
     "Guide/APPUNTI-Understanding_Foreman_and_Katello.md",
     "Guide/Appunti_Utili.md",
     "Guide/Untitled 1.md",
-    "Guide/Untitled.md",
     "img/image17-v2.png",
     "img/ActivationKeys.png",
     "img/Image16-v2.png",
