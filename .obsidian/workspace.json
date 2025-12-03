@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Setting/Installazione.md",
+                "file": "Guide/Install & Configure Foreman Katello Patch Management on.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installazione"
+              "title": "Install & Configure Foreman Katello Patch Management on"
             }
           }
         ]
@@ -197,8 +197,10 @@
   },
   "active": "72efad550cc96c2c",
   "lastOpenFiles": [
-    "img/image18-v2.png",
     "Setting/Installazione.md",
+    "Setting/CreateVM.md",
+    "Utenze/ASL0603.md",
+    "img/image18-v2.png",
     "README.md",
     "Guide/LAB_1-Test_1-VECCHIO.md",
     "image-3.png",
@@ -212,13 +214,11 @@
     "Guide/Appunti_Utili.md",
     "Guide/Untitled 1.md",
     "Guide/Untitled.md",
-    "Utenze/ASL0603.md",
     "img/image17-v2.png",
     "img/ActivationKeys.png",
     "img/Image16-v2.png",
     "img/CreateHostGroup.png",
     "Setting/Installation_V2.md",
-    "Setting/CreateVM.md",
     "workflow/PATCH_TESTING_VALIDATION.drawio",
     "Documentation/Tabella_Comparativa.md",
     "Documentation/ATIXOrcharrhino.pdf",

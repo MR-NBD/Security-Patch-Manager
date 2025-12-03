@@ -12,7 +12,8 @@ System Management Tool :
 - Reporting
 
 The Red Hat Satellite version 5 based on SPacewalw, the current version of Satellite 6 is based on foreman with katello plugin. The most important core components are pulp, candlepin, qpid, puppet and much more.
-![[image-1.png]]
+
+![](../img/image-1.png)
 
 **Foreman**
 Foreman is an open source application used for provisioning and life cycle management of physical and virtual systems. Foreman automatically configures these systems using various methods, including kickstart and Puppet modules. Foreman also provides historical data for reporting, auditing, and troubleshooting.
