@@ -1334,6 +1334,17 @@ hammer job-invocation create \
   --inputs "command=hostname && uptime && df -h" \
   --search-query "name = test-Lorenzo-1"
 ```
+### 20.2 Verifica output job
+#### Via Web UI
+**Monitor → Jobs** → clicca sul job → visualizza output
+#### Via Hammer CLI
+
+```bash
+hammer job-invocation list
+hammer job-invocation output --id <JOB_ID> --host "test-Lorenzo-1"
+```
+
+---
 
 
 
