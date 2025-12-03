@@ -394,7 +394,9 @@ foreman-installer --scenario katello \
   --enable-foreman-plugin-ansible \
   --enable-foreman-proxy-plugin-ansible \
   --enable-foreman-plugin-templates \
-  --enable-foreman-cli-katello
+  --enable-foreman-cli-katello \
+  --foreman-proxy-registration true \
+  --foreman-proxy-templates true
 ```
 
 > **NOTA**: L'installazione richiede 15-30 minuti. Non interrompere il processo.
@@ -559,6 +561,13 @@ hammer location add-smart-proxy \
   --name "Italy-North" \
   --smart-proxy "foreman-katello-test.localdomain"
 ```
+### Verifica feature del proxy
+```bash
+hammer proxy info --name "foreman-katello-test.localdomain"
+```
+Guarda la sezione "Features". Dovresti vedere un output simile : 
+
+![](../img/image17-v2.png)
 ### 9.5 Verifica associazioni
 #### Verifica Organization
 ```bash
@@ -1205,6 +1214,27 @@ cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub
 ```bash
 scp /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub azureuser@10.172.2.5:
 ```
+## ==FUTURI TEST==
+### Comando ottimizzato (da server Foreman come root)
+```bash
+cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub | ssh azureuser@10.172.2.5 "sudo tee /root/.ssh/authorized_keys && sudo chmod 600 /root/.ssh/authorized_keys && sudo chown root:root /root/.ssh/authorized_keys"
+```
+---
+### Oppure in versione script per più host
+
+```bash
+#!/bin/bash
+TARGET_USER="azureuser"
+TARGET_HOST="10.172.2.5"
+
+cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub | ssh ${TARGET_USER}@${TARGET_HOST} "
+  sudo mkdir -p /root/.ssh &&
+  sudo chmod 700 /root/.ssh &&
+  sudo tee /root/.ssh/authorized_keys > /dev/null &&
+  sudo chmod 600 /root/.ssh/authorized_keys &&
+  sudo chown -R root:root /root/.ssh
+"
+```
 ### 18.2 Configura SSH sulla VM Ubuntu
 #### Sulla VM Ubuntu (10.172.2.5)
 #### Crea directory .ssh per root
@@ -1256,10 +1286,10 @@ Se si vede hostname e uptime della VM, la connessione funziona! ✅
     - **Operating System**: `Ubuntu 24.04`
     - **Activation Keys**: `ak-ubuntu-2404-prod`
     - **Insecure**: ☑ (se certificato self-signed)
-    - **Advanced → Remote Execution Interface**: seleziona l'interfaccia
 3. Clicca **Generate**
 4. Copia il comando `curl` generato
 
+![[image-5.png]]
 #### Sulla VM Ubuntu (10.172.2.5)
 
 Esegui il comando curl copiato:
