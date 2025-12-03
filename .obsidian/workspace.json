@@ -8,20 +8,6 @@
         "type": "tabs",
         "children": [
           {
-            "id": "3831f0df43d14014",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Setting/Installazione _Foreman-Katello_su_RHEL 9.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Installazione _Foreman-Katello_su_RHEL 9"
-            }
-          },
-          {
             "id": "ced3e799c687eacd",
             "type": "leaf",
             "state": {
@@ -33,6 +19,20 @@
               },
               "icon": "lucide-file",
               "title": "Install & Configure Foreman Katello Patch Management on"
+            }
+          },
+          {
+            "id": "db37d966221e0f88",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Setting/Installazione _Foreman-Katello_su_RHEL 9.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Installazione _Foreman-Katello_su_RHEL 9"
             }
           },
           {
@@ -49,7 +49,8 @@
               "title": "ASL0603"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       },
       {
         "id": "ca30a838d43e1aaf",
@@ -70,6 +71,20 @@
             }
           },
           {
+            "id": "3831f0df43d14014",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Guide/Untitled 1.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Untitled 1"
+            }
+          },
+          {
             "id": "72efad550cc96c2c",
             "type": "leaf",
             "state": {
@@ -83,7 +98,8 @@
               "title": "LAB_1-Test_1"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -259,14 +275,15 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "3831f0df43d14014",
+  "active": "db37d966221e0f88",
   "lastOpenFiles": [
-    "image-5.png",
-    "img/image17-v2.png",
+    "Guide/Untitled 1.md",
     "Setting/Installazione _Foreman-Katello_su_RHEL 9.md",
-    "Guide/Untitled.md",
     "Guide/Install & Configure Foreman Katello Patch Management on.md",
     "Utenze/ASL0603.md",
+    "image-5.png",
+    "img/image17-v2.png",
+    "Guide/Untitled.md",
     "img/ActivationKeys.png",
     "img/Image16-v2.png",
     "img/CreateHostGroup.png",
@@ -277,7 +294,6 @@
     "img/image15-v2.png",
     "Guide/Understanding_Foreman_and_Katello.md",
     "img/foremanfeatures.png",
-    "img/foremanlogin.png",
     "Setting/Installation.md",
     "Setting/Installation_V2.md",
     "Setting/CreateVM.md",

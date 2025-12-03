@@ -403,17 +403,19 @@ foreman-installer --scenario katello \
 
 #### Opzioni installer spiegate:
 
-| Opzione                                                 | Descrizione                                         |
-| ------------------------------------------------------- | --------------------------------------------------- |
-| `--scenario katello`                                    | Installa Foreman con Katello per content management |
-| `--foreman-initial-admin-username`                      | Username admin iniziale                             |
-| `--foreman-initial-admin-password`                      | Password admin iniziale                             |
-| `--enable-foreman-plugin-remote-execution`              | Abilita esecuzione comandi remoti via SSH           |
-| `--enable-foreman-proxy-plugin-remote-execution-script` | Proxy per remote execution                          |
-| `--enable-foreman-plugin-ansible`                       | Integrazione Ansible                                |
-| `--enable-foreman-proxy-plugin-ansible`                 | Proxy per Ansible                                   |
-| `--enable-foreman-plugin-templates`                     | Gestione template                                   |
-| `--enable-foreman-cli-katello`                          | CLI hammer per Katello                              |
+| Opzione                                                 | Descrizione                                                   |
+| ------------------------------------------------------- | ------------------------------------------------------------- |
+| `--scenario katello`                                    | Installa Foreman con Katello                                  |
+| `--foreman-initial-admin-username`                      | Username admin                                                |
+| `--foreman-initial-admin-password`                      | Password admin                                                |
+| `--enable-foreman-plugin-remote-execution`              | Esecuzione comandi via SSH                                    |
+| `--enable-foreman-proxy-plugin-remote-execution-script` | Proxy per SSH                                                 |
+| `--enable-foreman-plugin-ansible`                       | Integrazione Ansible                                          |
+| `--enable-foreman-proxy-plugin-ansible`                 | Proxy per Ansible                                             |
+| `--enable-foreman-plugin-templates`                     | Gestione template                                             |
+| `--enable-foreman-cli-katello`                          | CLI hammer per Katello                                        |
+| `--foreman-proxy-registration true`                     | **Feature Registration** (necessaria per Global Registration) |
+| `--foreman-proxy-templates true`                        | **Feature Templates** (necessaria per Global Registration)    |
 
 ### 7.4 Monitora l'installazione (opzionale)
 In un altro terminale puoi monitorare il log:
@@ -434,18 +436,6 @@ Al termine dell'installazione vedrai un output simile:
 ```bash
 foreman-maintain service status
 ```
-
-Oppure:
-
-#### Verifica servizi singoli
-```bash
-systemctl status foreman
-systemctl status httpd
-systemctl status postgresql
-systemctl status pulpcore-api
-systemctl status pulpcore-content
-```
-
 ### 8.2 Verifica accesso web
 
 Apri un browser e accedi a:
@@ -561,14 +551,18 @@ hammer location add-smart-proxy \
   --name "Italy-North" \
   --smart-proxy "foreman-katello-test.localdomain"
 ```
-### Verifica feature del proxy
+### 9.5 Verifica Smart Proxy features
 ```bash
 hammer proxy info --name "foreman-katello-test.localdomain"
 ```
-Guarda la sezione "Features". Dovresti vedere un output simile : 
+Guarda la sezione "Features". Dovresti vedere in Active features:
 
 ![](../img/image17-v2.png)
-### 9.5 Verifica associazioni
+### Refresh features (se necessario)
+```bash
+hammer proxy refresh-features --name "foreman-katello-test.localdomain"
+```
+### 9.6 Verifica associazioni
 #### Verifica Organization
 ```bash
 hammer organization info --name "PSN-ASL06"
@@ -1278,6 +1272,72 @@ Se si vede hostname e uptime della VM, la connessione funziona! ✅
 ---
 ## FASE 19: Registrazione Host in Foreman
 ### 19.1 Metodo Consigliato: Global Registration
+
+> **IMPORTANTE**: Per host Ubuntu esistenti, usare il metodo **Hammer CLI** è la UI fa casini.
+
+```bash
+hammer host create \
+  --organization "PSN-ASL06" \
+  --location "Italy-North" \
+  --name "test-Lorenzo-1" \
+  --hostgroup "Ubuntu-2404-Groups" \
+  --operatingsystem "ubuntu 24.04" \
+  --architecture "x86_64" \
+  --ip "10.172.2.5" \
+  --managed false \
+  --build false
+```
+### 19.2 Verifica host registrato
+#### Via Web UI
+Vai su **Hosts → All Hosts** → si dovrebbe vedere `test-Lorenzo-1`
+#### Via Hammer CLI
+
+```bash
+hammer host info --name "test-Lorenzo-1"
+```
+### 19.3 Metodo alternativo: Via Web UI
+
+Se preferisci la UI, ricorda:
+
+1. **Hosts → Create Host**
+2. Tab **Host**: Name, Organization, Location, Host Group
+3. Tab **Operating System**:
+    - **Build Mode**: ☐ **DISABILITATO**
+    - Operating System: `ubuntu 24.04`
+4. Tab **Interfaces** → Edit:
+    - **IPv4 Address**: `10.172.2.5`
+    - **Primary**: ☑
+    - **Managed**: ☐
+    - **Provision**: ☐
+    - **Remote Execution**: ☑
+5. Clicca **OK** → **Submit**
+
+---
+## FASE 20: Verifica Remote Execution
+### 20.1 Test comando remoto
+#### Via Web UI
+
+1. Vai su **Hosts → All Hosts**
+2. Seleziona ☑ `test-Lorenzo-1`
+3. Clicca **Select → Schedule Remote Job**
+4. Compila:
+    - **Job Category**: `Commands`
+    - **Job Template**: `Run Command - Script Default`
+    - **Command**: `hostname && uptime && df -h`
+5. Clicca **Submit**
+
+#### Via Hammer CLI
+
+```bash
+hammer job-invocation create \
+  --job-template "Run Command - Script Default" \
+  --inputs "command=hostname && uptime && df -h" \
+  --search-query "name = test-Lorenzo-1"
+```
+
+
+
+
 #### Via Web UI
 
 1. Vai su **Hosts → Register Host**
