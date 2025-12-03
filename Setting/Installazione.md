@@ -570,7 +570,7 @@ hammer organization info --name "PSN-ASL06"
 
 #### Verifica dalla Web UI andando **Infrastructure → Smart Proxies**
 
-![[image-4.png]]
+![](../img/image18-v2.png)
 
 1. Vai su **Administer → Organizations → PSN-ASL06 → Smart Proxies**
 2. Verifica che `foreman-katello-test.localdomain` sia presente
@@ -1356,7 +1356,7 @@ hammer job-invocation output --id <JOB_ID> --host "test-Lorenzo-1"
 3. Clicca **Generate**
 4. Copia il comando `curl` generato
 
-![[image-5.png]]
+![](../img/image-5.png)
 
 
 ---
