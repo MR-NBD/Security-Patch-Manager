@@ -1,5 +1,5 @@
 ## Panoramica
-Questa guida descrive l'installazione di **Foreman 3.15** con **Katello 4.17** e **Puppet 8** su **RHEL 9.x**. L'obiettivo finale è gestire il patch management di VM Linux (incluse Ubuntu) tramite SSH.
+Questa guida descrive l'installazione di **Foreman 3.15** con **Katello 4.17** e **Puppet 8** su **RHEL 9.x**. L'obiettivo finale è gestire il patch management di VM tramite SSH.
 ![](../img/image12-v2.png)
 
 ### Requisiti Hardware Minimi
@@ -37,7 +37,7 @@ sdc
 	├─/var
 ``` 
 ---
-## FASE 1: Verifica e Preparazione del Sistema
+## FASE 1: Verifica la Preparazione del Sistema
 ### 1.1 Verifica versione OS e SELinux
 #### Verifica versione OS
 ```bash
@@ -60,6 +60,7 @@ sudo su -
 ```bash
 subscription-manager register
 ```
+(Utilizzo della mie credenziali personali di RHEL per il momento)
 #### Abilita i repository necessari
 ```bash
 subscription-manager repos --enable=rhel-9-for-x86_64-baseos-rpms
@@ -71,7 +72,7 @@ subscription-manager repos --enable=rhel-9-for-x86_64-appstream-rpms
 ```bash
 dnf upgrade --releasever=9.6 -y
 ```
-#### Riavvia per applicare gli aggiornamenti
+#### Riavviare per applicare gli aggiornamenti
 ```bash
 reboot
 ```
@@ -88,7 +89,7 @@ Output atteso: `selinux-policy-38.1.53-5.el9_6` o superiore.
 ---
 ## FASE 2: Configurazione NTP con Chrony
 
-La sincronizzazione temporale è **critica** per il corretto funzionamento di Katello e dei certificati SSL.
+La sincronizzazione temporale è un componente **critico** per il corretto funzionamento di Katello e dei certificati SSL.
 ### 2.1 Installazione e Configurazione Chrony
 #### Installa chrony
 ```bash
@@ -109,7 +110,7 @@ chronyc sources
 ```bash
 timedatectl set-ntp true
 ```
-#### Verifica stato sincronizzazione
+#### Verifica lo stato sincronizzazione
 ```bash
 timedatectl status
 ```
@@ -120,13 +121,12 @@ Output atteso:
 
 ---
 ## FASE 3: Configurazione Hostname e Networking
-### 3.1 Identifica l'interfaccia di rete e l'IP
-#### Visualizza interfacce di rete
+### 3.1 Identificare l'interfaccia di rete e l'IP
 ```bash
 ip addr show
 ```
 
-Annota l'indirizzo IP della tua interfaccia principale (es. `eth0` o `ens192`).
+Annotare l'indirizzo IP dell'interfaccia principale (es. `eth0` o `ens192`).
 ### 3.2 Configura l'hostname
 #### Imposta hostname (sostituisci con il tuo FQDN)
 ```bash
@@ -149,7 +149,7 @@ cp /etc/hosts /etc/hosts.bak
 nano /etc/hosts
 ```
 
-Aggiungi la seguente riga (sostituisci con i tuoi valori):
+Aggiungi la seguente riga (sostituisci con i valori rilavati sopra):
 
 ```
 10.172.2.15    foreman-katello-test.localdomain    foreman-katello-test
@@ -196,7 +196,6 @@ firewall-cmd --add-service={http,https,dns,dhcp,tftp,puppetmaster} --permanent
 firewall-cmd --reload
 ```
 ### 4.2 Verifica configurazione firewall
-
 ```bash
 firewall-cmd --list-all
 ```
@@ -208,7 +207,6 @@ Output atteso:
 ---
 ## FASE 5: Configurazione Storage LVM per Pulp
 Pulp richiede un volume dedicato montato su `/var/lib/pulp` per la gestione dei repository.
-
 ### 5.1 Identifica il disco dedicato
 
 ```bash
@@ -217,7 +215,7 @@ lsblk
 
 Identifica il disco aggiuntivo (es. `/dev/sdb` o `/dev/sda` se non è il disco OS).
 
-> **ATTENZIONE**: Assicurati di selezionare il disco corretto! Non formattare il disco del sistema operativo.
+> **ATTENZIONE**: Assicurati di selezionare il disco corretto! Per non formattare il disco del sistema operativo.
 
 ![](../img/image7-v2.png)
 ### 5.2 Crea la struttura LVM
@@ -385,7 +383,7 @@ dnf install -y foreman-installer-katello
 ```
 
 ### 7.3 Esegui l'installazione con plugin
-Questa è l'installazione completa con tutti i plugin necessari per gestire VM Ubuntu via SSH:
+Questa è l'installazione completa con tutti i plugin necessari individuati fino ad ora:
 
 ```bash
 foreman-installer --scenario katello \
@@ -577,7 +575,7 @@ hammer organization info --name "PSN-ASL06"
 
 ---
 ## FASE 10: Configurazione Content Credentials (Chiavi GPG)
-Le chiavi GPG sono necessarie per verificare l'autenticità dei pacchetti Ubuntu.
+Le chiavi GPG sono necessarie per verificare l'autenticità dei pacchetti.
 ### 10.1 Scarica le chiavi GPG di Ubuntu
 #### Crea directory se non esiste
 ```bash
@@ -1203,62 +1201,74 @@ Questa fase richiede accesso alla VM Ubuntu target in questo caso `test-Lorenzo-
 ```bash
 cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub
 ```
-
-Copia l'output (inizia con `ssh-rsa ...`)
+#### Copiare la chiave sulla macchina terget
+```bash
+scp /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub azureuser@10.172.2.5:
+```
 ### 18.2 Configura SSH sulla VM Ubuntu
 #### Sulla VM Ubuntu (10.172.2.5)
-Connettiti alla VM con le credenziali attuali
+#### Crea directory .ssh per root
 ```bash
-sudo su -
-```
-Crea directory .ssh se non esiste
-```bash
-mkdir -p /root/.ssh
+sudo mkdir -p /root/.ssh
 ```
 ```bash
-chmod 700 /root/.ssh
+sudo chmod 700 /root/.ssh
 ```
-Aggiungi la chiave pubblica di Foreman
+#### Copia la chiave nel file authorized_keys di root
 ```bash
-nano /root/.ssh/authorized_keys
+sudo cat ~/id_rsa_foreman_proxy.pub | sudo tee /root/.ssh/authorized_keys
 ```
-Incolla la chiave pubblica copiata prima e salva.
-
-Imposta permessi corretti
+#### Imposta i permessi corretti
 ```bash
-chmod 600 /root/.ssh/authorized_keys
+sudo chmod 600 /root/.ssh/authorized_keys
 ```
 ```bash
-chown root:root /root/.ssh/authorized_keys
+sudo chown -R root:root /root/.ssh
 ```
-### ==18.3 Configura SSH==
-Edita configurazione SSH
+#### Verifica che sia su una sola riga
 ```bash
-nano /etc/ssh/sshd_config
+sudo cat /root/.ssh/authorized_keys
 ```
-
-Verifica/modifica queste righe:
-
-```
-PermitRootLogin prohibit-password
-PubkeyAuthentication yes
-```
-Riavvia SSH
+Riavvia SSH (opzioneale)
 ```bash
 sudo systemctl restart ssh
 ```
-### ==18.4 Test Connessione SSH==
+### 18.4 Test Connessione SSH
 #### Sul Server Foreman
 
 ```bash
-scp /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub azureuser@10.172.2.5: 
+sudo su -
 ```
 ```bash
 ssh -i /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy root@10.172.2.5 "hostname && uptime"
 ```
 
-Se vedi hostname e uptime della VM, la connessione funziona! ✅
+Se si vede hostname e uptime della VM, la connessione funziona! ✅
 
+---
+## FASE 19: Registrazione Host in Foreman
+### 19.1 Metodo Consigliato: Global Registration
+#### Via Web UI
+
+1. Vai su **Hosts → Register Host**
+2. Compila:
+    - **Host Group**: `Ubuntu-2404-Groups`
+    - **Operating System**: `Ubuntu 24.04`
+    - **Activation Keys**: `ak-ubuntu-2404-prod`
+    - **Insecure**: ☑ (se certificato self-signed)
+    - **Advanced → Remote Execution Interface**: seleziona l'interfaccia
+3. Clicca **Generate**
+4. Copia il comando `curl` generato
+
+#### Sulla VM Ubuntu (10.172.2.5)
+
+Esegui il comando curl copiato:
+
+```bash
+curl -sS --insecure 'https://foreman-katello-test.localdomain/register?...' | bash
+```
+
+---
 ## FASE 10: Configurazione Repository per Ubuntu
 
 Per gestire VM Ubuntu, devi configurare i repository DEB.
