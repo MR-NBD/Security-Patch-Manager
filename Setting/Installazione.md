@@ -427,7 +427,7 @@ tail -f /var/log/foreman-installer/katello.log
 ### 7.5 Output installazione completata
 Al termine dell'installazione vedrai un output simile:
 
-![[image13-v2.png]]
+![](../img/image13-v2.png)
 
 ---
 ## FASE 8: Verifica dell'Installazione
