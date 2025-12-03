@@ -56,7 +56,7 @@ Ecco una prima analisi riassuntiva degli strumenti inizialmente proposti nel [do
 In questo momento il laboratorio si concentrando sull'utilizzo di Foreman+Katello+Puppet
 [DOC](https://theforeman.org/)
 ![img](./img/ForemanLOGO.png)
-- SETUP [CREATE VM](./Setting/CreateVM.md) [INSTALLATION](./Setting/Installation.md)
+- INSTALLAZIONE E CONFIGURAZIONE con HOST UBUNTU -  [GUIDA INSTAZZIONE E CONFIGYRAZIONE INIZIALE](./Setting/Installazione_Foreman-Katello_su_RHEL 9.md)
 - GUIDE 
 - CONFIGURAZIONI
 
