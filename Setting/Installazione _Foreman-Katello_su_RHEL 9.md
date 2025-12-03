@@ -1298,6 +1298,20 @@ Esegui il comando curl copiato:
 curl -sS --insecure 'https://foreman-katello-test.localdomain/register?...' | bash
 ```
 
+## ==QUESTO FUNZIONA PER LA CREAZIONE HOST
+==
+```bash
+hammer host create \
+  --organization "PSN-ASL06" \
+  --location "Italy-North" \
+  --name "test-Lorenzo-1" \
+  --hostgroup "Ubuntu-2404-Groups" \
+  --operatingsystem "ubuntu 24.04" \
+  --architecture "x86_64" \
+  --ip "10.172.2.5" \
+  --managed false \
+  --build false
+```
 ---
 ## FASE 10: Configurazione Repository per Ubuntu
 
