@@ -739,7 +739,7 @@ Copia l'output (inizia con `ssh-rsa ...`)
 
 ---
 
-### 18.2 Configura SSH sulla VM Ubuntu
+### ==18.2 Configura SSH sulla VM Ubuntu==
 
 #### Sulla VM Ubuntu (10.172.2.5)
 
@@ -774,7 +774,7 @@ chown root:root /root/.ssh/authorized_keys
 
 ---
 
-### 18.3 Configura SSHD
+### ==18.3 Configura SSHD==
 
 ```bash
 # Edita configurazione SSH
@@ -795,7 +795,7 @@ systemctl restart sshd
 
 ---
 
-### 18.4 Test Connessione SSH
+### ==18.4 Test Connessione SSH==
 
 #### Sul Server Foreman
 

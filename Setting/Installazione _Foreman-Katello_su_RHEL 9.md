@@ -1231,7 +1231,7 @@ chmod 600 /root/.ssh/authorized_keys
 ```bash
 chown root:root /root/.ssh/authorized_keys
 ```
-### 18.3 Configura SSH
+### ==18.3 Configura SSH==
 Edita configurazione SSH
 ```bash
 nano /etc/ssh/sshd_config
@@ -1247,9 +1247,12 @@ Riavvia SSH
 ```bash
 sudo systemctl restart ssh
 ```
-### 18.4 Test Connessione SSH
+### ==18.4 Test Connessione SSH==
 #### Sul Server Foreman
 
+```bash
+scp /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub azureuser@10.172.2.5: 
+```
 ```bash
 ssh -i /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy root@10.172.2.5 "hostname && uptime"
 ```
