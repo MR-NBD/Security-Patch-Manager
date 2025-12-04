@@ -1,275 +1,733 @@
-# Guida Registrazione Content Host Ubuntu 24.04
+# Guida Completa: Foreman 3.15 + Katello 4.17 con Ubuntu 24.04
 
 ## Panoramica
 
-Questa guida descrive i passaggi per **rimuovere** l'host esistente registrato in modo incompleto e **ri-registrarlo correttamente** come **Content Host** in Foreman/Katello.
+Questa guida descrive l'installazione di **Foreman 3.15** con **Katello 4.17** e **Puppet 8** su **RHEL 9.x**. L'obiettivo finale è gestire il patch management di VM Ubuntu tramite Remote Execution (SSH), con **controllo totale degli aggiornamenti da Foreman**.
 
-L'obiettivo è avere una VM Ubuntu 24.04 che:
+### Principi Chiave di questa Guida
 
-- Sia visibile in **Hosts → Content Hosts**
-- Riceva i repository configurati nella Content View
-- Possa ricevere aggiornamenti di sicurezza tramite Katello
+|Principio|Descrizione|
+|---|---|
+|**Controllo centralizzato**|Tutti i comandi vengono eseguiti da Foreman via Remote Execution|
+|**Nessun aggiornamento automatico**|La VM Ubuntu non si aggiorna mai autonomamente|
+|**Minime operazioni sulla VM**|Solo configurazione iniziale, poi tutto da Foreman|
+
+### Limitazioni Note - Ubuntu in Katello
+
+> **IMPORTANTE**: Ubuntu/Debian in Katello ha limitazioni rispetto a RHEL/CentOS:
+
+|Funzionalità|Ubuntu|RHEL/CentOS|
+|---|---|---|
+|**Errata** (Security, Bugfix, Enhancement)|❌ **Non disponibile**|✅ Sì|
+|Lista pacchetti installati|✅ Sì|✅ Sì|
+|Pacchetti aggiornabili|✅ Sì|✅ Sì|
+|Remote Execution|✅ Sì|✅ Sì|
+|Content View / Lifecycle|✅ Sì|✅ Sì|
+
+Per gli aggiornamenti di sicurezza Ubuntu, useremo **Job Templates personalizzati** che eseguono `apt` commands.
+
+---
+
+### Requisiti Hardware Minimi
+
+|Componente|Minimo|Raccomandato|
+|---|---|---|
+|CPU|4 core|8 core|
+|RAM|20 GB|32 GB|
+|Disco OS|50 GB|100 GB|
+|Disco Pulp (`/var/lib/pulp`)|100 GB|300+ GB|
+|Disco PostgreSQL (`/var/lib/pgsql`)|20 GB|50 GB|
+
+### Architettura Target
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              FOREMAN + KATELLO SERVER (RHEL 9.6)                │
+│                   foreman-katello-test.localdomain              │
+│                          10.172.2.15                            │
+├─────────────────────────────────────────────────────────────────┤
+│  Componenti:           │  Plugin Attivi:                        │
+│  - Foreman 3.15        │  - Remote Execution (SSH)              │
+│  - Katello 4.17        │  - Ansible                             │
+│  - Puppet 8            │  - Templates                           │
+│  - Pulp                │                                        │
+│  - PostgreSQL          │                                        │
+│  - Candlepin           │                                        │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ SSH (Remote Execution)
+                              │ HTTPS (Content)
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    VM UBUNTU 24.04 LTS                          │
+│                       test-lorenzo-1                            │
+│                         10.172.2.5                              │
+├─────────────────────────────────────────────────────────────────┤
+│  - Aggiornamenti automatici DISABILITATI                        │
+│  - subscription-manager (da ATIX)                               │
+│  - Registrata come Content Host                                 │
+│  - Gestita SOLO via Remote Execution                            │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ### Ambiente di Riferimento
 
-|Componente|Valore|
-|---|---|
-|Server Foreman|foreman-katello-test.localdomain (10.172.2.15)|
-|Organization|PSN-ASL06|
-|Location|Italy-North|
-|VM Ubuntu Target|test-Lorenzo-1 (10.172.2.5)|
-|OS Target|Ubuntu 24.04 LTS (Noble)|
-|Content View|CV-Ubuntu-2404|
-|Activation Key|ak-ubuntu-2404-prod|
-|Lifecycle Environment|Production|
+|Componente|Nome|Valore|
+|---|---|---|
+|Server Foreman|hostname|foreman-katello-test.localdomain|
+|Server Foreman|IP|10.172.2.15|
+|Organization|Name|PSN-ASL06|
+|Organization|**Label**|**myorg** ← usato per subscription-manager|
+|Location|Name|Italy-North|
+|VM Ubuntu|hostname|test-lorenzo-1|
+|VM Ubuntu|IP|10.172.2.5|
+|Content View|Name|CV-Ubuntu-2404|
+|Activation Key|Name|ak-ubuntu-2404-prod|
 
-### Prerequisiti Completati
-
-Prima di procedere, assicurati di aver completato:
-
-- [x] FASE 1-9: Installazione Foreman/Katello
-- [x] FASE 10: Content Credentials (GPG Keys)
-- [x] FASE 11: Product e Repository Ubuntu 24.04
-- [x] FASE 12: Sincronizzazione Repository
-- [x] FASE 13: Lifecycle Environments
-- [x] FASE 14: Content View (CV-Ubuntu-2404)
-- [x] FASE 15: Operating System
-- [x] FASE 16: Host Group
-- [x] FASE 17: Activation Key
-- [x] FASE 18: Configurazione SSH sulla VM Ubuntu
+> **CRITICO**: Per la registrazione con `subscription-manager`, si usa il **Label** dell'organizzazione (`myorg`), NON il Name (`PSN-ASL06`).
 
 ---
 
-## FASE 21: Rimozione Host Esistente
-
-> **NOTA**: Questo passaggio è necessario solo se hai già registrato l'host con `hammer host create --managed false`. Se l'host non esiste, salta alla FASE 22.
-
-### 21.1 Verifica Host Esistente
-
-#### Via Web UI
-
-1. Vai su **Hosts → All Hosts**
-2. Cerca `test-Lorenzo-1`
-3. Verifica se è presente
-
-#### Via Hammer CLI
-
-```bash
-hammer host list --search "name = test-Lorenzo-1"
-```
-
-### 21.2 Rimuovi Host da Foreman
-
-#### Via Web UI
-
-1. Vai su **Hosts → All Hosts**
-2. Trova `test-Lorenzo-1`
-3. Clicca sul menu **⋮** (tre puntini) a destra
-4. Seleziona **Delete**
-5. Nella finestra di conferma:
-    - ☑ Seleziona tutte le opzioni di cleanup se presenti
-6. Clicca **Delete**
-
-#### Via Hammer CLI
-
-```bash
-hammer host delete --name "test-Lorenzo-1"
-```
-
-### 21.3 Verifica Rimozione
-
-#### Via Web UI
-
-1. Vai su **Hosts → All Hosts**
-2. Cerca `test-Lorenzo-1`
-3. Non dovrebbe apparire nessun risultato
-
-#### Via Hammer CLI
-
-```bash
-hammer host list --search "name = test-Lorenzo-1"
-```
-
-Output atteso: nessun host trovato.
-
-### 21.4 Verifica Content Hosts (se presente)
-
-#### Via Web UI
-
-1. Vai su **Hosts → Content Hosts**
-2. Cerca `test-Lorenzo-1`
-3. Se presente, rimuovilo:
-    - Seleziona ☑ l'host
-    - Clicca **Select Action → Unregister Hosts**
-
-#### Via Hammer CLI
-
-```bash
-# Verifica se esiste come content host
-hammer content-host list --organization "PSN-ASL06" --search "name = test-Lorenzo-1"
-
-# Se esiste, rimuovilo
-hammer content-host delete --organization "PSN-ASL06" --name "test-Lorenzo-1"
-```
+# PARTE 1: INSTALLAZIONE SERVER FOREMAN/KATELLO (RHEL 9.6)
 
 ---
 
-## FASE 22: Preparazione VM Ubuntu per Content Host
+## FASE 1: Verifica la Preparazione del Sistema
 
-Questi passaggi vanno eseguiti **sulla VM Ubuntu** (10.172.2.5).
-
-### 22.1 Connessione alla VM
+### 1.1 Verifica versione OS e SELinux
 
 ```bash
-# Dal server Foreman o dalla tua workstation
-ssh azureuser@10.172.2.5
+cat /etc/os-release
 ```
 
-### 22.2 Diventa Root
+```bash
+rpm -q selinux-policy
+```
+
+> **IMPORTANTE**: Foreman/Katello 4.17 richiede almeno `selinux-policy >= 38.1.45-3.el9_5`.
+
+### 1.2 Registrazione RHEL e Aggiornamento Sistema
 
 ```bash
 sudo su -
+subscription-manager register
+subscription-manager repos --enable=rhel-9-for-x86_64-baseos-rpms
+subscription-manager repos --enable=rhel-9-for-x86_64-appstream-rpms
+dnf upgrade --releasever=9.6 -y
+reboot
 ```
 
-### 22.3 Verifica Connettività verso Foreman
+### 1.3 Verifica Post-Aggiornamento
 
 ```bash
-# Test connessione HTTPS
-curl -k https://foreman-katello-test.localdomain/
+rpm -q selinux-policy
 ```
 
-Se non funziona, verifica:
+Output atteso: `selinux-policy-38.1.53-5.el9_6` o superiore.
 
-- Risoluzione DNS o aggiungi entry in `/etc/hosts`
-- Firewall
+---
+
+## FASE 2: Configurazione NTP con Chrony
 
 ```bash
-# Se necessario, aggiungi entry hosts
-echo "10.172.2.15 foreman-katello-test.localdomain" >> /etc/hosts
+sudo su -
+dnf install -y chrony
+systemctl enable --now chronyd
+chronyc sources
+timedatectl set-ntp true
+timedatectl status
 ```
 
-### 22.4 Installa Dipendenze Base
+---
+
+## FASE 3: Configurazione Hostname e Networking
+
+### 3.1 Configura hostname
+
+```bash
+hostnamectl set-hostname foreman-katello-test.localdomain
+hostname -f
+```
+
+### 3.2 Configura /etc/hosts
+
+```bash
+cp /etc/hosts /etc/hosts.bak
+echo "10.172.2.15    foreman-katello-test.localdomain    foreman-katello-test" >> /etc/hosts
+ping -c 2 $(hostname -f)
+```
+
+---
+
+## FASE 4: Configurazione Firewall
+
+```bash
+firewall-cmd --add-port={53,80,443,5646,5647,8000,8140,9090}/tcp --permanent
+firewall-cmd --add-port={53,67,68,69}/udp --permanent
+firewall-cmd --add-service={http,https,dns,dhcp,tftp,puppetmaster} --permanent
+firewall-cmd --reload
+firewall-cmd --list-all
+```
+
+---
+
+## FASE 5: Configurazione Storage LVM per Pulp
+
+```bash
+# Identifica disco (es. /dev/sda)
+lsblk
+
+# Crea struttura LVM
+parted /dev/sda --script mklabel gpt
+parted /dev/sda --script mkpart primary 0% 100%
+pvcreate /dev/sda1
+vgcreate vg_pulp /dev/sda1
+lvcreate -l 100%FREE -n lv_pulp vg_pulp
+
+# Formatta e monta
+mkfs.xfs /dev/mapper/vg_pulp-lv_pulp
+mkdir -p /var/lib/pulp
+mount /dev/mapper/vg_pulp-lv_pulp /var/lib/pulp
+echo "/dev/mapper/vg_pulp-lv_pulp /var/lib/pulp xfs defaults 0 0" >> /etc/fstab
+
+# SELinux
+restorecon -Rv /var/lib/pulp/
+systemctl daemon-reload
+```
+
+## FASE 5-bis: Configurazione Storage LVM per PostgreSQL
+
+```bash
+parted /dev/sdb --script mklabel gpt
+parted /dev/sdb --script mkpart primary 0% 100%
+pvcreate /dev/sdb1
+vgcreate vg_pgsql /dev/sdb1
+lvcreate -l 100%FREE -n lv_pgsql vg_pgsql
+mkfs.xfs /dev/mapper/vg_pgsql-lv_pgsql
+mkdir -p /var/lib/pgsql
+mount /dev/mapper/vg_pgsql-lv_pgsql /var/lib/pgsql
+echo "/dev/mapper/vg_pgsql-lv_pgsql /var/lib/pgsql xfs defaults 0 0" >> /etc/fstab
+restorecon -Rv /var/lib/pgsql/
+systemctl daemon-reload
+```
+
+---
+
+## FASE 6: Installazione Repository
+
+```bash
+# CodeReady Builder
+subscription-manager repos --enable codeready-builder-for-rhel-9-$(arch)-rpms
+
+# EPEL
+dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+dnf config-manager --set-enabled epel
+
+# Pulisci cache
+dnf clean all
+dnf makecache
+
+# Repository Foreman 3.15
+dnf install -y https://yum.theforeman.org/releases/3.15/el9/x86_64/foreman-release.rpm
+
+# Repository Katello 4.17
+dnf install -y https://yum.theforeman.org/katello/4.17/katello/el9/x86_64/katello-repos-latest.rpm
+
+# Repository Puppet 8
+dnf install -y https://yum.puppet.com/puppet8-release-el-9.noarch.rpm
+
+# Verifica
+dnf repolist enabled
+```
+
+---
+
+## FASE 7: Installazione Foreman-Katello
+
+```bash
+dnf upgrade -y
+dnf install -y foreman-installer-katello
+
+foreman-installer --scenario katello \
+  --foreman-initial-admin-username admin \
+  --foreman-initial-admin-password 'Temporanea1234' \
+  --enable-foreman-plugin-remote-execution \
+  --enable-foreman-proxy-plugin-remote-execution-script \
+  --enable-foreman-plugin-ansible \
+  --enable-foreman-proxy-plugin-ansible \
+  --enable-foreman-plugin-templates \
+  --enable-foreman-cli-katello \
+  --foreman-proxy-registration true \
+  --foreman-proxy-templates true
+```
+
+> **NOTA**: L'installazione richiede 15-30 minuti.
+
+---
+
+## FASE 8: Verifica dell'Installazione
+
+```bash
+foreman-maintain service status
+```
+
+Accedi a: `https://foreman-katello-test.localdomain`
+
+- Username: `admin`
+- Password: `Temporanea1234`
+
+---
+
+## FASE 9: Configurazione Post-Installazione
+
+### 9.1 Crea Organization e Location
+
+> **CRITICO**: Il **Label** dell'organizzazione (`myorg`) è quello che userai con `subscription-manager`, non il Name!
+
+```bash
+# Crea Organization - NOTA IL LABEL!
+hammer organization create --name "PSN-ASL06" --label "myorg"
+
+# Crea Location
+hammer location create --name "Italy-North"
+
+# Associa
+hammer organization add-location --name "PSN-ASL06" --location "Italy-North"
+```
+
+### 9.2 Verifica Label Organization
+
+```bash
+hammer organization list
+```
+
+Output:
+
+```
+---|----------------------|----------------------|-------------|---------------------
+ID | TITLE                | NAME                 | DESCRIPTION | LABEL               
+---|----------------------|----------------------|-------------|---------------------
+3  | PSN-ASL06            | PSN-ASL06            |             | myorg               
+```
+
+> Il **Label** `myorg` è quello da usare per la registrazione!
+
+### 9.3 Associa Smart Proxy
+
+```bash
+hammer organization add-smart-proxy \
+  --name "PSN-ASL06" \
+  --smart-proxy "foreman-katello-test.localdomain"
+
+hammer location add-smart-proxy \
+  --name "Italy-North" \
+  --smart-proxy "foreman-katello-test.localdomain"
+```
+
+### 9.4 Verifica chiave SSH per Remote Execution
+
+```bash
+cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub
+```
+
+> Salva questa chiave, servirà per la VM Ubuntu.
+
+---
+
+## FASE 10: Configurazione Content Credentials (Chiavi GPG)
+
+```bash
+mkdir -p /etc/pki/rpm-gpg/import
+
+curl -o /etc/pki/rpm-gpg/import/ubuntu-archive-keyring.gpg \
+  "http://archive.ubuntu.com/ubuntu/project/ubuntu-archive-keyring.gpg"
+
+gpg --no-default-keyring \
+  --keyring /etc/pki/rpm-gpg/import/ubuntu-archive-keyring.gpg \
+  --export --armor > /etc/pki/rpm-gpg/import/ubuntu-keys-ascii.asc
+
+hammer content-credentials create \
+  --organization "PSN-ASL06" \
+  --name "Ubuntu Archive Key" \
+  --content-type "gpg_key" \
+  --path "/etc/pki/rpm-gpg/import/ubuntu-keys-ascii.asc"
+```
+
+---
+
+## FASE 11: Creazione Product e Repository Ubuntu 24.04
+
+```bash
+# Product
+hammer product create \
+  --organization "PSN-ASL06" \
+  --name "Ubuntu 24.04 LTS" \
+  --label "ubuntu_2404_lts" \
+  --description "Repository Ubuntu 24.04 Noble Numbat per patch management"
+
+# Repository Security
+hammer repository create \
+  --organization "PSN-ASL06" \
+  --product "Ubuntu 24.04 LTS" \
+  --name "Ubuntu 24.04 Security" \
+  --label "ubuntu_2404_security" \
+  --content-type "deb" \
+  --url "http://security.ubuntu.com/ubuntu" \
+  --deb-releases "noble-security" \
+  --deb-components "main,universe,restricted,multiverse" \
+  --deb-architectures "amd64" \
+  --download-policy "on_demand" \
+  --gpg-key "Ubuntu Archive Key"
+
+# Repository Updates
+hammer repository create \
+  --organization "PSN-ASL06" \
+  --product "Ubuntu 24.04 LTS" \
+  --name "Ubuntu 24.04 Updates" \
+  --label "ubuntu_2404_updates" \
+  --content-type "deb" \
+  --url "http://archive.ubuntu.com/ubuntu" \
+  --deb-releases "noble-updates" \
+  --deb-components "main,universe,restricted,multiverse" \
+  --deb-architectures "amd64" \
+  --download-policy "on_demand" \
+  --gpg-key "Ubuntu Archive Key"
+
+# Repository Base
+hammer repository create \
+  --organization "PSN-ASL06" \
+  --product "Ubuntu 24.04 LTS" \
+  --name "Ubuntu 24.04 Base" \
+  --label "ubuntu_2404_base" \
+  --content-type "deb" \
+  --url "http://archive.ubuntu.com/ubuntu" \
+  --deb-releases "noble" \
+  --deb-components "main,universe,restricted,multiverse" \
+  --deb-architectures "amd64" \
+  --download-policy "on_demand" \
+  --gpg-key "Ubuntu Archive Key"
+```
+
+---
+
+## FASE 12: Sincronizzazione Repository
+
+```bash
+hammer product synchronize \
+  --organization "PSN-ASL06" \
+  --name "Ubuntu 24.04 LTS" \
+  --async
+
+# Monitora
+hammer task list --search "state=running"
+```
+
+---
+
+## FASE 13: Lifecycle Environments
+
+```bash
+hammer lifecycle-environment create \
+  --organization "PSN-ASL06" \
+  --name "Development" \
+  --label "development" \
+  --prior "Library" \
+  --description "Ambiente di sviluppo e test"
+
+hammer lifecycle-environment create \
+  --organization "PSN-ASL06" \
+  --name "Test" \
+  --label "test" \
+  --prior "Development" \
+  --description "Ambiente di test pre-produzione"
+
+hammer lifecycle-environment create \
+  --organization "PSN-ASL06" \
+  --name "Production" \
+  --label "production" \
+  --prior "Test" \
+  --description "Ambiente di produzione"
+
+# Verifica
+hammer lifecycle-environment paths --organization "PSN-ASL06"
+```
+
+---
+
+## FASE 14: Content View
+
+```bash
+# Crea Content View
+hammer content-view create \
+  --organization "PSN-ASL06" \
+  --name "CV-Ubuntu-2404" \
+  --label "cv_ubuntu_2404" \
+  --description "Content View per Ubuntu 24.04 LTS"
+
+# Aggiungi Repository
+hammer content-view add-repository \
+  --organization "PSN-ASL06" \
+  --name "CV-Ubuntu-2404" \
+  --product "Ubuntu 24.04 LTS" \
+  --repository "Ubuntu 24.04 Security"
+
+hammer content-view add-repository \
+  --organization "PSN-ASL06" \
+  --name "CV-Ubuntu-2404" \
+  --product "Ubuntu 24.04 LTS" \
+  --repository "Ubuntu 24.04 Updates"
+
+hammer content-view add-repository \
+  --organization "PSN-ASL06" \
+  --name "CV-Ubuntu-2404" \
+  --product "Ubuntu 24.04 LTS" \
+  --repository "Ubuntu 24.04 Base"
+
+# Pubblica
+hammer content-view publish \
+  --organization "PSN-ASL06" \
+  --name "CV-Ubuntu-2404" \
+  --description "Initial publish"
+
+# Promuovi a tutti gli ambienti
+hammer content-view version promote \
+  --organization "PSN-ASL06" \
+  --content-view "CV-Ubuntu-2404" \
+  --to-lifecycle-environment "Development"
+
+hammer content-view version promote \
+  --organization "PSN-ASL06" \
+  --content-view "CV-Ubuntu-2404" \
+  --to-lifecycle-environment "Test"
+
+hammer content-view version promote \
+  --organization "PSN-ASL06" \
+  --content-view "CV-Ubuntu-2404" \
+  --to-lifecycle-environment "Production"
+```
+
+---
+
+## FASE 15: Operating System
+
+```bash
+hammer os create \
+  --name "Ubuntu" \
+  --major "24" \
+  --minor "04" \
+  --family "Debian" \
+  --release-name "noble" \
+  --description "Ubuntu 24.04 LTS Noble Numbat"
+
+hammer os add-architecture \
+  --title "Ubuntu 24.04" \
+  --architecture "x86_64"
+```
+
+---
+
+## FASE 16: Host Group
+
+```bash
+hammer hostgroup create \
+  --organization "PSN-ASL06" \
+  --location "Italy-North" \
+  --name "Ubuntu-2404-Servers" \
+  --description "Server Ubuntu 24.04 LTS" \
+  --lifecycle-environment "Production" \
+  --content-view "CV-Ubuntu-2404" \
+  --content-source "foreman-katello-test.localdomain" \
+  --operatingsystem "Ubuntu 24.04"
+
+# Parametri SSH
+hammer hostgroup set-parameter \
+  --hostgroup "Ubuntu-2404-Servers" \
+  --name "remote_execution_ssh_user" \
+  --parameter-type "string" \
+  --value "root"
+
+hammer hostgroup set-parameter \
+  --hostgroup "Ubuntu-2404-Servers" \
+  --name "remote_execution_connect_by_ip" \
+  --parameter-type "boolean" \
+  --value "true"
+```
+
+---
+
+## FASE 17: Activation Key
+
+```bash
+hammer activation-key create \
+  --organization "PSN-ASL06" \
+  --name "ak-ubuntu-2404-prod" \
+  --description "Activation Key per Ubuntu 24.04 Production" \
+  --lifecycle-environment "Production" \
+  --content-view "CV-Ubuntu-2404" \
+  --unlimited-hosts
+```
+
+---
+
+# PARTE 2: PREPARAZIONE VM UBUNTU (10.172.2.5)
+
+> **OBIETTIVO**: Configurare la VM con il **minimo** necessario, poi gestire tutto da Foreman.
+
+---
+
+## FASE 18: Preparazione Iniziale VM Ubuntu
+
+### 18.1 Connessione alla VM
+
+```bash
+# Dal tuo PC o dal server Foreman
+ssh azureuser@10.172.2.5
+sudo su -
+```
+
+### 18.2 Aggiungi Foreman in /etc/hosts
+
+```bash
+echo "10.172.2.15 foreman-katello-test.localdomain foreman-katello-test" >> /etc/hosts
+ping -c 2 foreman-katello-test.localdomain
+```
+
+### 18.3 DISABILITA AGGIORNAMENTI AUTOMATICI
+
+> **CRITICO**: Questa è la configurazione più importante per avere controllo totale da Foreman.
+
+```bash
+# Ferma e disabilita apt-daily
+systemctl stop apt-daily.timer
+systemctl disable apt-daily.timer
+systemctl stop apt-daily-upgrade.timer
+systemctl disable apt-daily-upgrade.timer
+systemctl stop apt-daily.service
+systemctl disable apt-daily.service
+systemctl stop apt-daily-upgrade.service
+systemctl disable apt-daily-upgrade.service
+
+# Disabilita unattended-upgrades
+systemctl stop unattended-upgrades
+systemctl disable unattended-upgrades
+
+# Rimuovi unattended-upgrades (opzionale)
+apt remove -y unattended-upgrades
+
+# Verifica che siano disabilitati
+systemctl status apt-daily.timer
+systemctl status apt-daily-upgrade.timer
+systemctl status unattended-upgrades
+```
+
+### 18.4 Configura APT per non aggiornare automaticamente
+
+```bash
+cat > /etc/apt/apt.conf.d/99-foreman-managed << 'EOF'
+// Gestito da Foreman - Non aggiornare automaticamente
+APT::Periodic::Update-Package-Lists "0";
+APT::Periodic::Download-Upgradeable-Packages "0";
+APT::Periodic::AutocleanInterval "0";
+APT::Periodic::Unattended-Upgrade "0";
+EOF
+```
+
+### 18.5 Configura SSH per Remote Execution
+
+```bash
+# Crea directory SSH per root
+mkdir -p /root/.ssh
+chmod 700 /root/.ssh
+```
+
+### 18.6 Copia chiave SSH di Foreman
+
+Dal **Server Foreman** (10.172.2.15), esegui:
+
+```bash
+# Metodo semplice - copia la chiave
+cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub | \
+  ssh azureuser@10.172.2.5 "sudo tee /root/.ssh/authorized_keys && \
+  sudo chmod 600 /root/.ssh/authorized_keys && \
+  sudo chown root:root /root/.ssh/authorized_keys"
+```
+
+### 18.7 Test Connessione SSH da Foreman
+
+```bash
+# Sul server Foreman
+ssh -i /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy root@10.172.2.5 "hostname && uptime"
+```
+
+Se vedi hostname e uptime, la connessione funziona! ✅
+
+---
+
+## FASE 19: Installazione subscription-manager su Ubuntu
+
+> **IMPORTANTE**: Usare il repository `oss.atix.de` (NON apt.atix.de che è obsoleto!)
+
+### 19.1 Installa dipendenze
 
 ```bash
 apt update
 apt install -y curl ca-certificates gnupg
 ```
 
----
-
-## FASE 23: Configurazione Repository ATIX per subscription-manager
-
-ATIX fornisce i pacchetti `subscription-manager` per Ubuntu, necessari per registrare l'host come Content Host.
-
-### 23.1 Aggiungi Chiave GPG ATIX
+### 19.2 Aggiungi chiave GPG ATIX
 
 ```bash
-# Scarica e installa la chiave GPG
-curl -fsSL https://apt.atix.de/atix.asc | gpg --dearmor -o /usr/share/keyrings/atix-archive-keyring.gpg
+curl --silent --show-error --output /etc/apt/trusted.gpg.d/atix.asc \
+  https://oss.atix.de/atix_gpg.pub
 ```
 
-### 23.2 Aggiungi Repository ATIX
+### 19.3 Aggiungi repository ATIX per Ubuntu 24.04
 
 ```bash
-# Crea il file repository per Ubuntu 24.04
-cat > /etc/apt/sources.list.d/atix.list << 'EOF'
-deb [signed-by=/usr/share/keyrings/atix-archive-keyring.gpg] http://apt.atix.de/Ubuntu24LTS stable main
+# Formato DEB822 (Ubuntu 24.04+)
+cat > /etc/apt/sources.list.d/atix-client.sources << 'EOF'
+Types: deb
+URIs: https://oss.atix.de/Ubuntu24LTS/
+Suites: stable
+Components: main
+Signed-By: /etc/apt/trusted.gpg.d/atix.asc
 EOF
 ```
 
-> **NOTA**: Per altre versioni Ubuntu usa:
-> 
-> - Ubuntu 22.04: `http://apt.atix.de/Ubuntu22LTS`
-> - Ubuntu 20.04: `http://apt.atix.de/Ubuntu20LTS`
-
-### 23.3 Aggiorna Cache APT
+### 19.4 Installa subscription-manager
 
 ```bash
 apt update
-```
-
-### 23.4 Verifica Disponibilità Pacchetti
-
-```bash
-apt-cache search subscription-manager
-```
-
-Output atteso:
-
-```
-python3-subscription-manager - RHSM subscription-manager (Python 3)
-subscription-manager - RHSM subscription-manager
-...
-```
-
----
-
-## FASE 24: Installazione subscription-manager
-
-### 24.1 Installa subscription-manager e Tools
-
-```bash
 apt install -y subscription-manager
 ```
 
-### 24.2 Installa Katello Host Tools (opzionale ma raccomandato)
+### 19.5 Installa katello-host-tools (opzionale ma raccomandato)
 
 ```bash
 apt install -y katello-host-tools
 ```
 
-> **NOTA**: `katello-host-tools` permette di:
-> 
-> - Inviare il profilo pacchetti a Katello
-> - Visualizzare i pacchetti installati nella Web UI
-
-### 24.3 Verifica Installazione
+### 19.6 Verifica installazione
 
 ```bash
 subscription-manager version
 ```
 
-Output atteso:
-
-```
-server type: This system is currently not registered.
-subscription management server: Unknown
-subscription management rules: Unknown
-subscription-manager: 1.29.x
-```
-
 ---
 
-## FASE 25: Configurazione Certificato CA Katello
+## FASE 20: Configurazione subscription-manager
 
-### 25.1 Scarica il Certificato CA dal Server Foreman
+### 20.1 Scarica certificato CA di Katello
 
 ```bash
-# Crea directory se non esiste
 mkdir -p /etc/rhsm/ca
 
-# Scarica il certificato CA
 curl -o /etc/rhsm/ca/katello-server-ca.pem \
   https://foreman-katello-test.localdomain/pub/katello-server-ca.crt \
   --insecure
 ```
 
-### 25.2 Verifica il Certificato
-
-```bash
-ls -la /etc/rhsm/ca/katello-server-ca.pem
-```
-
-```bash
-# Visualizza info certificato
-openssl x509 -in /etc/rhsm/ca/katello-server-ca.pem -text -noout | head -20
-```
-
----
-
-## FASE 26: Configurazione subscription-manager
-
-### 26.1 Configura Server Katello
+### 20.2 Configura subscription-manager
 
 ```bash
 subscription-manager config \
@@ -280,47 +738,26 @@ subscription-manager config \
   --rhsm.baseurl=https://foreman-katello-test.localdomain/pulp/deb
 ```
 
-### 26.2 Verifica Configurazione
+### 20.3 Verifica configurazione
 
 ```bash
 subscription-manager config
 ```
 
-Output atteso (sezioni rilevanti):
-
-```
-[server]
-   hostname = foreman-katello-test.localdomain
-   port = 443
-   prefix = /rhsm
-   ...
-
-[rhsm]
-   baseurl = https://foreman-katello-test.localdomain/pulp/deb
-   repo_ca_cert = /etc/rhsm/ca/katello-server-ca.pem
-   ...
-```
-
-### 26.3 Verifica File di Configurazione (alternativa)
-
-```bash
-cat /etc/rhsm/rhsm.conf
-```
-
 ---
 
-## FASE 27: Registrazione Content Host
+## FASE 21: Registrazione come Content Host
 
-### 27.1 Registra l'Host con Activation Key
+> **CRITICO**: Usare il **Label** dell'organizzazione (`myorg`), NON il Name (`PSN-ASL06`)!
+
+### 21.1 Registra l'host
 
 ```bash
 subscription-manager register \
-  --org="PSN-ASL06" \
+  --org="myorg" \
   --activationkey="ak-ubuntu-2404-prod" \
-  --name="test-Lorenzo-1"
+  --name="test-lorenzo-1"
 ```
-
-> **NOTA**: Il parametro `--name` è opzionale. Se omesso, usa l'hostname della macchina.
 
 Output atteso:
 
@@ -328,36 +765,7 @@ Output atteso:
 The system has been registered with ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 ```
 
-### 27.2 Troubleshooting Registrazione
-
-Se ricevi errori, verifica:
-
-#### Errore: "Organization not found"
-
-```bash
-# Verifica il nome esatto dell'organizzazione sul server Foreman
-hammer organization list
-```
-
-#### Errore: "Unable to find activation key"
-
-```bash
-# Verifica il nome esatto della activation key
-hammer activation-key list --organization "PSN-ASL06"
-```
-
-#### Errore: "Connection refused" o "SSL error"
-
-```bash
-# Verifica connettività
-curl -k https://foreman-katello-test.localdomain/rhsm/status
-
-# Verifica che il certificato CA sia corretto
-curl --cacert /etc/rhsm/ca/katello-server-ca.pem \
-  https://foreman-katello-test.localdomain/rhsm/status
-```
-
-### 27.3 Verifica Registrazione sulla VM
+### 21.2 Verifica registrazione
 
 ```bash
 subscription-manager identity
@@ -367,108 +775,24 @@ Output atteso:
 
 ```
 system identity: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-name: test-Lorenzo-1
+name: test-lorenzo-1
 org name: PSN-ASL06
-org ID: PSN-ASL06
+org ID: myorg
 ```
 
----
-
-## FASE 28: Verifica Content Host in Foreman
-
-### 28.1 Verifica via Web UI
-
-1. Vai su **Hosts → Content Hosts**
-2. Cerca `test-Lorenzo-1`
-3. Dovresti vedere l'host con:
-    - **Subscription Status**: verde (subscribed)
-    - **Content View**: CV-Ubuntu-2404
-    - **Lifecycle Environment**: Production
-
-### 28.2 Verifica via Hammer CLI
+### 21.3 Verifica repository disponibili
 
 ```bash
-hammer content-host info \
-  --organization "PSN-ASL06" \
-  --name "test-Lorenzo-1"
-```
-
-Output atteso (campi chiave):
-
-```
-ID:                   X
-Name:                 test-Lorenzo-1
-Organization:         PSN-ASL06
-Content View:         CV-Ubuntu-2404
-Lifecycle Environment: Production
-...
-```
-
-### 28.3 Verifica in All Hosts
-
-#### Via Web UI
-
-1. Vai su **Hosts → All Hosts**
-2. Cerca `test-Lorenzo-1`
-3. L'host dovrebbe apparire con:
-    - **Content Source**: foreman-katello-test.localdomain
-    - **Lifecycle Environment**: Production
-    - **Content View**: CV-Ubuntu-2404
-
----
-
-## FASE 29: Configurazione Repository sulla VM
-
-Dopo la registrazione, devi configurare la VM per usare i repository di Katello.
-
-### 29.1 Verifica Repository Disponibili
-
-```bash
-# Sulla VM Ubuntu
 subscription-manager repos --list
 ```
 
-Output atteso:
-
-```
-+----------------------------------------------------------+
-    Available Repositories in /etc/apt/sources.list.d/
-+----------------------------------------------------------+
-Repo ID:   PSN-ASL06_Ubuntu_24_04_LTS_Ubuntu_24_04_Security
-Repo Name: Ubuntu 24.04 Security
-Repo URL:  https://foreman-katello-test.localdomain/pulp/deb/...
-Enabled:   1
-
-Repo ID:   PSN-ASL06_Ubuntu_24_04_LTS_Ubuntu_24_04_Updates
-...
-```
-
-### 29.2 Abilita i Repository (se non abilitati)
+### 21.4 Abilita i repository
 
 ```bash
-# Abilita tutti i repository disponibili
 subscription-manager repos --enable='*'
 ```
 
-Oppure abilita singolarmente:
-
-```bash
-subscription-manager repos \
-  --enable="PSN-ASL06_Ubuntu_24_04_LTS_Ubuntu_24_04_Security" \
-  --enable="PSN-ASL06_Ubuntu_24_04_LTS_Ubuntu_24_04_Updates" \
-  --enable="PSN-ASL06_Ubuntu_24_04_LTS_Ubuntu_24_04_Base"
-```
-
-### 29.3 Verifica File Sources List Generato
-
-```bash
-ls -la /etc/apt/sources.list.d/
-cat /etc/apt/sources.list.d/redhat.list
-```
-
-> **NOTA**: Anche per Debian/Ubuntu, subscription-manager crea un file chiamato `redhat.list` per convenzione.
-
-### 29.4 Aggiorna Cache APT
+### 21.5 Aggiorna APT (da repository Katello)
 
 ```bash
 apt update
@@ -476,202 +800,106 @@ apt update
 
 ---
 
-## FASE 30: Upload Profilo Pacchetti a Katello
+## FASE 22: Assegnazione Organization/Location all'Host
 
-Per vedere i pacchetti installati nella Web UI di Foreman, devi inviare il profilo.
+L'host registrato potrebbe non avere Organization/Location assegnate. Verifica e correggi.
 
-### 30.1 Invia Profilo Pacchetti Manualmente
-
-```bash
-# Se hai installato katello-host-tools
-katello-package-upload
-```
-
-Oppure:
+### 22.1 Sul Server Foreman - Verifica host
 
 ```bash
-# Alternativa
-subscription-manager facts --update
+sudo hammer host list
 ```
 
-### 30.2 Verifica Pacchetti in Web UI
+Cerca `test-lorenzo-1` e nota l'**ID**.
 
-#### Via Web UI
+### 22.2 Assegna Organization e Location via API
 
-1. Vai su **Hosts → Content Hosts → test-Lorenzo-1**
-2. Clicca tab **Packages**
-3. Dovresti vedere la lista dei pacchetti installati
+```bash
+# Sostituisci <HOST_ID> con l'ID trovato
+curl -k -u admin:Temporanea1234 \
+  -X PUT \
+  -H "Content-Type: application/json" \
+  -d '{"host": {"organization_id": 3, "location_id": 4}}' \
+  https://foreman-katello-test.localdomain/api/hosts/<HOST_ID>
+```
 
-> **NOTA**: La prima volta potrebbe richiedere qualche minuto per popolarsi.
+> **NOTA**: Organization ID = 3 (PSN-ASL06), Location ID = 4 (Italy-North). Verifica con `hammer organization list` e `hammer location list`.
+
+### 22.3 Assegna Host Group e IP
+
+```bash
+sudo hammer host update \
+  --name "test-lorenzo-1" \
+  --hostgroup "Ubuntu-2404-Servers" \
+  --ip "10.172.2.5"
+```
+
+### 22.4 Verifica nella Web UI
+
+1. Seleziona **PSN-ASL06** e **Italy-North** in alto a sinistra
+2. Vai su **Hosts → All Hosts**
+3. Dovresti vedere `test-lorenzo-1`
+4. Vai su **Hosts → Content Hosts**
+5. Dovresti vedere `test-lorenzo-1` con Content View assegnata
 
 ---
 
-## FASE 31: Configurazione SSH per Remote Execution
+## FASE 23: Upload Profilo Pacchetti
 
-Anche se l'host è ora un Content Host, dobbiamo assicurarci che Remote Execution funzioni.
-
-### 31.1 Verifica Chiave SSH già Configurata
+### 23.1 Sulla VM Ubuntu - Forza upload profilo
 
 ```bash
-# Sulla VM Ubuntu - verifica che la chiave Foreman sia presente
-cat /root/.ssh/authorized_keys
+subscription-manager refresh
+katello-package-upload --force
 ```
 
-Se la chiave di Foreman non è presente, segui la FASE 18 della guida originale.
+### 23.2 Verifica nella Web UI
 
-### 31.2 Associa Host al Host Group (se necessario)
+1. **Hosts → Content Hosts → test-lorenzo-1**
+2. Tab **Packages** → dovrebbe mostrare i pacchetti installati
 
-#### Via Web UI
+---
 
-1. Vai su **Hosts → All Hosts → test-Lorenzo-1**
-2. Clicca **Edit**
-3. In **Host Group**: seleziona `Ubuntu-2404-Groups`
-4. Clicca **Submit**
+## FASE 24: Test Remote Execution
 
-#### Via Hammer CLI
-
-```bash
-hammer host update \
-  --name "test-Lorenzo-1" \
-  --hostgroup "Ubuntu-2404-Groups"
-```
-
-### 31.3 Test Remote Execution
-
-#### Via Web UI
+### 24.1 Via Web UI
 
 1. Vai su **Hosts → All Hosts**
-2. Seleziona ☑ `test-Lorenzo-1`
+2. Seleziona ☑ `test-lorenzo-1`
 3. Clicca **Select Action → Schedule Remote Job**
 4. Compila:
     - **Job Category**: `Commands`
     - **Job Template**: `Run Command - Script Default`
-    - **Command**: `hostname && uptime`
-5. Clicca **Submit**
-6. Verifica output in **Monitor → Jobs**
-
----
-
-## FASE 32: Verifica Aggiornamenti Disponibili
-
-### 32.1 Metodo 1: Via Remote Execution (Raccomandato)
-
-#### Via Web UI
-
-1. Vai su **Hosts → All Hosts**
-2. Seleziona ☑ `test-Lorenzo-1`
-3. Clicca **Select Action → Schedule Remote Job**
-4. Compila:
-    - **Job Category**: `Commands`
-    - **Job Template**: `Run Command - Script Default`
-    - **Command**:
-        
-        ```
-        apt update && apt list --upgradable
-        ```
-        
+    - **Command**: `hostname && uptime && df -h`
 5. Clicca **Submit**
 
-#### Via Hammer CLI
+### 24.2 Via Hammer CLI
 
 ```bash
-hammer job-invocation create \
+sudo hammer job-invocation create \
   --job-template "Run Command - Script Default" \
-  --inputs "command=apt update && apt list --upgradable" \
-  --search-query "name = test-Lorenzo-1"
+  --inputs "command=hostname && uptime" \
+  --search-query "name = test-lorenzo-1"
 ```
 
-### 32.2 Metodo 2: Direttamente sulla VM
+### 24.3 Verifica output
 
 ```bash
-# Sulla VM Ubuntu
-apt update
-apt list --upgradable
-```
-
-### 32.3 Filtra Solo Security Updates
-
-```bash
-# Mostra solo aggiornamenti di sicurezza
-apt list --upgradable 2>/dev/null | grep -i security
-```
-
-Oppure:
-
-```bash
-# Usa unattended-upgrades per vedere cosa verrebbe aggiornato
-apt install -y unattended-upgrades
-unattended-upgrade --dry-run -v
+sudo hammer job-invocation list
+sudo hammer job-invocation output --id <JOB_ID> --host "test-lorenzo-1"
 ```
 
 ---
 
-## FASE 33: Applicazione Aggiornamenti
+# PARTE 3: GESTIONE PATCH MANAGEMENT DA FOREMAN
 
-### 33.1 Applica Tutti gli Aggiornamenti
-
-#### Via Remote Execution (Web UI)
-
-1. **Hosts → All Hosts → ☑ test-Lorenzo-1**
-2. **Select Action → Schedule Remote Job**
-3. Compila:
-    - **Job Template**: `Run Command - Script Default`
-    - **Command**:
-        
-        ```
-        apt update && apt upgrade -y
-        ```
-        
-4. **Submit**
-
-#### Via Hammer CLI
-
-```bash
-hammer job-invocation create \
-  --job-template "Run Command - Script Default" \
-  --inputs "command=apt update && apt upgrade -y" \
-  --search-query "name = test-Lorenzo-1"
-```
-
-### 33.2 Applica Solo Security Updates
-
-```bash
-# Via Remote Execution
-# Command:
-apt update && apt upgrade -y -o Dir::Etc::sourcelist="/etc/apt/sources.list.d/security.list" -o Dir::Etc::sourceparts="-"
-```
-
-Oppure usando `unattended-upgrades`:
-
-```bash
-unattended-upgrade -v
-```
-
-### 33.3 Verifica Job Completato
-
-#### Via Web UI
-
-1. Vai su **Monitor → Jobs**
-2. Trova il job appena eseguito
-3. Clicca per vedere l'output dettagliato
-
-#### Via Hammer CLI
-
-```bash
-# Lista ultimi job
-hammer job-invocation list --per-page 5
-
-# Vedi output specifico
-hammer job-invocation output --id <JOB_ID> --host "test-Lorenzo-1"
-```
+> Da questo punto in poi, **tutte le operazioni** vengono eseguite da Foreman via Remote Execution. Non è più necessario accedere direttamente alla VM.
 
 ---
 
-## FASE 34: Creazione Job Templates Personalizzati (Opzionale)
+## FASE 25: Creazione Job Templates per Ubuntu
 
-Per semplificare le operazioni future, crea dei Job Templates dedicati.
-
-### 34.1 Template: Ubuntu - Check Updates
+### 25.1 Template: Ubuntu - Check Updates
 
 #### Via Web UI
 
@@ -681,7 +909,8 @@ Per semplificare le operazioni future, crea dei Job Templates dedicati.
     - **Name**: `Ubuntu - Check Updates`
     - **Job Category**: `Packages`
     - **Provider Type**: `Script`
-    - **Template**:
+
+**Template content:**
 
 ```erb
 <%#
@@ -697,41 +926,33 @@ echo "=== Aggiornamento cache APT ==="
 apt update 2>/dev/null
 
 echo ""
-echo "=== AGGIORNAMENTI DISPONIBILI ==="
+echo "=== RIEPILOGO AGGIORNAMENTI ==="
 UPGRADABLE=$(apt list --upgradable 2>/dev/null | grep -v "Listing..." | wc -l)
 echo "Totale pacchetti aggiornabili: $UPGRADABLE"
 
 echo ""
-echo "=== DETTAGLIO PACCHETTI ==="
+echo "=== PACCHETTI AGGIORNABILI ==="
 apt list --upgradable 2>/dev/null | grep -v "Listing..."
 
 echo ""
-echo "=== SECURITY UPDATES ==="
-apt list --upgradable 2>/dev/null | grep -i security || echo "Nessun security update specifico identificato"
+echo "=== POTENZIALI SECURITY UPDATES ==="
+apt list --upgradable 2>/dev/null | grep -i security || echo "Nessuno identificato esplicitamente"
 ```
 
-4. Tab **Job**:
-    - **Effective User**: `root`
+4. Tab **Job**: **Effective User** = `root`
 5. Tab **Locations**: seleziona ☑ `Italy-North`
 6. Tab **Organizations**: seleziona ☑ `PSN-ASL06`
 7. Clicca **Submit**
 
-### 34.2 Template: Ubuntu - Apply Updates
+---
 
-#### Via Web UI
-
-1. **Hosts → Templates → Job Templates → Create Template**
-2. Compila:
-    - **Name**: `Ubuntu - Apply Updates`
-    - **Job Category**: `Packages`
-    - **Provider Type**: `Script`
-    - **Template**:
+### 25.2 Template: Ubuntu - Apply All Updates
 
 ```erb
 <%#
-name: Ubuntu - Apply Updates
+name: Ubuntu - Apply All Updates
 job_category: Packages
-description_format: Apply updates on %{host}
+description_format: Apply all updates on %{host}
 provider_type: script
 kind: job_template
 %>
@@ -743,7 +964,7 @@ echo "=== Aggiornamento cache APT ==="
 apt update
 
 echo ""
-echo "=== Applicazione aggiornamenti ==="
+echo "=== Applicazione TUTTI gli aggiornamenti ==="
 DEBIAN_FRONTEND=noninteractive apt upgrade -y
 
 echo ""
@@ -751,8 +972,8 @@ echo "=== Pulizia pacchetti obsoleti ==="
 apt autoremove -y
 
 echo ""
-echo "=== Aggiornamento completato ==="
-echo "Verifica se è necessario un riavvio:"
+echo "=== COMPLETATO ==="
+echo "Verifica riavvio richiesto:"
 if [ -f /var/run/reboot-required ]; then
     echo "*** RIAVVIO RICHIESTO ***"
     cat /var/run/reboot-required.pkgs 2>/dev/null || true
@@ -761,15 +982,15 @@ else
 fi
 ```
 
-3. Clicca **Submit**
+---
 
-### 34.3 Template: Ubuntu - Security Updates Only
+### 25.3 Template: Ubuntu - Install Package
 
 ```erb
 <%#
-name: Ubuntu - Security Updates Only
+name: Ubuntu - Install Package
 job_category: Packages
-description_format: Apply security updates only on %{host}
+description_format: Install package %{package} on %{host}
 provider_type: script
 kind: job_template
 %>
@@ -777,181 +998,257 @@ kind: job_template
 #!/bin/bash
 set -e
 
-echo "=== Applicazione SOLO Security Updates ==="
+PACKAGE="<%= input('package') %>"
 
-# Metodo 1: usando unattended-upgrades
-if command -v unattended-upgrade &> /dev/null; then
-    echo "Usando unattended-upgrade..."
-    unattended-upgrade -v
-else
-    echo "Installazione unattended-upgrades..."
-    apt update
-    apt install -y unattended-upgrades
-    unattended-upgrade -v
+if [ -z "$PACKAGE" ]; then
+    echo "ERRORE: Nessun pacchetto specificato"
+    exit 1
 fi
 
+echo "=== Installazione pacchetto: $PACKAGE ==="
+apt update
+DEBIAN_FRONTEND=noninteractive apt install -y $PACKAGE
+
 echo ""
-echo "=== Security Updates completati ==="
+echo "=== Verifica installazione ==="
+dpkg -l | grep -i $PACKAGE || echo "Pacchetto non trovato nella lista"
+```
+
+**Input da aggiungere:**
+
+- Name: `package`
+- Input Type: `User input`
+- Required: ☑
+- Description: `Nome del pacchetto da installare`
+
+---
+
+### 25.4 Template: Ubuntu - Remove Package
+
+```erb
+<%#
+name: Ubuntu - Remove Package
+job_category: Packages
+description_format: Remove package %{package} from %{host}
+provider_type: script
+kind: job_template
+%>
+
+#!/bin/bash
+set -e
+
+PACKAGE="<%= input('package') %>"
+
+if [ -z "$PACKAGE" ]; then
+    echo "ERRORE: Nessun pacchetto specificato"
+    exit 1
+fi
+
+echo "=== Rimozione pacchetto: $PACKAGE ==="
+DEBIAN_FRONTEND=noninteractive apt remove -y $PACKAGE
+apt autoremove -y
+
+echo ""
+echo "=== Completato ==="
 ```
 
 ---
 
-## FASE 35: Creazione Host Collection (Opzionale)
+### 25.5 Template: Ubuntu - Reboot Host
 
-Le Host Collections permettono di raggruppare host per eseguire azioni bulk.
+```erb
+<%#
+name: Ubuntu - Reboot Host
+job_category: Power
+description_format: Reboot %{host}
+provider_type: script
+kind: job_template
+%>
 
-### 35.1 Crea Host Collection
-
-#### Via Web UI
-
-1. Vai su **Hosts → Host Collections**
-2. Clicca **Create Host Collection**
-3. Compila:
-    - **Name**: `Ubuntu-2404-Servers`
-    - **Unlimited Hosts**: ☑ abilitato
-    - **Description**: `Server Ubuntu 24.04 per patch management`
-4. Clicca **Save**
-
-#### Via Hammer CLI
-
-```bash
-hammer host-collection create \
-  --organization "PSN-ASL06" \
-  --name "Ubuntu-2404-Servers" \
-  --description "Server Ubuntu 24.04 per patch management" \
-  --unlimited-hosts
+#!/bin/bash
+echo "=== Riavvio sistema in 10 secondi ==="
+echo "Host: $(hostname)"
+echo "Uptime prima del riavvio: $(uptime)"
+sleep 10
+reboot
 ```
-
-### 35.2 Aggiungi Host alla Collection
-
-#### Via Web UI
-
-1. In **Host Collections → Ubuntu-2404-Servers**
-2. Clicca tab **Hosts**
-3. Clicca **Add**
-4. Seleziona ☑ `test-Lorenzo-1`
-5. Clicca **Add Selected**
-
-#### Via Hammer CLI
-
-```bash
-hammer host-collection add-host \
-  --organization "PSN-ASL06" \
-  --name "Ubuntu-2404-Servers" \
-  --host-ids $(hammer host info --name "test-Lorenzo-1" --fields Id | grep Id | awk '{print $2}')
-```
-
-### 35.3 Esegui Job su Host Collection
-
-#### Via Web UI
-
-1. Vai su **Hosts → Host Collections → Ubuntu-2404-Servers**
-2. Clicca **Select Action → Schedule Remote Job**
-3. Seleziona il Job Template desiderato
 
 ---
 
-## FASE 36: Workflow Completo - Riepilogo
+## FASE 26: Workflow Operativo
 
-### Diagramma del Workflow
+### Diagramma Workflow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                    WORKFLOW PATCH MANAGEMENT UBUNTU                      │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                  │
-│  │   KATELLO   │    │  CONTENT    │    │    HOST     │                  │
-│  │   SERVER    │───▶│    VIEW     │───▶│  COLLECTION │                  │
-│  └─────────────┘    └─────────────┘    └─────────────┘                  │
-│        │                                      │                          │
-│        │ Sync Plan                            │                          │
-│        │ (Daily 02:00)                        │                          │
-│        ▼                                      ▼                          │
-│  ┌─────────────┐                      ┌─────────────┐                   │
-│  │ REPOSITORY  │                      │    VM       │                   │
-│  │  SECURITY   │                      │  UBUNTU     │                   │
-│  │  UPDATES    │                      │             │                   │
-│  └─────────────┘                      └─────────────┘                   │
-│                                              │                           │
-│  OPERAZIONI:                                 │                           │
-│  1. Check Updates ────────────────────────▶ apt list --upgradable       │
-│  2. Apply Updates ────────────────────────▶ apt upgrade -y              │
-│  3. Security Only ────────────────────────▶ unattended-upgrade          │
+│   1. SYNC AUTOMATICO                                                     │
+│      ├─ Katello sincronizza repository Ubuntu ogni notte                │
+│      └─ Content View aggiornata                                          │
+│                                                                          │
+│   2. CHECK UPDATES (da Foreman)                                          │
+│      └─ Job Template: "Ubuntu - Check Updates"                          │
+│                                                                          │
+│   3. REVIEW (Admin)                                                      │
+│      └─ Analizza output e decide cosa aggiornare                        │
+│                                                                          │
+│   4. TEST (su VM Development)                                            │
+│      └─ Job Template: "Ubuntu - Apply All Updates"                      │
+│                                                                          │
+│   5. APPLY (su VM Production)                                            │
+│      └─ Job Template: "Ubuntu - Apply All Updates"                      │
+│                                                                          │
+│   6. REBOOT (se necessario)                                              │
+│      └─ Job Template: "Ubuntu - Reboot Host"                            │
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Checklist Operazioni Giornaliere
+---
 
-|Operazione|Frequenza|Metodo|
+### Operazioni Comuni da Foreman
+
+|Operazione|Job Template|Comando Hammer|
 |---|---|---|
-|Sync Repository|Automatico (Daily)|Sync Plan|
-|Check Updates|Manuale/Schedulato|Remote Execution|
-|Review Updates|Manuale|Web UI / CLI|
-|Apply Updates (Test)|Manuale|Remote Execution|
-|Apply Updates (Prod)|Manuale (dopo test)|Remote Execution|
+|Verificare aggiornamenti|Ubuntu - Check Updates|`hammer job-invocation create --job-template "Ubuntu - Check Updates" --search-query "name = test-lorenzo-1"`|
+|Applicare aggiornamenti|Ubuntu - Apply All Updates|`hammer job-invocation create --job-template "Ubuntu - Apply All Updates" --search-query "name = test-lorenzo-1"`|
+|Installare pacchetto|Ubuntu - Install Package|`hammer job-invocation create --job-template "Ubuntu - Install Package" --inputs "package=nginx" --search-query "name = test-lorenzo-1"`|
+|Riavviare host|Ubuntu - Reboot Host|`hammer job-invocation create --job-template "Ubuntu - Reboot Host" --search-query "name = test-lorenzo-1"`|
+
+---
+
+## FASE 27: Host Collections per Operazioni Bulk
+
+### 27.1 Crea Host Collection
+
+```bash
+sudo hammer host-collection create \
+  --organization "PSN-ASL06" \
+  --name "Ubuntu-2404-Servers" \
+  --description "Tutti i server Ubuntu 24.04" \
+  --unlimited-hosts
+```
+
+### 27.2 Aggiungi Host
+
+```bash
+# Trova ID dell'host
+sudo hammer host list --search "name = test-lorenzo-1"
+
+# Aggiungi alla collection
+sudo hammer host-collection add-host \
+  --organization "PSN-ASL06" \
+  --name "Ubuntu-2404-Servers" \
+  --host "test-lorenzo-1"
+```
+
+### 27.3 Esegui Job su Collection
+
+Via Web UI:
+
+1. **Hosts → Host Collections → Ubuntu-2404-Servers**
+2. **Select Action → Schedule Remote Job**
+3. Seleziona il template desiderato
 
 ---
 
 ## Troubleshooting
 
-### Problema: Content Host non appare in Foreman
+### Problema: Host non appare in Content Hosts
 
-**Soluzione**:
-
-```bash
-# Sulla VM Ubuntu
-subscription-manager unregister
-subscription-manager clean
-subscription-manager register --org="PSN-ASL06" --activationkey="ak-ubuntu-2404-prod"
-```
-
-### Problema: Repository non disponibili
-
-**Soluzione**:
+**Soluzione**: Verifica Organization/Location
 
 ```bash
-# Verifica subscription status
-subscription-manager status
-
-# Rigenera configurazione repository
-subscription-manager refresh
-
-# Riabilita repository
-subscription-manager repos --enable='*'
-```
-
-### Problema: Errore SSL durante apt update
-
-**Soluzione**:
-
-```bash
-# Verifica certificato CA
-curl --cacert /etc/rhsm/ca/katello-server-ca.pem \
-  https://foreman-katello-test.localdomain/pulp/deb/
-
-# Se fallisce, riscarica il certificato
-curl -o /etc/rhsm/ca/katello-server-ca.pem \
-  https://foreman-katello-test.localdomain/pub/katello-server-ca.crt --insecure
+# Seleziona "Any Organization" / "Any Location" nella UI
+# Se l'host appare, assegna org/location via API
+curl -k -u admin:Temporanea1234 \
+  -X PUT \
+  -H "Content-Type: application/json" \
+  -d '{"host": {"organization_id": 3, "location_id": 4}}' \
+  https://foreman-katello-test.localdomain/api/hosts/<HOST_ID>
 ```
 
 ### Problema: Remote Execution fallisce
 
-**Soluzione**:
+**Soluzione**: Verifica connessione SSH
 
 ```bash
-# Sul server Foreman - test connessione
+# Dal server Foreman
 ssh -i /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy root@10.172.2.5 "hostname"
+```
 
-# Se fallisce, verifica authorized_keys sulla VM
-ssh azureuser@10.172.2.5 "sudo cat /root/.ssh/authorized_keys"
+### Problema: subscription-manager "Organization not found"
+
+**Soluzione**: Usa il **Label** dell'organizzazione, non il Name!
+
+```bash
+# SBAGLIATO
+subscription-manager register --org="PSN-ASL06" ...
+
+# CORRETTO
+subscription-manager register --org="myorg" ...
+```
+
+### Problema: Repository APT non funzionano
+
+**Soluzione**: Verifica file generati
+
+```bash
+# Sulla VM Ubuntu
+cat /etc/apt/sources.list.d/rhsm.sources
+subscription-manager repos --list
+```
+
+---
+
+## Manutenzione
+
+### Sync Plan Automatico
+
+```bash
+sudo hammer sync-plan create \
+  --organization "PSN-ASL06" \
+  --name "Daily-Ubuntu-Sync" \
+  --description "Sincronizzazione giornaliera repository Ubuntu" \
+  --enabled true \
+  --interval "daily" \
+  --sync-date "2025-01-01 02:00:00"
+
+sudo hammer product set-sync-plan \
+  --organization "PSN-ASL06" \
+  --name "Ubuntu 24.04 LTS" \
+  --sync-plan "Daily-Ubuntu-Sync"
+```
+
+### Aggiornamento Content View
+
+Dopo ogni sync, pubblica e promuovi:
+
+```bash
+sudo hammer content-view publish \
+  --organization "PSN-ASL06" \
+  --name "CV-Ubuntu-2404" \
+  --description "Security updates $(date +%Y-%m-%d)"
+
+sudo hammer content-view version promote \
+  --organization "PSN-ASL06" \
+  --content-view "CV-Ubuntu-2404" \
+  --to-lifecycle-environment "Development"
+
+# Dopo test OK
+sudo hammer content-view version promote \
+  --organization "PSN-ASL06" \
+  --content-view "CV-Ubuntu-2404" \
+  --to-lifecycle-environment "Production"
 ```
 
 ---
 
 ## Riferimenti
 
-- [Katello Content Hosts Documentation](https://docs.theforeman.org/nightly/Managing_Content/index-katello.html)
-- [ATIX subscription-manager for Ubuntu](https://oss.atix.de/html/ubuntu.html)
-- [Foreman Remote Execution](https://docs.theforeman.org/nightly/Managing_Hosts/index-katello.html#Configuring_and_Setting_Up_Remote_Jobs_managing-hosts)
+- [Documentazione ufficiale Foreman 3.15](https://docs.theforeman.org/3.15/)
+- [Documentazione Katello](https://docs.theforeman.org/3.15/Quickstart/index-katello.html)
+- [ATIX subscription-manager per Ubuntu](https://oss.atix.de/html/ubuntu.html)
+- [Foreman Remote Execution](https://docs.theforeman.org/3.15/Managing_Hosts/index-katello.html)
