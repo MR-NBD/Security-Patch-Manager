@@ -498,7 +498,7 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 ### 9.1 Configura Organization e Location
 #### L'organizzazione di default è già creata, ma puoi crearne altre
 ```bash
-hammer organization create --name "PSN-ASL06" --label "myorg"
+hammer organization create --name "PSN-ASL06" --label "psnasl06"
 ```
 #### Crea location per il tuo ambiente Azure
 ```bash
