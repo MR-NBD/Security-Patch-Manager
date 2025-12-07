@@ -592,7 +592,7 @@ echo "10.172.2.15 foreman-katello-test.localdomain foreman-katello-test" >> /etc
 ping -c 2 foreman-katello-test.localdomain
 ```
 
-### 18.3 DISABILITA AGGIORNAMENTI AUTOMATICI
+### 18.3 ==DISABILITA AGGIORNAMENTI AUTOMATICI==
 
 > **CRITICO**: Questa è la configurazione più importante per avere controllo totale da Foreman.
 

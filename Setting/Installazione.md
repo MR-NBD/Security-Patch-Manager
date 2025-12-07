@@ -1210,7 +1210,7 @@ cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub
 scp /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub azureuser@10.172.2.5:
 ```
 ## ==FUTURI TEST==
-### Comando ottimizzato (da server Foreman come root)
+### ==Comando ottimizzato (da server Foreman come root)==
 ```bash
 cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub | ssh azureuser@10.172.2.5 "sudo tee /root/.ssh/authorized_keys && sudo chmod 600 /root/.ssh/authorized_keys && sudo chown root:root /root/.ssh/authorized_keys"
 ```
