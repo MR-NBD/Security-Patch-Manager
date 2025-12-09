@@ -6,3 +6,5 @@
 - [ ] Definzione di una struttura AZURE HLD e PSN style
 - [ ] Capire come fare il monitoring 
 - [ ] Definire un Benchamark o uno strumento di valutazione
+- [ ] Individuare i principali OS e versioni per ottimizzare la copertura
+- [ ] Capire come mettere su il primo lab
