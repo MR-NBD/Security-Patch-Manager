@@ -1,0 +1,8 @@
+- [ ] Definzione a grande linee dei KPI e degli obbiettivi che devono rappresentare
+- [ ] Scrivere due capitoli
+- [ ] Definire modo sicuro per gestione SSH
+- [ ] Gestione SSL
+- [ ] Test Con Proxy scollegato dal Foreman Server
+- [ ] Definzione di una struttura AZURE HLD e PSN style
+- [ ] Capire come fare il monitoring 
+- [ ] Definire un Benchamark o uno strumento di valutazione

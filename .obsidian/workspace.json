@@ -13,15 +13,30 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Documentation/CAPITOLI TESI.md",
+                "file": "Utenze/ASL0603.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "CAPITOLI TESI"
+              "title": "ASL0603"
+            }
+          },
+          {
+            "id": "faf7791dfef1b6e1",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "TO DO alberto.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "TO DO alberto"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -180,8 +195,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 200,
-    "collapsed": true
+    "width": 200
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -196,15 +210,17 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "b1102129a9aa5624",
+  "active": "faf7791dfef1b6e1",
   "lastOpenFiles": [
     "Utenze/ASL0603.md",
+    "TO DO alberto.md",
+    "Configurazioni/Installazione.md",
+    "Configurazioni/CreateVM.md",
+    "Documentation/CAPITOLI TESI.md",
     "README.md",
     "Settings/Configurazione-Organization-e-Location.md",
-    "Configurazioni/Installazione.md",
     "Excalidraw/Drawing 2025-12-07 18.00.18.excalidraw.md",
     "Guide/Guida_allo_Studio.md",
-    "Documentation/CAPITOLI TESI.md",
     "Documentation/Tabella_Comparativa.md",
     "Guide/Limitazioni di katello-host-tools.md",
     "Settings/Lifecycle-Environments.md",
@@ -213,7 +229,6 @@
     "Settings/Guida-Registrazione-Host-Ubuntu-24.04.md",
     "Settings/Configurazione-Content-Credentials.md",
     "Settings/Creazione-Product-Repository-Ubuntu-24.04.md",
-    "Configurazioni/CreateVM.md",
     "Settings/Activation-Key.md",
     "Guide/APPUNTI-Understanding_Foreman_and_Katello.md",
     "Guide/Foreman-Katello-Introduction.md",
@@ -238,7 +253,6 @@
     "img/ActivationKeys.png",
     "img/Image16-v2.png",
     "img/CreateHostGroup.png",
-    "Setting/Installation_V2.md",
     "workflow/PATCH_TESTING_VALIDATION.drawio",
     "Untitled.base",
     "Untitled/Untitled",
