@@ -125,7 +125,52 @@ Gli Errata sono advisory ufficiali pubblicati dai vendor per comunicare correzio
 •       Filtraggio Content View basato su tipo erratum
 
 > **🔧** **Soluzione:** Per ottenere funzionalità errata-like su Ubuntu, è necessario utilizzare il plugin ATIX (vedi sezione 10) che genera errata sintetici dal repository ubuntu-security, mappando i pacchetti ai relativi CVE tramite Ubuntu Security Notices (USN).
+## 9. Subscription-Manager
+### 9.1 Cos'è?
+**subscription-manager** è un tool command-line originariamente sviluppato da Red Hat per gestire le subscription e la registrazione dei sistemi RHEL. In ambiente Foreman/Katello, viene utilizzato (o il suo equivalente) per registrare i sistemi come Content Host, configurare i repository e gestire il ciclo di vita delle sottoscrizioni.
+### 9.2 Perché serve?
+•       **Registrazione:** Collega il sistema al server Katello come Content Host
+•       **Configurazione repository:** Configura automaticamente i repository in base all'Activation Key
+•       **Certificati:** Gestisce i certificati SSL per l'autenticazione con Katello
+•       **Reporting:** Invia informazioni sul sistema (facts) al server per inventory e compliance
+•       **Attach/Detach:** Gestisce l'associazione di subscription ai sistemi
+### 9.3 Come funziona?
+Il processo di registrazione tipico:
+1. **Installazione certificato CA:** Il sistema scarica il certificato CA di Katello per comunicazioni sicure
+2. **Registrazione:** subscription-manager register con Organization e Activation Key
+3. **Configurazione:** I repository vengono configurati automaticamente in /etc/yum.repos.d/
+4. **Invio facts:** Il sistema invia informazioni hardware/software a Katello
+5. **Content Host attivo:** Il sistema appare nell'inventario Foreman come gestibile
+### 9.4 Su Ubuntu: rhsm vs apt
+Su sistemi Ubuntu, il pacchetto **rhsm** (Red Hat Subscription Manager) può essere installato per registrare il sistema. Tuttavia, la gestione dei pacchetti continua a usare **apt/dpkg**. Il rhsm si occupa solo della registrazione e della configurazione dei repository, mentre apt gestisce l'installazione effettiva dei pacchetti .deb.
+**Comando di registrazione tipico:**
+```bash
+subscription-manager register --org="MyOrg" --activationkey="ubuntu-prod-key"
+```
+## 10. ATIX e il Supporto Ubuntu
+### 10.1 Cos'è ATIX?
+**ATIX AG** è un'azienda tedesca specializzata in soluzioni enterprise Linux e automation. Sviluppano **orcharhino**, una distribuzione commerciale di Foreman con funzionalità avanzate. Contribuiscono attivamente alla community Foreman/Katello, in particolare per il supporto ai sistemi Debian-based.
+### 10.2 Perché serve per Ubuntu?
+Il supporto nativo di Katello per Debian/Ubuntu ha storicamente presentato limitazioni significative rispetto ai sistemi RHEL-like. ATIX ha sviluppato e contribuito plugin e patch che colmano questi gap:
+- **pulp_deb:** Plugin Pulp per gestire repository .deb (contributo principale)
+- **Errata sintetici:** Generazione di errata da Ubuntu Security Notices (USN)
+- **Registrazione migliorata:** Workflow ottimizzati per subscription-manager su DEB systems
+- **Content View DEB:** Supporto completo per filtri e versionamento contenuto Debian
+- **Remote Execution:** Template e job ottimizzati per apt/dpkg
+### 10.3 Componenti ATIX chiave
 
+|**Componente**|**Funzione**|
+|---|---|
+|**katello-host-tools-deb**|Pacchetto client per sistemi Debian/Ubuntu. Include tracer, package profile reporting e integrazione con Katello.|
+|**foreman_debian**|Plugin Foreman per provisioning e gestione avanzata di sistemi Debian-based.|
+|**pulp_deb**|Plugin Pulp per sincronizzazione e gestione repository APT. Supporta repository flat e structured.|
+|**USN Errata Generator**|Tool per generare errata Katello-compatibili da Ubuntu Security Notices, abilitando vulnerability tracking.|
+### 10.4 Integrazione nel workflow
+Per sfruttare pienamente Ubuntu in Foreman/Katello:
+1. Installare Foreman/Katello con supporto DEB abilitato (scenario katello-deb)
+2. Configurare repository Ubuntu con Content Type 'deb'
+3. Installare katello-host-tools sui client Ubuntu
+4. Configurare Remote Execution con template apt-specific
+5. (Opzionale) Configurare USN errata generation per vulnerability tracking
 
-
-
+> **📌** **Nota:** Dalla versione Foreman 3.x / Katello 4.x, molti contributi ATIX sono stati integrati upstream. Tuttavia, per funzionalità avanzate come errata DEB completi, orcharhino (versione commerciale) offre ancora vantaggi significativi rispetto alla community edition.
