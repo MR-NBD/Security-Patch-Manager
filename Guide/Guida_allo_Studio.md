@@ -123,8 +123,6 @@ Gli Errata sono advisory ufficiali pubblicati dai vendor per comunicare correzio
 •       Correlazione diretta pacchetto-CVE dai repository standard
 •       Report nativi sullo stato di vulnerabilità per host Ubuntu
 •       Filtraggio Content View basato su tipo erratum
-
-> **🔧** **Soluzione:** Per ottenere funzionalità errata-like su Ubuntu, è necessario utilizzare il plugin ATIX (vedi sezione 10) che genera errata sintetici dal repository ubuntu-security, mappando i pacchetti ai relativi CVE tramite Ubuntu Security Notices (USN).
 ## 9. Subscription-Manager
 ### 9.1 Cos'è?
 **subscription-manager** è un tool command-line originariamente sviluppato da Red Hat per gestire le subscription e la registrazione dei sistemi RHEL. In ambiente Foreman/Katello, viene utilizzato (o il suo equivalente) per registrare i sistemi come Content Host, configurare i repository e gestire il ciclo di vita delle sottoscrizioni.
