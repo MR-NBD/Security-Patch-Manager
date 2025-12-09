@@ -37,18 +37,18 @@ sdc
 	├─/var
 ``` 
 ---
-## Indice 
-- [[#FASE 1 : Verifica del Sistema]]
-- [[#FASE 2: Configurazione NTP con Chrony]]
-- [[#FASE 3: Configurazione Hostname e Networking]]
-- [[#FASE 4: Configurazione Firewall]]
-- [[#FASE 5: Configurazione Storage LVM per Pulp]]
-	- [[#FASE 5-bis : Configurazione Storage LVM per PostgreSQL]]
-- [[#FASE 6: Installazione Repository]]
-- [[#FASE 7: Installazione Foreman-Katello]]
-- [[#FASE 8: Verifica dell'Installazione]]
-- [[#NEXT-STEP]]
-- [[#EXTRA-LAB - Aggiungi Risoluzione DNS per gli Host]]
+## Indice
+- [FASE 1 : Verifica del Sistema](#fase-1--verifica-del-sistema)
+- [FASE 2: Configurazione NTP con Chrony](#fase-2-configurazione-ntp-con-chrony)
+- [FASE 3: Configurazione Hostname e Networking](#fase-3-configurazione-hostname-e-networking)
+- [FASE 4: Configurazione Firewall](#fase-4-configurazione-firewall)
+- [FASE 5: Configurazione Storage LVM per Pulp](#fase-5-configurazione-storage-lvm-per-pulp)
+  - [FASE 5-bis : Configurazione Storage LVM per PostgreSQL](#fase-5-bis--configurazione-storage-lvm-per-postgresql)
+- [FASE 6: Installazione Repository](#fase-6-installazione-repository)
+- [FASE 7: Installazione Foreman-Katello](#fase-7-installazione-foreman-katello)
+- [FASE 8: Verifica dell'Installazione](#fase-8-verifica-dellinstallazione)
+- [NEXT-STEP](#next-step)
+- [EXTRA-LAB - Aggiungi Risoluzione DNS per gli Host](#extra-lab---aggiungi-risoluzione-dns-per-gli-host)
 ---
 ## FASE 1 : Verifica del Sistema
 ### 1.1 Verifica versione OS e SELinux
