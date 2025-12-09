@@ -507,20 +507,20 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 | VM Ubuntu Target | 10.172.2.5                       |
 | OS Target        | Ubuntu 24.04 LTS                 |
 ## NEXT-STEP
-- [Configurazione Organization e Location](Settings/Configurazione-Organization-e-Location.md)
-- [Configurazione Content Credentials (Chiavi GPG)](Configurazione-Content-Credentials.md)
-- [Creazione Product e Repository Ubuntu 24.04](Settings/Creazione-Product-Repository-Ubuntu-24.04.md)
-- [Lifecycle Environments](Settings/Lifecycle-Environments.md)
-- [Content View](Settings/Content-View.md)
-- [Operating System](Settings/Operating-System.md)
-- [Host Group](Settings/Host-Group.md)
-- [Activation Key](Settings/Activation-Key.md)
-- [Guida Registrazione Host Ubuntu 24.04](Settings/Guida-Registrazione-Host-Ubuntu-24.04.md)
+- [Configurazione Organization e Location](../Settings/Configurazione-Organization-e-Location.md)
+- [Configurazione Content Credentials (Chiavi GPG)](../Settings/Configurazione-Content-Credentials.md)
+- [Creazione Product e Repository Ubuntu 24.04](../Settings/Creazione-Product-Repository-Ubuntu-24.04.md)
+- [Lifecycle Environments](../Settings/Lifecycle-Environments.md)
+- [Content View](../Settings/Content-View.md)
+- [Operating System](../Settings/Operating-System.md)
+- [Host Group](../Settings/Host-Group.md)
+- [Activation Key](../Settings/Activation-Key.md)
+- [Guida Registrazione Host Ubuntu 24.04](../Settings/Guida-Registrazione-Host-Ubuntu-24.04.md)
 
 ---
 ## Riferimenti
 
-- [Documentazione ufficiale Foreman 3.15](https://docs.theforeman.org/3.15/)
+- [Documentazione ufficiale Foreman 3.16](https://docs.theforeman.org/release/3.16/)
 - [Documentazione Katello](https://docs.theforeman.org/3.15/Quickstart/index-katello.html)
 - [Foreman Remote Execution](https://docs.theforeman.org/3.15/Managing_Hosts/index-katello.html#Configuring_and_Setting_Up_Remote_Jobs_managing-hosts)
 - [ATIX subscription-manager per Ubuntu](https://oss.atix.de/html/ubuntu.html)
