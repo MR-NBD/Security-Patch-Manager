@@ -515,6 +515,7 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 - [Operating System](Settings/Operating-System.md)
 - [Host Group](Settings/Host-Group.md)
 - [Activation Key](Settings/Activation-Key.md)
+- [Guida Registrazione Host Ubuntu 24.04](Setting/Guida-Registrazione-Host-Ubuntu-24.04.md)
 
 
 ---
