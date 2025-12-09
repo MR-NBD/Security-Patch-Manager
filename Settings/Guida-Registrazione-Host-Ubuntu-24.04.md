@@ -148,7 +148,6 @@ subscription-manager config \
   --rhsm.baseurl=https://foreman-katello-test.localdomain/pulp/deb
 ```
 ### Verifica Configurazione
-
 ```bash
 subscription-manager config | grep -E "(hostname|baseurl)"
 ```
@@ -193,6 +192,19 @@ subscription-manager register \
   --activationkey="ak-ubuntu-2404-prod" \
   --name="NOME-HOST"
 ```
+#### Via Web UI
+1. Vai su **Hosts → Register Host**
+2. Compila:
+    - **Host Group**: `Ubuntu-2404-Groups`
+    - **Operating System**: `Ubuntu 24.04`
+    - **Activation Keys**: `ak-ubuntu-2404-prod`
+    - **Insecure**: ☑ (se certificato self-signed)
+3. Clicca **Generate**
+4. Copia il comando `curl` generato
+
+![](../img/image-5.png)
+
+
 ---
 ## FASE 9: Abilita Repository e Aggiorna
 
@@ -208,7 +220,6 @@ apt update
 ```
 
 ---
-
 ## FASE 10: Carica Profilo Pacchetti
 
 ```bash
@@ -217,9 +228,7 @@ katello-package-upload --force
 ```
 
 Questo invia a Foreman l'elenco dei pacchetti installati sulla VM.
-
 ---
-
 ## FASE 11: Configura SSH per Remote Execution
 
 ### Sul Server Foreman
@@ -234,7 +243,6 @@ Sostituisci:
 
 - `UTENTE` = utente con sudo sulla VM (es: `azureuser`)
 - `IP_VM` = indirizzo IP della VM Ubuntu
-
 ### Verifica Connessione SSH
 
 ```bash
@@ -244,9 +252,7 @@ ssh -i /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy root@IP_VM "hostname"
 **Output atteso**: Hostname della VM senza richiesta password.
 
 ---
-
 ## FASE 12: Aggiungi Host a /etc/hosts su Foreman
-
 ### Sul Server Foreman
 
 ```bash
@@ -254,7 +260,6 @@ echo "IP_VM    NOME-HOST" >> /etc/hosts
 ```
 
 Sostituisci con i valori reali (es: `echo "10.172.2.15 ubuntu-server-01" >> /etc/hosts`).
-
 ### Verifica
 
 ```bash
@@ -262,9 +267,7 @@ ping -c 2 NOME-HOST
 ```
 
 ---
-
 ## FASE 13: Aggiorna Host in Foreman
-
 ### Aggiorna IP
 
 ```bash
@@ -284,7 +287,6 @@ hammer host info --name "NOME-HOST" | grep -E "(IP|Location)"
 ```
 
 ---
-
 ## FASE 14: Verifica Finale
 
 ### 14.1 Dalla Web UI
@@ -307,88 +309,3 @@ hammer host info --name "NOME-HOST" | grep -E "(IP|Location)"
 7. Clicca **Submit**
 
 **Output atteso**: Job completato con successo, mostra hostname e uptime della VM.
-
----
-
-## Riepilogo Comandi Rapido
-
-Per registrare un nuovo host, esegui in sequenza:
-
-### Sulla VM Ubuntu
-
-```bash
-# 1. DNS
-echo "10.172.2.17    foreman-katello-test.localdomain" >> /etc/hosts
-
-# 2. Disabilita auto-update
-systemctl stop apt-daily.timer apt-daily-upgrade.timer unattended-upgrades
-systemctl disable apt-daily.timer apt-daily-upgrade.timer unattended-upgrades
-apt remove -y unattended-upgrades
-
-# 3. Repository ATIX
-curl --silent --show-error --output /etc/apt/trusted.gpg.d/atix.asc https://oss.atix.de/atix_gpg.pub
-cat > /etc/apt/sources.list.d/atix-client.sources << 'EOF'
-Types: deb
-URIs: https://oss.atix.de/Ubuntu24LTS/
-Suites: stable
-Components: main
-Signed-By: /etc/apt/trusted.gpg.d/atix.asc
-EOF
-
-# 4. Installa
-apt update
-apt install -y subscription-manager katello-host-tools
-
-# 5. Directory e certificato
-mkdir -p /etc/pki/consumer /etc/pki/entitlement /etc/pki/product /etc/rhsm/ca
-curl -o /etc/rhsm/ca/katello-server-ca.pem https://foreman-katello-test.localdomain/pub/katello-server-ca.crt --insecure
-
-# 6. Configura
-subscription-manager config \
-  --server.hostname=foreman-katello-test.localdomain \
-  --server.port=443 \
-  --server.prefix=/rhsm \
-  --rhsm.repo_ca_cert=/etc/rhsm/ca/katello-server-ca.pem \
-  --rhsm.baseurl=https://foreman-katello-test.localdomain/pulp/deb
-
-# 7. Registra (MODIFICA IL NOME!)
-subscription-manager register \
-  --org="psnasl06" \
-  --activationkey="ak-ubuntu-2404-prod" \
-  --name="NOME-HOST"
-
-# 8. Abilita repo
-subscription-manager repos --enable='*'
-apt update
-
-# 9. Upload pacchetti
-katello-package-upload --force
-```
-
-### Sul Server Foreman
-
-```bash
-# 1. Copia chiave SSH (MODIFICA UTENTE E IP!)
-cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub | ssh UTENTE@IP_VM "sudo mkdir -p /root/.ssh && sudo tee /root/.ssh/authorized_keys && sudo chmod 600 /root/.ssh/authorized_keys && sudo chown root:root /root/.ssh/authorized_keys"
-
-# 2. Aggiungi a /etc/hosts (MODIFICA IP E NOME!)
-echo "IP_VM    NOME-HOST" >> /etc/hosts
-
-# 3. Aggiorna host (MODIFICA NOME E IP!)
-hammer host update --name "NOME-HOST" --ip "IP_VM"
-hammer host update --name "NOME-HOST" --location "Italy-North"
-```
-
----
-
-## Troubleshooting Comune
-
-|Errore|Causa|Soluzione|
-|---|---|---|
-|`Organization not found`|Usato Nome invece di Label|Usa `--org="psnasl06"` (label)|
-|`subscription-manager: command not found`|Non installato|Ripeti FASE 3|
-|`Error loading certificate`|File cert.pem vuoto o corrotto|`subscription-manager clean` e riprova|
-|`No route to host`|IP errato o firewall|Verifica IP e connettività|
-|`Could not resolve hostname`|Manca entry in /etc/hosts|Aggiungi hostname in /etc/hosts su Foreman|
-|`Host not found` (hammer)|Nome errato|`hammer host list` per vedere nome esatto|
-|`ActiveRecord::RecordNotFound`|Location non associata a Org|`hammer organization add-location`|

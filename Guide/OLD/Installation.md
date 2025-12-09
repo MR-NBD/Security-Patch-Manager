@@ -6,7 +6,7 @@ cat /etc/os-release
 ```bash
 rpm -q selinux-policy
 ```
-![img](../img/screenshot.png)
+![img](screenshot.png)
 
 Si vede la versione `selinux-policy-38.1.35-2.el9_4.3 ← è troppo vecchia`. Per questo setup stiamo usando **RHEL 9.4** OS presente come ISO su azure, ma i pacchetti SELinux di Foreman/Katello che vogliamo installanlare richiedono almeno : 
 - `selinux-policy >= 38.1.45-3.el9_5`
@@ -36,13 +36,13 @@ Dopo il riavvio controllare se la verione è stata aggiornata correttamente.
 ```bash
 rpm -q selinux-policy
 ```
-![img](../img/img7.png)
+![img](img7.png)
 ## Mount di un disco dedicato alle repository su `/var/lib/pulp` tramite **LVM**
 Verifica la presenza del secondo disco:
 ```bash
 lsblk
 ```
-![img](../img/img8.png)
+![img](img8.png)
 ## Inizializza il disco dedicato con LVM
 Crea la tabella delle partizioni sul disco sdb o sba da individuare nel passaggio precedente
 ```bash
@@ -91,20 +91,20 @@ sudo systemctl daemon-reload
 df -h /var/lib/pulp
 ```
 Dovresti ottenere qualcosa di similie:
-![img](../img/img9.png)
+![img](img9.png)
 ## Impostare un host statico
 - Ricaviamoci il NIC a IP 
 ```bash
 ifconfig
 ```
-![img](../img/img6.png)
+![img](img6.png)
 
 In questo caso il NIC eth0 e l'IP 10.172.2.17
 ```bash
 nano /etc/sysconfig/network-scripts/ifcfg-eth0
 ```
 eg. → Change e set `BOOTPROTO=static` add `IPADDR=172.20.10.10` add `PREFIX=24` add `GATEWAY=172.20.10.1`
-![img](../img/img10.png)
+![img](img10.png)
 
 Spegni e accendi l'interfaccia di rete
 ```bash
@@ -124,7 +124,7 @@ nano /etc/resolv.conf
 ```
 add `nameserver 4.2.2.2`
 
-![img](../img/img11.png)
+![img](img11.png)
 ## Set del hostname
 ```bash
 hostname foreman-katello-test
@@ -152,7 +152,7 @@ ci aspetta un Output simile `1.2.168.192.in-addr.arpa name = b.resolvers.level3.
 sudo nano /etc/hosts
 ```
 IL dominio per la mappatura di un nuov host dovrebbe essere: `<host name+routers domain> <host name>` nel nostro ambiente di test seguendo l'esempio di prima inseriremo l'IP 10.172.2.15 hostname della macchina e `b.resolvers.level3.net.` seguendo la logical del file. Dovremmo ottenere un risultato simile.
-![img](../img/img12.png)
+![img](img12.png)
 Nel caso di una non limitazione di laboratorio per il DNS il risultato sarebbe stato `10.172.2.15 foreman-katello-test.b.resolvers.level3.net. foreman-katello-test` o qualcosa di simile.
 ## Settiamo le regole del firewall
 ```bash
@@ -182,7 +182,7 @@ firewall-cmd --list-all
 ```
 Ci aspettiamo un output simile
 
-![img](../img/img1.png)
+![img](img1.png)
 
 Ora possiamo iniziare con l'installazione dei Foreman-Katello. Seguima dunque quanto riporato dalla guida per instllare verione di Foreman 3.15 Katello 4.17 e Puppet 8 https://docs.theforeman.org/3.15/Quickstart/index-katello.html
 ## Installazione repository EPEL
@@ -224,7 +224,7 @@ Verifichiamo che tutto sia vvenuto correttamente.
 dnf repolist enabled
 ```
 Dovremmo ottenere un risultato simile.
-![img](../img/img13.png)
+![img](img13.png)
 ## Installazione dei pacchetti del server Foreman
 1. Aggiorniamo tutti i pacchetti:
 ```bash
@@ -244,7 +244,7 @@ sudo foreman-installer --scenario katello \
   --enable-foreman-plugin-discovery
 ```
 Dovremmo ottenere un risultato simile. 
-![img](../img/img2.png)
+![img](img2.png)
 
 Opzione|Significato
 ---|---
@@ -256,7 +256,7 @@ Opzione|Significato
 `--enable-foreman-plugin-discovery`|Abilita il plugin Discovery per rilevare nuovi host in rete (PXE boot)
 
 Verifica che il portale sia accessibile: 
-![img](../img/img4.png)
+![img](img4.png)
 Come si vede nell'output queste sono le credenziali con la password generate per accedere a foreman. `Initial credentials are admin / aXEYxdbKpCSFC6Gi`
 Il servizio è operativo a `https://foreman-katello-test2.localdomain` però nel nostro in assenza di DNS possiamo contattare la macchina al'indirizzo ip https://10.172.2.17
 
@@ -265,5 +265,5 @@ In caso non riuscimmo ad ottenere le password dall'output possiamo andarle a ric
 sudo grep admin_password /etc/foreman-installer/scenarios.d/katello-answers.yaml
 ```
 User di default rimane sempre admin.
-![img](../img/img3.png)
+![img](img3.png)
 

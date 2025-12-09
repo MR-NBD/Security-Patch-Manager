@@ -18,7 +18,7 @@
 Accedi alla Web UI:
 **Content → Products → Create Product**
 
-![Create Product](../img/CreateProduct.png)
+![Create Product](CreateProduct.png)
 
 Compila:
 
@@ -34,7 +34,7 @@ Compila:
 Vai su:
 **Content → Products → Ubuntu-24.04 → New Repository**
 
-![Create Product](../img/CreateProduct.png)
+![Create Product](CreateProduct.png)
 Compila:
 
 |Campo|Valore|
@@ -64,7 +64,7 @@ Vai su:
 **Content → Sync Status**
 Seleziona i repo → **Sync Now**
 
-![Sync Status](../img/SyncStatus.png)
+![Sync Status](SyncStatus.png)
 
 ---
 # **4. Creare una Content View**
@@ -72,7 +72,7 @@ Seleziona i repo → **Sync Now**
 Vai su:
 **Content → Lifecycle → Content Views → Create New View**
 
-![Create Content View](../img/CreateContentView.png)
+![Create Content View](CreateContentView.png)
 Compila:
 - Name: `Ubuntu-24.04-CV`
 - Type: `Normal`
@@ -80,7 +80,7 @@ Compila:
 **Save**
 
 # **Aggiungi i repository**
-![img](../img/img14.png)
+![img](img14.png)
 
 **Repositories → Add**
 
@@ -94,7 +94,7 @@ Aggiungi:
 
 Vai su **Versions → Publish New Version**
 
-![Publish New Version](../img/PublishNewVersion.png)
+![Publish New Version](PublishNewVersion.png)
 
 Commento: “Initial Ubuntu 24.04 version”
 
@@ -118,12 +118,12 @@ Crea ad esempio:
 Vai su:  
 **Content Views → Ubuntu-24.04-CV → Versions**
 
-![](../img/img5.png)
-![](../img/img15.png)
+![](img5.png)
+![](img15.png)
 
 Seleziona → **Promote**
 
-![](../img/img16.png)
+![](img16.png)
 Promuovi in ordine:  
 Development → Testing → Production
 
@@ -133,7 +133,7 @@ Vai su:
 **Hosts → Provisioning Setup → Operating Systems**
 Seleziona → **Create Operating System**
 
-![](../img/img17.png)
+![](img17.png)
 
 - Name : Ubuntu
 - Major Version : 24
@@ -144,7 +144,7 @@ Seleziona → **Create Operating System**
 - Root Password Hash : SHA512
  - Architectures : x86_64
 
-![](../img/img18.png)
+![](img18.png)
 
 
 ---
