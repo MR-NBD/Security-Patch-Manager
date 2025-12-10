@@ -142,3 +142,7 @@ foreman-installer --foreman-proxy-plugin-remote-execution-script-generate-keys t
 cat /var/lib/foreman-proxy/ssh/id_rsa_foreman_proxy.pub
 ```
 
+### Modifica di una Location per un determinato Host
+```bash
+hammer host update --name <VM_NAME> --new-location "LOCATION_NAME"
+```
