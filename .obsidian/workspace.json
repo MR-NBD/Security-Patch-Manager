@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "README.md",
+                "file": "Documentation/Tabella_Comparativa.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README"
+              "title": "Tabella_Comparativa"
             }
           }
         ],
@@ -212,8 +212,8 @@
   },
   "active": "faf7791dfef1b6e1",
   "lastOpenFiles": [
-    "Documentation/Tabella_Comparativa.md",
     "README.md",
+    "Documentation/Tabella_Comparativa.md",
     "Documentation/CAPITOLI_TESI.md",
     "Configurazioni/Installazione.md",
     "Documentation/ATIXOrcharrhino.pdf",

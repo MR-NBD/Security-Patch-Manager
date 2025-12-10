@@ -10,4 +10,4 @@
 | **Stato del progetto**              | Attivamente mantenuto come upstream.                                                               | Legacy; sviluppo ridotto.                                     | Attivamente supportato con aggiornamenti enterprise.                               | Attivamente sviluppato e supportato.                                                 |
 | **Supporto e manutenzione**         | Supporto community.                                                                                | Supporto community interrotto.                                | Supporto commerciale (ATIX).                                                       | Supporto commerciale Red Hat.                                                        |
 
-Documentazione [Orcharhino in a box](Documentation/ATIXOrcharrhino.pdf)
+Documentazione [Orcharhino in a box](./Documentation/ATIXOrcharrhino.pdf)
