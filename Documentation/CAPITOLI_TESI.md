@@ -1,4 +1,4 @@
-### **Proposed
+### Proposed
 1. **Introduction**
     - Context and motivation 
     - Problem statement and objectives
