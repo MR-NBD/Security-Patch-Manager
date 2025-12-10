@@ -56,7 +56,7 @@ Ecco una prima analisi riassuntiva degli strumenti inizialmente proposti nel [do
 In questo momento il laboratorio si concentrando sull'utilizzo di Foreman+Katello+Puppet
 [DOC](https://theforeman.org/)
 ![img](./img/ForemanLOGO.png)
-- INSTALLAZIONE E CONFIGURAZIONE con HOST UBUNTU -  [GUIDA](../Configurazioni/Installazione.md)
+- INSTALLAZIONE E CONFIGURAZIONE con HOST UBUNTU -  [GUIDA](./Configurazioni/Installazione.md)
 - GUIDE 
 	- [Configurazione Organization e Location](./Settings/Configurazione-Organization-e-Location.md)
 	- [Configurazione Content Credentials (Chiavi GPG)](./Settings/Configurazione-Content-Credentials.md)
