@@ -207,15 +207,16 @@ subscription-manager register \
 
 ---
 ## FASE 9: Abilita Repository e Aggiorna
-
+#### Abilita tutti i repository
 ```bash
-# Abilita tutti i repository
 subscription-manager repos --enable='*'
-
-# Verifica repository abilitati
+```
+#### Verifica repository abilitati
+```bash
 subscription-manager repos --list-enabled
-
-# Aggiorna lista pacchetti
+```
+#### Aggiorna lista pacchetti
+```bash
 apt update
 ```
 
@@ -224,10 +225,12 @@ apt update
 
 ```bash
 subscription-manager refresh
+```
+```bash
 katello-package-upload --force
 ```
-
 Questo invia a Foreman l'elenco dei pacchetti installati sulla VM.
+
 ---
 ## FASE 11: Configura SSH per Remote Execution
 
