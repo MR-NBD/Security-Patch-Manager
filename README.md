@@ -58,15 +58,15 @@ In questo momento il laboratorio si concentrando sull'utilizzo di Foreman+Katell
 ![img](./img/ForemanLOGO.png)
 - INSTALLAZIONE E CONFIGURAZIONE con HOST UBUNTU -  [GUIDA](../Configurazioni/Installazione.md)
 - GUIDE 
-	- [Configurazione Organization e Location](../Settings/Configurazione-Organization-e-Location.md)
-	- [Configurazione Content Credentials (Chiavi GPG)](../Settings/Configurazione-Content-Credentials.md)
-	- [Creazione Product e Repository Ubuntu 24.04](../Settings/Creazione-Product-Repository-Ubuntu-24.04.md)
-	- [Lifecycle Environments](../Settings/Lifecycle-Environments.md)
-	- [Content View](../Settings/Content-View.md)
-	- [Operating System](../Settings/Operating-System.md)
-	- [Host Group](../Settings/Host-Group.md)
-	- [Activation Key](../Settings/Activation-Key.md)
-	- [Guida Registrazione Host Ubuntu 24.04](../Settings/Guida-Registrazione-Host-Ubuntu-24.04.md)
+	- [Configurazione Organization e Location](./Settings/Configurazione-Organization-e-Location.md)
+	- [Configurazione Content Credentials (Chiavi GPG)](./Settings/Configurazione-Content-Credentials.md)
+	- [Creazione Product e Repository Ubuntu 24.04](./Settings/Creazione-Product-Repository-Ubuntu-24.04.md)
+	- [Lifecycle Environments](./Settings/Lifecycle-Environments.md)
+	- [Content View](./Settings/Content-View.md)
+	- [Operating System](./Settings/Operating-System.md)
+	- [Host Group](./Settings/Host-Group.md)
+	- [Activation Key](./Settings/Activation-Key.md)
+	- [Guida Registrazione Host Ubuntu 24.04](./Settings/Guida-Registrazione-Host-Ubuntu-24.04.md)
 
 ---
 ## Documetazione prodotta
