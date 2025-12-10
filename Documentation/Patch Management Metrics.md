@@ -32,13 +32,6 @@ Why Track These KPIs?
 By tracking these KPIs, organizations can continuously refine their patch management to stay ahead of threats and maintain a healthy IT environment.
 [SORGENTE](https://www.secpod.com/blog/patch-management-metrics-to-look-out-for-in-2024/)
 # 10 Patch Management Metrics: Measure Success & Reduce Risk
-
-[Robert Pleasant](https://www.splashtop.com/authors/robert-pleasant)
-
-8 min read
-
-Updated 21 ottobre 2025
-
 ## Table of Contents
 
 - [Why Tracking Metrics & KPIs Is Crucial for Patch Management](https://www.splashtop.com/blog/patch-management-metrics#heading-1)
