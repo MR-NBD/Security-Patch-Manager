@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Documentation/Patch Management Metrics.md",
+                "file": "Utenze/ASL0603.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Patch Management Metrics"
+              "title": "ASL0603"
             }
           }
         ],
@@ -212,12 +212,12 @@
   },
   "active": "faf7791dfef1b6e1",
   "lastOpenFiles": [
+    "Documentation/Patch Management Metrics.md",
     "Configurazioni/Guida-Registrazione-Host-Ubuntu-24.04-v2.md",
     "Configurazioni/Non confermato 422354.crdownload",
     "Configurazioni/errata-management-guide-v2_new.md",
     "Configurazioni/Non confermato 713045.crdownload",
     "Configurazioni/errata-management-guide-v2.md",
-    "Documentation/Patch Management Metrics.md",
     "Settings/Configurazione-Organization-e-Location.md",
     "Configurazioni/Non confermato 919721.crdownload",
     "Settings/Guida-Registrazione-Host-Ubuntu-24.04.md",
