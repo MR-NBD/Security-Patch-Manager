@@ -212,6 +212,10 @@
   },
   "active": "faf7791dfef1b6e1",
   "lastOpenFiles": [
+    "Configurazioni/Guida-Registrazione-Host-Ubuntu-24.04-v2.md",
+    "Configurazioni/Non confermato 422354.crdownload",
+    "Configurazioni/errata-management-guide-v2_new.md",
+    "Configurazioni/Non confermato 713045.crdownload",
     "Configurazioni/errata-management-guide-v2.md",
     "Documentation/Patch Management Metrics.md",
     "Settings/Configurazione-Organization-e-Location.md",
@@ -240,8 +244,6 @@
     "Documentation/Guide/OLD/Installation.md",
     "Documentation/Guide/OLD",
     "Documentation/Guide/OLD/LAB_1-Test_1-VECCHIO.md",
-    "Settings/Host-Group.md",
-    "Settings/Content-View.md",
     "Settings",
     "Excalidraw",
     "img/image18-v2.png",
@@ -255,8 +257,6 @@
     "img/Image16-v2.png",
     "img/CreateHostGroup.png",
     "workflow/PATCH_TESTING_VALIDATION.drawio",
-    "Untitled.base",
-    "Untitled/Untitled",
-    "Documentation/Guide"
+    "Untitled.base"
   ]
 }
