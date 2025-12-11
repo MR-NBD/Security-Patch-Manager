@@ -212,6 +212,12 @@
   },
   "active": "faf7791dfef1b6e1",
   "lastOpenFiles": [
+    "Configurazioni/Guida-Registrazione-Host-Ubuntu-24.04-v2_new.md",
+    "Configurazioni/Non confermato 839170.crdownload",
+    "Configurazioni/errata-management-guide-v3.md",
+    "Configurazioni/Non confermato 44790.crdownload",
+    "Configurazioni/Guida-Grafana-Errata-Dashboard.md",
+    "Configurazioni/Non confermato 479769.crdownload",
     "Documentation/Patch Management Metrics.md",
     "Configurazioni/Guida-Registrazione-Host-Ubuntu-24.04-v2.md",
     "Configurazioni/Non confermato 422354.crdownload",
@@ -240,12 +246,8 @@
     "Settings/Configurazione-Content-Credentials.md",
     "Settings/Creazione-Product-Repository-Ubuntu-24.04.md",
     "Documentation/Guide/APPUNTI-Understanding_Foreman_and_Katello.md",
-    "Documentation/Guide/Foreman-Katello-Introduction.md",
-    "Documentation/Guide/OLD/Installation.md",
     "Documentation/Guide/OLD",
-    "Documentation/Guide/OLD/LAB_1-Test_1-VECCHIO.md",
     "Settings",
-    "Excalidraw",
     "img/image18-v2.png",
     "image-3.png",
     "image-2.png",
@@ -255,8 +257,6 @@
     "img/image17-v2.png",
     "img/ActivationKeys.png",
     "img/Image16-v2.png",
-    "img/CreateHostGroup.png",
-    "workflow/PATCH_TESTING_VALIDATION.drawio",
-    "Untitled.base"
+    "img/CreateHostGroup.png"
   ]
 }
