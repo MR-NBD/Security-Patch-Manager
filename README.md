@@ -53,9 +53,11 @@ Due modalità operative:
 ---
 ## LAB
 Ecco una prima analisi riassuntiva degli strumenti inizialmente proposti nel [documento](./GeneralDocumentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf). → [TABELLA](./GeneralDocumentation/Tabella_Comparativa.md)
+
 In questo primo momento di test il laboratorio si concentra sull'utilizzo di Foreman+Katello
 [DOC](https://theforeman.org/)
 ![img](./img/ForemanLOGO.png)
+
 - INSTALLAZIONE E CONFIGURAZIONE con HOST UBUNTU -  [GUIDA](./Foreman-Katello/Initial-Setup/Installazione.md)
 - GUIDE 
 	- [Configurazione Organization e Location](./Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md)
