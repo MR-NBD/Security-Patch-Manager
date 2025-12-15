@@ -1,6 +1,6 @@
 ## Panoramica
 Questa guida descrive l'installazione di **Foreman 3.15** con **Katello 4.17** e **Puppet 8** su **RHEL 9.x**. L'obiettivo finale è gestire il patch management di VM tramite SSH.
-![](image12-v2.png)
+![](/img/image12-v2.png)
 
 ### Requisiti Hardware Minimi
 

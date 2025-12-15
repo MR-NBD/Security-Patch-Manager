@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "README.md",
+                "file": "Foreman-Katello/Initial-Setup/Installazione.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README"
+              "title": "Installazione"
             }
           }
         ]
@@ -195,8 +195,9 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "f76e3691fbfccb78",
+  "active": "b1102129a9aa5624",
   "lastOpenFiles": [
+    "img/image12-v2.png",
     "Foreman-Katello/Initial-Setup/Installazione.md",
     "README.md",
     "GeneralDocumentation/Tabella_Comparativa.md",
