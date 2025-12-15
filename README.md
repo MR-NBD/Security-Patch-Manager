@@ -52,31 +52,31 @@ Due modalità operative:
 
 ---
 ## LAB
-Ecco una prima analisi riassuntiva degli strumenti inizialmente proposti nel [documento](./Documentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf). → [TABELLA](./Documentation/Tabella_Comparativa.md)
+Ecco una prima analisi riassuntiva degli strumenti inizialmente proposti nel [documento](Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf). → [TABELLA](Tabella_Comparativa.md)
 In questo momento il laboratorio si concentrando sull'utilizzo di Foreman+Katello+Puppet
 [DOC](https://theforeman.org/)
 ![img](./img/ForemanLOGO.png)
-- INSTALLAZIONE E CONFIGURAZIONE con HOST UBUNTU -  [GUIDA](./Configurazioni/Installazione.md)
+- INSTALLAZIONE E CONFIGURAZIONE con HOST UBUNTU -  [GUIDA](Installazione.md)
 - GUIDE 
-	- [Configurazione Organization e Location](./Settings/Configurazione-Organization-e-Location.md)
-	- [Configurazione Content Credentials (Chiavi GPG)](./Settings/Configurazione-Content-Credentials.md)
-	- [Creazione Product e Repository Ubuntu 24.04](./Settings/Creazione-Product-Repository-Ubuntu-24.04.md)
-	- [Lifecycle Environments](./Settings/Lifecycle-Environments.md)
-	- [Content View](./Settings/Content-View.md)
-	- [Operating System](./Settings/Operating-System.md)
-	- [Host Group](./Settings/Host-Group.md)
-	- [Activation Key](./Settings/Activation-Key.md)
-	- [Guida Registrazione Host Ubuntu 24.04](./Settings/Guida-Registrazione-Host-Ubuntu-24.04.md)
+	- [Configurazione Organization e Location](Configurazione-Organization-e-Location.md)
+	- [Configurazione Content Credentials (Chiavi GPG)](Configurazione-Content-Credentials.md)
+	- [Creazione Product e Repository Ubuntu 24.04](Creazione-Product-Repository-Ubuntu-24.04.md)
+	- [Lifecycle Environments](Lifecycle-Environments.md)
+	- [Content View](Content-View.md)
+	- [Operating System](Operating-System.md)
+	- [Host Group](Host-Group.md)
+	- [Activation Key](Activation-Key.md)
+	- [Guida Registrazione Host Ubuntu 24.04](Guida-Registrazione-Host-Ubuntu-24.04.md)
 
 ---
 ## Documetazione prodotta
-- [Automated Patch Management for B2B IaaS Environments](./Documentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf)
-- [Capitoli Tesi Provvisori](./Documentation/CAPITOLI_TESI.md)
-- [Tabella Comparativa tool](./Documentation/Tabella_Comparativa.md)
+- [Automated Patch Management for B2B IaaS Environments](Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf)
+- [Capitoli Tesi Provvisori](CAPITOLI_TESI.md)
+- [Tabella Comparativa tool](Tabella_Comparativa.md)
 ## Relevant documents
-- [RED HAT SATELLITE CRON-BASED PATCHING A ZERO-TOUCH APPROACH](./Documentation/Ext_Doc/RED_HAT_SATELLITE_CRON-BASED_PATCHING_A_ZERO-TOUCH_APPROACH.pdf)
-- [Smart Patching with Cron Jobs An Ops-Centric](./Documentation/Ext_Doc/Smart_Patching_with_Cron_Jobs_An_Ops-Centric.pdf)
-- [The Recent AutomatingSystem Patching Via Satellite](./Documentation/Ext_Doc/The_Recent_AutomatingSystem_Patching_Via_Satellite.pdf)
+- [RED HAT SATELLITE CRON-BASED PATCHING A ZERO-TOUCH APPROACH](RED_HAT_SATELLITE_CRON-BASED_PATCHING_A_ZERO-TOUCH_APPROACH.pdf)
+- [Smart Patching with Cron Jobs An Ops-Centric](Smart_Patching_with_Cron_Jobs_An_Ops-Centric.pdf)
+- [The Recent AutomatingSystem Patching Via Satellite](The_Recent_AutomatingSystem_Patching_Via_Satellite.pdf)
 
 ---
 ## Author

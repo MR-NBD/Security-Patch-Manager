@@ -53,7 +53,7 @@ hammer content-view create \
     - ☑ Ubuntu 24.04 Base
 5. Clicca **Add Repositories**
 
-![](../img/img14.png)
+![](img14.png)
 #### Via Hammer CLI
 
 ```bash
@@ -88,7 +88,7 @@ hammer content-view add-repository \
 4. Clicca **Publish**
 5. Attendi il completamento
 
-![Publish New Version](../img/PublishNewVersion.png)
+![Publish New Version](PublishNewVersion.png)
 #### Via Hammer CLI
 
 ```bash
@@ -111,9 +111,9 @@ Ripeti il processo di promozione per ogni ambiente:
 6. **Versions → ⋮ → Promote → Staging → Promote**
 7. **Versions → ⋮ → Promote → Production → Promote**
 
-![](../img/img5.png)
-![](../img/img15.png)
-![](../img/img16.png)
+![](img5.png)
+![](img15.png)
+![](img16.png)
 
 #### Via Hammer CLI
 

@@ -42,7 +42,7 @@ hammer proxy list
 ```
 Output atteso:
 
-![](../img/image15-v2.png)
+![](image15-v2.png)
 ### 1.3 Associa Smart Proxy all'Organization e alla Location
 #### Associa il proxy all'organizzazione PSN-ASL06
 ```bash
@@ -62,7 +62,7 @@ hammer proxy info --name "foreman-katello-test.localdomain"
 ```
 Guarda la sezione "Features". Dovresti vedere in Active features:
 
-![](../img/image17-v2.png)
+![](image17-v2.png)
 ### Refresh features (se necessario)
 ```bash
 hammer proxy refresh-features --name "foreman-katello-test.localdomain"
@@ -75,7 +75,7 @@ hammer organization info --name "PSN-ASL06"
 
 #### Verifica dalla Web UI andando **Infrastructure → Smart Proxies**
 
-![](../img/image18-v2.png)
+![](image18-v2.png)
 
 1. Vai su **Administer → Organizations → PSN-ASL06 → Smart Proxies**
 2. Verifica che `foreman-katello-test.localdomain` sia presente

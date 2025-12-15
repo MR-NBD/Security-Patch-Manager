@@ -11,7 +11,7 @@
     - **Description**: `Repository Ubuntu 24.04 Noble Numbat per patch management - TEST`
 4. Clicca **Save**
 
-![Create Product](../img/CreateProduct.png)
+![Create Product](CreateProduct.png)
 #### Via Hammer CLI
 
 ```bash
@@ -39,7 +39,7 @@ hammer product create \
     - **Download Policy**: `On Demand`
 4. Clicca **Save**
 
-![Create Product](../img/CreateProduct.png)
+![Create Product](CreateProduct.png)
 
 | Versione Ubuntu  | Codename            |
 | ---------------- | ------------------- |
@@ -111,7 +111,7 @@ Oppure:
 3. Seleziona i repository da sincronizzare
 4. Clicca **Synchronize Now**
 
-![Sync Status](../img/SyncStatus.png)
+![Sync Status](SyncStatus.png)
 #### Via Hammer CLI
 ##### Sync di tutto il product
 ```bash

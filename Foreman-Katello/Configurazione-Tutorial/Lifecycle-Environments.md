@@ -10,7 +10,7 @@
     - **Description**: `Ambiente di sviluppo e test`
 4. Clicca **Save**
 
-![Create Environment Path](../img/CreateEnvironmentPath.png)
+![Create Environment Path](CreateEnvironmentPath.png)
 #### Via Hammer CLI
 
 ```bash
@@ -31,7 +31,7 @@ hammer lifecycle-environment create \
     - **Description**: `Ambiente di test pre-produzione`
 3. Clicca **Save**
 
-![](../img/AddEnvironmentPath.png)
+![](AddEnvironmentPath.png)
 #### Via Hammer CLI
 
 ```bash
@@ -62,4 +62,4 @@ hammer lifecycle-environment paths --organization "PSN-ASL06"
 ```
 Output atteso :
 
-![](../img/Image16-v2.png)
+![](Image16-v2.png)

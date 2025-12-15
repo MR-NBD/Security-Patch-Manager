@@ -1,6 +1,6 @@
 ## Panoramica
 Questa guida descrive l'installazione di **Foreman 3.15** con **Katello 4.17** e **Puppet 8** su **RHEL 9.x**. L'obiettivo finale è gestire il patch management di VM tramite SSH.
-![](../img/image12-v2.png)
+![](image12-v2.png)
 
 ### Requisiti Hardware Minimi
 
@@ -38,25 +38,25 @@ sdc
 ``` 
 ---
 ## Indice
-- [FASE 1 : Verifica del Sistema](#fase-1--verifica-del-sistema)
-- [FASE 2: Configurazione NTP con Chrony](#fase-2-configurazione-ntp-con-chrony)
-- [FASE 3: Configurazione Hostname e Networking](#fase-3-configurazione-hostname-e-networking)
-- [FASE 4: Configurazione Firewall](#fase-4-configurazione-firewall)
-- [FASE 5: Configurazione Storage LVM per Pulp](#fase-5-configurazione-storage-lvm-per-pulp)
-  - [FASE 5-bis : Configurazione Storage LVM per PostgreSQL](#fase-5-bis--configurazione-storage-lvm-per-postgresql)
-- [FASE 6: Installazione Repository](#fase-6-installazione-repository)
-- [FASE 7: Installazione Foreman-Katello](#fase-7-installazione-foreman-katello)
-- [FASE 8: Verifica dell'Installazione](#fase-8-verifica-dellinstallazione)
+- [1 Verifica del Sistema](#1-verifica-del-sistema)
+- [2 Configurazione NTP con Chrony](#2-configurazione-ntp-con-chrony)
+- [3 Configurazione Hostname e Networking](#3-configurazione-hostname-e-networking)
+- [4 Configurazione Firewall](#4-configurazione-firewall)
+- [5 Configurazione Storage LVM per Pulp](#5-configurazione-storage-lvm-per-pulp)
+  - [5-bis Configurazione Storage LVM per PostgreSQL](#5-bis--configurazione-storage-lvm-per-postgresql)
+- [6 Installazione Repository](#6-installazione-repository)
+- [7 Installazione Foreman-Katello](#7-installazione-foreman-katello)
+- [8 Verifica dell'Installazione](#8-verifica-dellinstallazione)
 - [NEXT-STEP](#next-step)
-- [EXTRA-LAB - Aggiungi Risoluzione DNS per gli Host](#extra-lab---aggiungi-risoluzione-dns-per-gli-host)
+- [EXTRA-LAB Aggiungi Risoluzione DNS per gli Host](#extra-lab-aggiungi-risoluzione-dns-per-gli-host)
 ---
-## FASE 1 : Verifica del Sistema
+## 1 Verifica del Sistema
 ### 1.1 Verifica versione OS e SELinux
 #### Verifica versione OS
 ```bash
 cat /etc/os-release
 ```
-![](../img/image4-v2.png)
+![](image4-v2.png)
 
 #### Verifica versione SELinux policy
 ```bash
@@ -97,10 +97,10 @@ rpm -q selinux-policy
 
 Output atteso: `selinux-policy-38.1.53-5.el9_6` o superiore.
 
-![](../img/image5-v2.png)
+![](image5-v2.png)
 
 ---
-## FASE 2: Configurazione NTP con Chrony
+## 2 Configurazione NTP con Chrony
 
 La sincronizzazione temporale è un componente **critico** per il corretto funzionamento di Katello e dei certificati SSL.
 ### 2.1 Installazione e Configurazione Chrony
@@ -130,10 +130,10 @@ timedatectl status
 
 Output atteso:
 
-![](../img/image6-v2.png)
+![](image6-v2.png)
 
 ---
-## FASE 3: Configurazione Hostname e Networking
+## 3 Configurazione Hostname e Networking
 ### 3.1 Identificare l'interfaccia di rete e l'IP
 ```bash
 ip addr show
@@ -170,7 +170,7 @@ Aggiungi la seguente riga (sostituisci con i valori rilavati sopra):
 
 Il file dovrebbe apparire così:
 
-![](../img/image9-v2.png)
+![](image9-v2.png)
 ### 3.4 Verifica la configurazione
 #### Verifica risoluzione hostname
 ```bash
@@ -178,7 +178,7 @@ ping -c 2 $(hostname -f)
 ```
 
 ---
-## FASE 4: Configurazione Firewall
+## 4 Configurazione Firewall
 ### 4.1 Abilita le porte necessarie
 #### Porte TCP per Foreman/Katello
 ```bash
@@ -215,10 +215,10 @@ firewall-cmd --list-all
 
 Output atteso:
 
-![](../img/image8-v2.png)
+![](image8-v2.png)
 
 ---
-## FASE 5: Configurazione Storage LVM per Pulp
+## 5 Configurazione Storage LVM per Pulp
 Pulp richiede un volume dedicato montato su `/var/lib/pulp` per la gestione dei repository.
 ### 5.1 Identifica il disco dedicato
 
@@ -230,7 +230,7 @@ Identifica il disco aggiuntivo (es. `/dev/sdb` o `/dev/sda` se non è il disco O
 
 > **ATTENZIONE**: Assicurati di selezionare il disco corretto! Per non formattare il disco del sistema operativo.
 
-![](../img/image7-v2.png)
+![](image7-v2.png)
 ### 5.2 Crea la struttura LVM
 
 #### Crea tabella delle partizioni GPT (sostituisci /dev/sdb con il tuo disco)
@@ -289,13 +289,13 @@ df -hP /var/lib/pulp/
 
 Output atteso:
 
-![](../img/image10-v2.png)
+![](image10-v2.png)
 
 #### Reload systemd per riconoscere le nuove configurazioni
 ```bash
 systemctl daemon-reload
 ```
-## FASE 5-bis : Configurazione Storage LVM per PostgreSQL
+## 5-bis Configurazione Storage LVM per PostgreSQL
 Stesso processo, device diverso (es. /dev/sdc)
 ```bash
 parted /dev/sdb --script mklabel gpt
@@ -334,7 +334,7 @@ df -hP /var/lib/pgsql/
 systemctl daemon-reload
 ```
 ---
-## FASE 6: Installazione Repository
+## 6 Installazione Repository
 ### 6.1 Abilita CodeReady Builder e EPEL
 #### Abilita CodeReady Linux Builder
 ```bash
@@ -380,10 +380,10 @@ dnf repolist enabled
 
 Output atteso:
 
-![](../img/image11-v2.png)
+![](image11-v2.png)
 
 ---
-## FASE 7: Installazione Foreman-Katello
+## 7 Installazione Foreman-Katello
 ### 7.1 Aggiorna il sistema
 #### Aggiorna tutti i pacchetti prima dell'installazione
 ```bash
@@ -394,7 +394,6 @@ dnf upgrade -y
 ```bash
 dnf install -y foreman-installer-katello
 ```
-
 ### 7.3 Esegui l'installazione con plugin
 Questa è l'installazione completa con tutti i plugin necessari individuati fino ad ora:
 
@@ -429,7 +428,6 @@ foreman-installer --scenario katello \
 | `--enable-foreman-cli-katello`                          | CLI hammer per Katello                                        |
 | `--foreman-proxy-registration true`                     | **Feature Registration** (necessaria per Global Registration) |
 | `--foreman-proxy-templates true`                        | **Feature Templates** (necessaria per Global Registration)    |
-
 ### 7.4 Monitora l'installazione (opzionale)
 In un altro terminale puoi monitorare il log:
 
@@ -440,10 +438,10 @@ tail -f /var/log/foreman-installer/katello.log
 ### 7.5 Output installazione completata
 Al termine dell'installazione vedrai un output simile:
 
-![](../img/image13-v2.png)
+![](image13-v2.png)
 
 ---
-## FASE 8: Verifica dell'Installazione
+## 8 Verifica dell'Installazione
 ### 8.1 Verifica stato servizi
 #### Verifica stato di tutti i servizi Katello
 ```bash
@@ -459,7 +457,7 @@ Apri un browser e accedi a:
 
 > **NOTA**: Se il browser mostra un avviso certificato, è normale (certificato self-signed). Procedi accettando il rischio.
 
-![](../img/foremanlogin.png)
+![](foremanlogin.png)
 ### 8.3 Recupera credenziali (se necessario)
 Se hai dimenticato la password:
 
@@ -489,12 +487,12 @@ hammer location list
 rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 ```
 
-![](../img/image14-v2.png)
+![](image14-v2.png)
 
 #### Via Web UI
 ##### Administer → About → Scorri fino a "Plugins" e vedrai la lista completa con versioni.
 
-![](../img/foremanfeatures.png)
+![](foremanfeatures.png)
 
 ---
 ### Ambiente di Riferimento
@@ -507,15 +505,16 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 | VM Ubuntu Target | 10.172.2.5                       |
 | OS Target        | Ubuntu 24.04 LTS                 |
 ## NEXT-STEP
-- [Configurazione Organization e Location](../Settings/Configurazione-Organization-e-Location.md)
-- [Configurazione Content Credentials (Chiavi GPG)](../Settings/Configurazione-Content-Credentials.md)
-- [Creazione Product e Repository Ubuntu 24.04](../Settings/Creazione-Product-Repository-Ubuntu-24.04.md)
-- [Lifecycle Environments](../Settings/Lifecycle-Environments.md)
-- [Content View](../Settings/Content-View.md)
-- [Operating System](../Settings/Operating-System.md)
-- [Host Group](../Settings/Host-Group.md)
-- [Activation Key](../Settings/Activation-Key.md)
-- [Guida Registrazione Host Ubuntu 24.04](../Settings/Guida-Registrazione-Host-Ubuntu-24.04.md)
+- [Configurazione Organization e Location](Configurazione-Organization-e-Location.md)
+- [Configurazione Content Credentials (Chiavi GPG)](Configurazione-Content-Credentials.md)
+- [Creazione Product e Repository Ubuntu 24.04](Creazione-Product-Repository-Ubuntu-24.04.md)
+- [Lifecycle Environments](Lifecycle-Environments.md)
+- [Content View](Content-View.md)
+- [Operating System](Operating-System.md)
+- [Host Group](Host-Group.md)
+- [Activation Key](Activation-Key.md)
+- [Guida Registrazione Host Ubuntu 24.04](Guida-Registrazione-Host-Ubuntu-24.04.md)
+- [Errata-Management-Ubuntu-Debian](Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md)
 
 ---
 ## Riferimenti

@@ -1,14 +1,4 @@
-# Ubuntu/Debian Errata Management System per Foreman/Katello
-
-## Guida Completa all'Implementazione su Azure
-
-**Versione:** 3.0  
-**Data:** Dicembre 2024  
-**Ambiente:** Azure - Italy North  
-**Stato:** Funzionante e Testato
-
----
-
+## Ubuntu/Debian Errata Management System per Foreman/Katello
 ## Indice
 
 1. [Panoramica e Obiettivi](#1-panoramica-e-obiettivi)
@@ -27,11 +17,8 @@
 14. [Registrazione Host in Foreman](#14-registrazione-host-in-foreman)
 15. [Gestione e Manutenzione](#15-gestione-e-manutenzione)
 16. [Troubleshooting](#16-troubleshooting)
-17. [Costi e Ottimizzazione](#17-costi-e-ottimizzazione)
-18. [Limitazioni Note](#18-limitazioni-note)
 
 ---
-
 ## 1. Panoramica e Obiettivi
 
 ### 1.1 Il Problema
@@ -42,16 +29,13 @@ Foreman/Katello gestisce VM Ubuntu e Debian mostrando i **pacchetti installati**
 - Debian pubblica **DSA/DLA** (Debian Security Advisory / Debian LTS Advisory)
 
 Questi non sono integrati nativamente in Katello community edition.
-
 ### 1.2 La Soluzione
 
 Sistema esterno composto da:
-
 1. **errata_parser** (ATIX) - Scarica USN/DSA dai repository ufficiali
 2. **errata_server** (ATIX) - API REST per consultare errata
-3. **errata_backend** (custom v3) - Correla errata con host Foreman, salva in PostgreSQL, gestisce storico
+3. **errata_backend** (custom) - Correla errata con host Foreman, salva in PostgreSQL, gestisce storico
 4. **Grafana** - Dashboard per visualizzazione
-
 ### 1.3 Componenti Deployati
 
 | Componente | Tecnologia | Porta | Funzione |
@@ -62,18 +46,16 @@ Sistema esterno composto da:
 | PostgreSQL | Azure Flexible | 5432 | Database |
 
 ---
-
 ## 2. Architettura
-
 ### 2.1 Schema Generale
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              AZURE - Italy North                             │
-│                                                                              │
+│                              AZURE - Italy North                            │
+│                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │           VNet: ASL0603-spoke10-spoke-italynorth                    │    │
-│  │                                                                      │    │
+│  │                                                                     │    │
 │  │   ┌─────────────────────┐      ┌─────────────────────────────────┐  │    │
 │  │   │  Subnet: default    │      │  Subnet: errata-aci-subnet      │  │    │
 │  │   │  10.172.2.0/27      │      │  10.172.5.0/28                  │  │    │
@@ -89,24 +71,24 @@ Sistema esterno composto da:
 │  │   │                     │      │  │  IP: 10.172.5.4            │ │  │    │
 │  │   └─────────────────────┘      │  └────────────────────────────┘ │  │    │
 │  │                                └─────────────────────────────────┘  │    │
-│  │                                                                      │    │
+│  │                                                                     │    │
 │  │   ┌─────────────────────┐      ┌─────────────────────────────────┐  │    │
 │  │   │  Subnet: DBA        │      │  Azure Storage Account          │  │    │
 │  │   │  10.172.2.192/26    │      │  sterrata01                     │  │    │
-│  │   │                     │      │                                  │  │    │
+│  │   │                     │      │                                 │  │    │
 │  │   │  ┌───────────────┐  │      │  File Shares:                   │  │    │
 │  │   │  │  PostgreSQL   │  │      │  • errata-data (JSON errata)    │  │    │
 │  │   │  │  Flexible     │◄─┼──────┼──• errata-grafana (Grafana)     │  │    │
-│  │   │  │  Server       │  │      │                                  │  │    │
+│  │   │  │  Server       │  │      │                                 │  │    │
 │  │   │  │               │  │      └─────────────────────────────────┘  │    │
 │  │   │  │  pgserverrata │  │                                           │    │
 │  │   │  │  10.172.2.196 │  │                                           │    │
 │  │   │  └───────────────┘  │                                           │    │
 │  │   └─────────────────────┘                                           │    │
-│  └──────────────────────────────────────────────────────────────────────┘    │
-│                                                                              │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
 │  ┌──────────────────────────┐                                               │
-│  │  Azure Container Registry │                                               │
+│  │  Azure Container Registry│                                               │
 │  │  acrerrata.azurecr.io    │                                               │
 │  │                          │                                               │
 │  │  Images:                 │                                               │
@@ -114,9 +96,8 @@ Sistema esterno composto da:
 │  │  • errata_server:v1      │                                               │
 │  │  • errata_backend:v3     │                                               │
 │  └──────────────────────────┘                                               │
-└──────────────────────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
-
 ### 2.2 Flusso Dati
 
 ```
@@ -125,15 +106,15 @@ Sistema esterno composto da:
 │  (usn.ubuntu.   │────►│  (process_usn.  │────►│  Share          │
 │   com)          │     │   py)           │     │  (errata JSON)  │
 └─────────────────┘     └─────────────────┘     └────────┬────────┘
-                                                         │
-                                                         ▼
+                                                        │
+                                                        ▼
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │  Foreman API    │     │  errata_backend │     │  errata_server  │
 │  /api/hosts     │────►│  (Flask v3)     │◄────│  (legge JSON)   │
 │  /api/packages  │     │                 │     │                 │
 └─────────────────┘     └────────┬────────┘     └─────────────────┘
-                                 │
-                                 ▼
+                                │
+                                ▼
                         ┌─────────────────┐
                         │   PostgreSQL    │
                         │   (correlazioni │
@@ -152,9 +133,7 @@ Sistema esterno composto da:
 Il parser ATIX originale richiede accesso Internet per scaricare gli USN. Poiché i container ACI nella VNet privata non hanno accesso Internet diretto, la generazione dei dati errata viene fatta dalla **Cloud Shell** che ha accesso Internet, e i file JSON vengono caricati su Azure File Share.
 
 ---
-
 ## 3. Prerequisiti
-
 ### 3.1 Ambiente Azure
 
 - Subscription Azure attiva
@@ -162,58 +141,51 @@ Il parser ATIX originale richiede accesso Internet per scaricare gli USN. Poich�
 - Azure Cloud Shell (Bash)
 - Permessi per creare risorse
 
-**⚠️ IMPORTANTE - Cloud Shell Effimera:**
+**IMPORTANTE - Cloud Shell Effimera:**
 La Cloud Shell di Azure è effimera: i file nella home directory (`~`) vengono persi dopo 20 minuti di inattività o dopo il riavvio della sessione. Solo la directory `~/clouddrive` è persistente (collegata a un Azure File Share).
 
 **Consiglio:** Salvare i file importanti (YAML, script) in `~/clouddrive` oppure su un repository Git.
-
 ### 3.2 Foreman/Katello
-
 - Foreman/Katello installato e funzionante
 - Host Ubuntu/Debian registrati come Content Host
 - Credenziali API (utente con permessi di lettura)
 - **IMPORTANTE**: Gli host devono aver inviato l'inventario pacchetti a Foreman
-
 ### 3.3 Informazioni da Raccogliere
 
-| Informazione | Esempio | Tua Configurazione |
-|--------------|---------|-------------------|
-| Subscription ID | `896dd1f5-30ae-42db-a7d4-c0f8184c6b1c` | _______________ |
-| Resource Group | `ASL0603-spoke10-rg-spoke-italynorth` | _______________ |
-| VNet Name | `ASL0603-spoke10-spoke-italynorth` | _______________ |
-| Location | `italynorth` | _______________ |
-| IP Foreman | `10.172.2.17` | _______________ |
-| User Foreman | `admin` | _______________ |
-| Password Foreman | `***` | _______________ |
+| Informazione     | Esempio                                |
+| ---------------- | -------------------------------------- |
+| Subscription ID  | `896dd1f5-30ae-42db-a7d4-c0f8184c6b1c` |
+| Resource Group   | `ASL0603-spoke10-rg-spoke-italynorth`  |
+| VNet Name        | `ASL0603-spoke10-spoke-italynorth`     |
+| Location         | `italynorth`                           |
+| IP Foreman       | `10.172.2.17`                          |
+| User Foreman     | `admin`                                |
+| Password Foreman | `***`                                  |
 
 ---
-
 ## 4. Configurazione Rete Azure
 
 ### 4.1 Selezionare la Subscription Corretta
-
+#### Lista subscription disponibili
 ```bash
-# Lista subscription disponibili
 az account list --output table
-
-# Seleziona la subscription corretta
+```
+#### Seleziona la subscription corretta
+```bash
 az account set --subscription "<SUBSCRIPTION_ID>"
-
-# Verifica
+```
+#### Verifica
+```bash
 az account show --output table
 ```
-
 ### 4.2 Aggiungere Address Space (se necessario)
-
 Se non c'è spazio nella VNet:
 
 1. Portale Azure → **Virtual Networks** → seleziona la VNet
 2. **Address space** → **+ Add**
 3. Aggiungi: `10.172.5.0/24`
 4. **Save**
-
 ### 4.3 Creare Subnet per ACI
-
 1. Nella VNet, vai su **Subnets** → **+ Subnet**
 2. Configura:
 
@@ -227,9 +199,7 @@ Se non c'è spazio nella VNet:
 | **Subnet delegation** | `Microsoft.ContainerInstance/containerGroups` |
 
 3. **Save**
-
 ### 4.4 Aggiungere Service Endpoint per Storage
-
 ```bash
 az network vnet subnet update \
   --resource-group <RESOURCE_GROUP> \
@@ -239,11 +209,9 @@ az network vnet subnet update \
 ```
 
 ---
-
 ## 5. Azure Container Registry
 
 ### 5.1 Creare ACR (Portale o CLI)
-
 **Portale:**
 1. Cerca **Container registries** → **+ Create**
 2. Configura:
@@ -256,7 +224,6 @@ az network vnet subnet update \
 | SKU | `Basic` (~5€/mese) |
 
 3. **Review + create** → **Create**
-
 **CLI:**
 ```bash
 az acr create \
@@ -266,9 +233,7 @@ az acr create \
   --location italynorth \
   --admin-enabled true
 ```
-
 ### 5.2 Ottenere Credenziali
-
 ```bash
 az acr credential show --name acrerrata --output table
 ```
@@ -276,23 +241,16 @@ az acr credential show --name acrerrata --output table
 Salva username e password per il deployment ACI.
 
 ---
-
 ## 6. Build delle Immagini Docker
-
 ### 6.1 errata_parser (Ruby)
-
 ```bash
 az acr build --registry acrerrata --image errata_parser:v1 https://github.com/ATIX-AG/errata_parser.git
 ```
-
 ### 6.2 errata_server (Python)
-
 ```bash
 az acr build --registry acrerrata --image errata_server:v1 https://github.com/ATIX-AG/errata_server.git
 ```
-
 ### 6.3 errata_backend v3 (Flask - Custom)
-
 Crea la directory:
 ```bash
 mkdir -p ~/clouddrive/errata_backend
@@ -698,11 +656,9 @@ az acr build --registry acrerrata --image errata_backend:v3 .
 ```
 
 ---
-
 ## 7. Azure Database for PostgreSQL
 
 ### 7.1 Creare il Server
-
 ```bash
 az postgres flexible-server create \
   --resource-group <RESOURCE_GROUP> \
@@ -718,18 +674,14 @@ az postgres flexible-server create \
   --subnet DBA \
   --yes
 ```
-
 ### 7.2 Creare il Database
-
 ```bash
 az postgres flexible-server db create \
   --resource-group <RESOURCE_GROUP> \
   --server-name pgserverrata \
   --database-name errata_db
 ```
-
 ### 7.3 Trovare l'IP Privato del PostgreSQL
-
 ```bash
 az network private-dns record-set a list \
   --resource-group <RESOURCE_GROUP> \
@@ -739,16 +691,13 @@ az network private-dns record-set a list \
 
 L'IP sarà nel campo `ipv4Address` (es. `10.172.2.196`).
 
-**⚠️ IMPORTANTE:** Usare l'IP diretto nel DATABASE_URL, non il FQDN.
+**IMPORTANTE:** Usare l'IP diretto nel DATABASE_URL, non il FQDN.
 
 **Perché?** Il PostgreSQL Flexible Server usa una Private DNS Zone che non è risolvibile dalla subnet ACI a meno che non sia esplicitamente collegata.
 
 ---
-
 ## 8. Azure Storage Account
-
 ### 8.1 Creare Storage Account
-
 ```bash
 az storage account create \
   --name sterrata01 \
@@ -756,24 +705,18 @@ az storage account create \
   --location italynorth \
   --sku Standard_LRS
 ```
-
 ### 8.2 Creare File Shares
-
 ```bash
 az storage share create --name errata-data --account-name sterrata01 --quota 5
 az storage share create --name errata-grafana --account-name sterrata01 --quota 1
 ```
-
 ### 8.3 Ottenere Chiave
-
 ```bash
 az storage account keys list --account-name sterrata01 --output table
 ```
 
 ---
-
 ## 9. Generazione Dati Errata
-
 ### 9.1 Dalla Cloud Shell - Scarica USN Database
 
 ```bash
@@ -781,10 +724,8 @@ cd ~
 curl -o usn-db.json.bz2 https://usn.ubuntu.com/usn-db/database.json.bz2
 bunzip2 -f usn-db.json.bz2
 ```
-
 ### 9.2 Crea Script di Processamento
-
-**⚠️ Salvare in `~/clouddrive/` per persistenza:**
+**Salvare in `~/clouddrive/` per persistenza:**
 
 ```bash
 cat > ~/clouddrive/process_usn.py << 'ENDOFFILE'
@@ -873,15 +814,11 @@ if __name__ == '__main__':
     main()
 ENDOFFILE
 ```
-
 ### 9.3 Eseguire lo Script
-
 ```bash
 python3 ~/clouddrive/process_usn.py
 ```
-
 ### 9.4 Creare File di Configurazione
-
 **ubuntu_config.json:**
 ```bash
 cat > ~/errata_output/ubuntu_config.json << 'EOF'
@@ -906,7 +843,6 @@ cat > ~/errata_output/ubuntu_config.json << 'EOF'
 }
 EOF
 ```
-
 **debian_config.json:**
 ```bash
 cat > ~/errata_output/debian_config.json << 'EOF'
@@ -926,30 +862,28 @@ cat > ~/errata_output/debian_config.json << 'EOF'
 }
 EOF
 ```
-
 ### 9.5 Caricare su Azure Storage
-
 ```bash
 az storage file upload --account-name sterrata01 --share-name errata-data \
   --source ~/errata_output/ubuntu_errata.json --path ubuntu_errata.json
-
+```
+```bash
 az storage file upload --account-name sterrata01 --share-name errata-data \
   --source ~/errata_output/debian_errata.json --path debian_errata.json
-
+```
+```bash
 az storage file upload --account-name sterrata01 --share-name errata-data \
   --source ~/errata_output/ubuntu_config.json --path ubuntu_config.json
-
+```
+```bash
 az storage file upload --account-name sterrata01 --share-name errata-data \
   --source ~/errata_output/debian_config.json --path debian_config.json
 ```
 
 ---
-
 ## 10. Deploy Container Group (ACI)
-
 ### 10.1 Creare File YAML
-
-**⚠️ Salvare in `~/clouddrive/` per persistenza:**
+**Salvare in `~/clouddrive/` per persistenza:**
 
 ```bash
 cat > ~/clouddrive/aci-errata.yaml << 'EOF'
@@ -1053,7 +987,6 @@ tags:
 type: Microsoft.ContainerInstance/containerGroups
 EOF
 ```
-
 ### 10.2 Deploy
 
 ```bash
@@ -1063,15 +996,11 @@ az container create \
 ```
 
 ---
-
 ## 11. Inizializzazione Database
-
 ### 11.1 Connessione al Database
-
 ```bash
 psql "host=10.172.2.196 port=5432 dbname=errata_db user=errata_admin password=ErrataDB2024! sslmode=require"
 ```
-
 ### 11.2 Creare le Tabelle
 
 ```sql
@@ -1162,141 +1091,114 @@ CREATE INDEX IF NOT EXISTS idx_errata_history_org ON errata_history(organization
 ```
 
 ---
-
 ## 12. Test e Verifica
-
 ### 12.1 Health Check
 
 ```bash
 curl http://10.172.5.4:5000/api/health
 ```
-
 ### 12.2 Sync Iniziale
-
 ```bash
 curl -X POST http://10.172.5.4:5000/api/sync \
   -H "Content-Type: application/json" \
   -d '{"type": "all"}'
 ```
-
 ### 12.3 Statistiche
-
 ```bash
 curl http://10.172.5.4:5000/api/stats
 ```
-
 ### 12.4 Creare Snapshot
-
 ```bash
 curl -X POST http://10.172.5.4:5000/api/snapshot
 ```
-
 ### 12.5 Verificare Storico
-
 ```bash
 curl http://10.172.5.4:5000/api/history
 ```
 
 ---
-
 ## 13. Configurazione Grafana
 
 Vedi la guida dedicata: **Guida-Grafana-Errata-Dashboard.md**
 
 ---
-
 ## 14. Registrazione Host in Foreman
 
 Vedi la guida dedicata: **Guida-Registrazione-Host-Ubuntu-24.04-v2.md**
 
 ---
-
 ## 15. Gestione e Manutenzione
-
 ### 15.1 Comandi ACI
-
+#### Stato
 ```bash
-# Stato
 az container show --resource-group <RG> --name errata-management --output table
-
-# Log backend
+```
+#### Log backend
+```bash
 az container logs --resource-group <RG> --name errata-management --container-name backend
-
-# Log errata-server
+```
+#### Log errata-server
+```bash
 az container logs --resource-group <RG> --name errata-management --container-name errata-server
-
-# Restart
+```
+#### Restart
+```bash
 az container restart --resource-group <RG> --name errata-management
-
-# Stop
+```
+#### Stop
+```bash
 az container stop --resource-group <RG> --name errata-management
-
-# Delete
+```
+#### Delete
+```bash
 az container delete --resource-group <RG> --name errata-management --yes
 ```
-
 ### 15.2 Aggiornare Errata (Settimanale)
-
+#### Scarica nuovi USN
 ```bash
-# Scarica nuovi USN
 cd ~
 curl -o usn-db.json.bz2 https://usn.ubuntu.com/usn-db/database.json.bz2
 bunzip2 -f usn-db.json.bz2
-
-# Rigenera JSON
+```
+#### Rigenera JSON
+```bash
 python3 ~/clouddrive/process_usn.py
-
-# Carica su storage
+```
+#### Carica su storage
+```bash
 az storage file upload --account-name sterrata01 --share-name errata-data \
   --source ~/errata_output/ubuntu_errata.json --path ubuntu_errata.json
-
-# Restart errata-server per ricaricare
+```
+#### Restart errata-server per ricaricare
+```bash
 az container restart --resource-group <RG> --name errata-management
-
-# Trigger sync
+```
+#### Trigger sync
+```bash
 curl -X POST http://10.172.5.4:5000/api/sync \
   -H "Content-Type: application/json" \
   -d '{"type": "all"}'
 ```
 
 ---
-
 ## 16. Troubleshooting
-
 ### 16.1 Backend Non Connette a Database
-
 ```
 relation "hosts" does not exist
 ```
 **Soluzione:** Eseguire SQL della sezione 11.
-
 ### 16.2 applicable_errata = 0
 
 **Causa:** Gli host non hanno inviato i pacchetti a Foreman.
 **Soluzione:** Vedi guida registrazione host, FASE 10.
-
 ### 16.3 errata_server Errore Config
-
 ```
 'releases' must be a dict
 ```
 **Soluzione:** Verificare formato config.json (sezione 9.4).
 
 ---
-
-## 17. Costi e Ottimizzazione
-
-| Risorsa | SKU | Costo/Mese |
-|---------|-----|------------|
-| ACI | 1 vCPU, 2.5GB RAM | ~€40-50 |
-| PostgreSQL | Standard_B1ms | ~€12-15 |
-| Storage | Standard LRS | ~€1-2 |
-| ACR | Basic | ~€5 |
-| **TOTALE** | | **~€60-70** |
-
----
-
-## 18. Limitazioni Note
+## Limitazioni Note
 
 - Parser ATIX non utilizzabile in ACI (no Internet)
 - Correlazione richiede Content Host registrato
@@ -1305,8 +1207,7 @@ relation "hosts" does not exist
 - Aggiornamento errata manuale
 
 ---
-
-## Appendice A: API Reference
+## API Reference
 
 | Endpoint | Metodo | Descrizione |
 |----------|--------|-------------|
@@ -1320,8 +1221,7 @@ relation "hosts" does not exist
 | `/api/history` | GET | Storico errata (params: days, hostname, organization) |
 
 ---
-
-## Appendice B: Valori Configurazione Attuale
+## Valori Configurazione Attuale
 
 | Parametro | Valore |
 |-----------|--------|
@@ -1335,6 +1235,3 @@ relation "hosts" does not exist
 | Container Group IP | `10.172.5.4` |
 | Foreman IP | `10.172.2.17` |
 
----
-
-*Documento generato: Dicembre 2024 - Versione 3.0*

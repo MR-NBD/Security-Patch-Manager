@@ -24,8 +24,8 @@ hammer os list | grep -i ubuntu
 4. Tab **Architectures**: seleziona ☑ `x86_64`
 5. Clicca **Submit**
 
-![](../img/img17.png)
-![](../img/img18.png)
+![](img17.png)
+![](img18.png)
 
 #### Via Hammer CLI
 
