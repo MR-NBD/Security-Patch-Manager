@@ -12,7 +12,7 @@
     - **Unlimited Hosts**: ☑ abilitato
 4. Clicca **Save**
 
-![Activation Keys](ActivationKeys.png)
+![Activation Keys](/img/ActivationKeys.png)
 
 #### Via Hammer CLI
 

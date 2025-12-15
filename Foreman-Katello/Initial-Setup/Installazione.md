@@ -56,7 +56,7 @@ sdc
 ```bash
 cat /etc/os-release
 ```
-![](image4-v2.png)
+![](/img/image4-v2.png)
 
 #### Verifica versione SELinux policy
 ```bash
@@ -97,7 +97,7 @@ rpm -q selinux-policy
 
 Output atteso: `selinux-policy-38.1.53-5.el9_6` o superiore.
 
-![](image5-v2.png)
+![](/img/image5-v2.png)
 
 ---
 ## 2 Configurazione NTP con Chrony
@@ -130,7 +130,7 @@ timedatectl status
 
 Output atteso:
 
-![](image6-v2.png)
+![](/img/image6-v2.png)
 
 ---
 ## 3 Configurazione Hostname e Networking
@@ -170,7 +170,7 @@ Aggiungi la seguente riga (sostituisci con i valori rilavati sopra):
 
 Il file dovrebbe apparire così:
 
-![](image9-v2.png)
+![](/img/image9-v2.png)
 ### 3.4 Verifica la configurazione
 #### Verifica risoluzione hostname
 ```bash
@@ -215,7 +215,7 @@ firewall-cmd --list-all
 
 Output atteso:
 
-![](image8-v2.png)
+![](/img/image8-v2.png)
 
 ---
 ## 5 Configurazione Storage LVM per Pulp
@@ -230,7 +230,7 @@ Identifica il disco aggiuntivo (es. `/dev/sdb` o `/dev/sda` se non è il disco O
 
 > **ATTENZIONE**: Assicurati di selezionare il disco corretto! Per non formattare il disco del sistema operativo.
 
-![](image7-v2.png)
+![](/img/image7-v2.png)
 ### 5.2 Crea la struttura LVM
 
 #### Crea tabella delle partizioni GPT (sostituisci /dev/sdb con il tuo disco)
@@ -289,7 +289,7 @@ df -hP /var/lib/pulp/
 
 Output atteso:
 
-![](image10-v2.png)
+![](/img/image10-v2.png)
 
 #### Reload systemd per riconoscere le nuove configurazioni
 ```bash
@@ -380,7 +380,7 @@ dnf repolist enabled
 
 Output atteso:
 
-![](image11-v2.png)
+![](/img/image11-v2.png)
 
 ---
 ## 7 Installazione Foreman-Katello
@@ -438,7 +438,7 @@ tail -f /var/log/foreman-installer/katello.log
 ### 7.5 Output installazione completata
 Al termine dell'installazione vedrai un output simile:
 
-![](image13-v2.png)
+![](/img/image13-v2.png)
 
 ---
 ## 8 Verifica dell'Installazione
@@ -457,7 +457,7 @@ Apri un browser e accedi a:
 
 > **NOTA**: Se il browser mostra un avviso certificato, è normale (certificato self-signed). Procedi accettando il rischio.
 
-![](foremanlogin.png)
+![](/img/foremanlogin.png)
 ### 8.3 Recupera credenziali (se necessario)
 Se hai dimenticato la password:
 
@@ -492,7 +492,7 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 #### Via Web UI
 ##### Administer → About → Scorri fino a "Plugins" e vedrai la lista completa con versioni.
 
-![](foremanfeatures.png)
+![](/img/foremanfeatures.png)
 
 ---
 ### Ambiente di Riferimento

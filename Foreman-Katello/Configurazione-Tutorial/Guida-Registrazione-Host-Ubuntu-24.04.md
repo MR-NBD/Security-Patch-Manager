@@ -222,7 +222,7 @@ subscription-manager register \
 3. Clicca **Generate**
 4. Copia il comando `curl` generato
 
-![](image-5.png)
+![](/img/image-5.png)
 
 ---
 ## 9 Abilita Repository e Aggiorna

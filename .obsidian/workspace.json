@@ -13,12 +13,26 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Foreman-Katello/Initial-Setup/Installazione.md",
+                "file": "Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installazione"
+              "title": "Errata-Management-Ubuntu-Debian"
+            }
+          },
+          {
+            "id": "bc6f8d38c50153ba",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Foreman-Katello/Configurazione-Tutorial/Guida-Registrazione-Host-Ubuntu-24.04.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Guida-Registrazione-Host-Ubuntu-24.04"
             }
           }
         ]
@@ -197,14 +211,22 @@
   },
   "active": "b1102129a9aa5624",
   "lastOpenFiles": [
-    "img/image12-v2.png",
     "Foreman-Katello/Initial-Setup/Installazione.md",
+    "Foreman-Katello/Configurazione-Tutorial/Guida-Upload-Incrementale-Pacchetti.md",
+    "Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md",
+    "Foreman-Katello/Configurazione-Tutorial/Guida-Registrazione-Host-Ubuntu-24.04.md",
+    "Foreman-Katello/Configurazione-Tutorial/Activation-Key.md",
+    "Foreman-Katello/Configurazione-Tutorial/Host-Group.md",
+    "Foreman-Katello/Configurazione-Tutorial/Operating-System.md",
+    "Foreman-Katello/Configurazione-Tutorial/Content-View.md",
+    "Foreman-Katello/Configurazione-Tutorial/Lifecycle-Environments.md",
+    "Foreman-Katello/Configurazione-Tutorial/Creazione-Product-Repository-Ubuntu-24.04.md",
+    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
+    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
+    "img/image12-v2.png",
     "README.md",
     "GeneralDocumentation/Tabella_Comparativa.md",
-    "Foreman-Katello/Configurazione-Tutorial/Guida-Registrazione-Host-Ubuntu-24.04.md",
-    "Foreman-Katello/Configurazione-Tutorial/Guida-Upload-Incrementale-Pacchetti.md",
     "Foreman-Katello/Configurazione-Tutorial/Grafana-Errata-Dashboard.md",
-    "Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md",
     "Foreman-Katello/Initial-Setup/errata-management-guide-v2.md",
     "Foreman-Katello/Initial-Setup/errata-management-guide-v2_new.md",
     "Foreman-Katello/Initial-Setup/Guida-Registrazione-Host-Ubuntu-24.04-v2_new.md",
@@ -222,17 +244,10 @@
     "Uyuni",
     "Foreman-Katello",
     "GeneralDocumentation/Patch Management Metrics.md",
-    "Utenze/ASL0603.md",
-    "GeneralDocumentation/CAPITOLI_TESI.md",
     "GeneralDocumentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf",
     "GeneralDocumentation/ATIXOrcharrhino.pdf",
-    "Foreman-Katello/Configurazione-Tutorial/Activation-Key.md",
     "Configurazioni/Non confermato 212913.crdownload",
     "Configurazioni/Non confermato 839170.crdownload",
-    "Foreman-Katello/Initial-Setup/Guida-Registrazione-Host-Ubuntu-24.04-v2.md",
-    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
-    "Excalidraw/Drawing 2025-12-07 18.00.18.excalidraw.md",
-    "Foreman-Katello/Configurazione-Tutorial/Lifecycle-Environments.md",
     "img/image18-v2.png",
     "image-3.png",
     "image-2.png",
@@ -241,7 +256,6 @@
     "img/image-1.png",
     "img/image17-v2.png",
     "img/ActivationKeys.png",
-    "img/Image16-v2.png",
-    "img/CreateHostGroup.png"
+    "img/Image16-v2.png"
   ]
 }

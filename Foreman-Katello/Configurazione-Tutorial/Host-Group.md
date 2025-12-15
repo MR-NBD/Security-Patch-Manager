@@ -30,7 +30,7 @@ Le Host Collections sono utili **dopo** aver registrato gli host, per:
 6. Tab **Organizations**: seleziona ☑ `PSN-ASL06`
 7. Clicca **Submit**
 
-![Create Host Groups](CreateHostGroup.png)
+![Create Host Groups](/img/CreateHostGroup.png)
 #### Via Hammer CLI
 
 ```bash
