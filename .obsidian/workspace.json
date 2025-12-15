@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Foreman-Katello/Initial-Setup/Installazione.md",
+                "file": "Utenze/ASL0603.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installazione"
+              "title": "ASL0603"
             }
           },
           {
@@ -211,8 +211,9 @@
   },
   "active": "b1102129a9aa5624",
   "lastOpenFiles": [
-    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
+    "Foreman-Katello/Configurazione-Tutorial/Lifecycle-Environments.md",
     "Foreman-Katello/Initial-Setup/Installazione.md",
+    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
     "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
     "Initial-Setup/Installazione.md",
     "Initial-Setup",
@@ -223,7 +224,6 @@
     "Foreman-Katello/Configurazione-Tutorial/Host-Group.md",
     "Foreman-Katello/Configurazione-Tutorial/Operating-System.md",
     "Foreman-Katello/Configurazione-Tutorial/Content-View.md",
-    "Foreman-Katello/Configurazione-Tutorial/Lifecycle-Environments.md",
     "Foreman-Katello/Configurazione-Tutorial/Creazione-Product-Repository-Ubuntu-24.04.md",
     "img/image12-v2.png",
     "README.md",
