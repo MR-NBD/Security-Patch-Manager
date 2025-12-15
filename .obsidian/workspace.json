@@ -211,8 +211,9 @@
   },
   "active": "b1102129a9aa5624",
   "lastOpenFiles": [
-    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
+    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
     "Foreman-Katello/Initial-Setup/Installazione.md",
+    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
     "Initial-Setup/Installazione.md",
     "Initial-Setup",
     "Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md",
@@ -224,7 +225,6 @@
     "Foreman-Katello/Configurazione-Tutorial/Content-View.md",
     "Foreman-Katello/Configurazione-Tutorial/Lifecycle-Environments.md",
     "Foreman-Katello/Configurazione-Tutorial/Creazione-Product-Repository-Ubuntu-24.04.md",
-    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
     "img/image12-v2.png",
     "README.md",
     "GeneralDocumentation/Tabella_Comparativa.md",

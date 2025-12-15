@@ -505,7 +505,7 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 | VM Ubuntu Target | 10.172.2.5                       |
 | OS Target        | Ubuntu 24.04 LTS                 |
 ## NEXT-STEP
-- [Configurazione Organization e Location](/Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md)
+- [Configurazione Organization e Location](/Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md)
 - [Configurazione Content Credentials (Chiavi GPG)](/Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md)
 - [Creazione Product e Repository Ubuntu 24.04](/Foreman-Katello/Configurazione-Tutorial/Creazione-Product-Repository-Ubuntu-24.04.md)
 - [Lifecycle Environments](/Foreman-Katello/Configurazione-Tutorial/Lifecycle-Environments.md)
