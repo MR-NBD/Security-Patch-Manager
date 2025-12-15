@@ -209,8 +209,11 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "b1102129a9aa5624",
+  "active": "fcae071421e98e82",
   "lastOpenFiles": [
+    "img/Dashboard-Grafana.png",
+    "img/TrendErrataNelTempo.png",
+    "img/Errata-Critical.png",
     "img/ErrataPerHost.png",
     "Foreman-Katello/Configurazione-Tutorial/Grafana-Errata-Dashboard.md",
     "img/ErrataPerSecurity.png",
@@ -253,8 +256,6 @@
     "image-3.png",
     "image-2.png",
     "image.png",
-    "img/image-5.png",
-    "img/image-1.png",
-    "img/image17-v2.png"
+    "img/image-5.png"
   ]
 }

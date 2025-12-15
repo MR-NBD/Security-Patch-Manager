@@ -62,6 +62,8 @@ Prima di creare i panel, configura il filtro per Organization.
 
 Ora vedrai un dropdown "organization" in alto nella dashboard.
 
+![](/img/Dashboard-Grafana.png)
+
 ---
 ## 4 Panel: Errata per Severity (Pie Chart)
 ### 4.1 Creazione
@@ -158,7 +160,7 @@ Nel pannello a destra:
 
 4. Clicca **Apply**
 5. Clicca **Save**
-
+![](/img/Errata-Critical.png)
 ---
 ## 7 Panel: Trend Errata nel Tempo (Time Series)
 ### 7.1 Creazione
@@ -195,7 +197,7 @@ In alto a destra nella dashboard, imposta l'intervallo temporale:
 
 4. Clicca **Apply**
 5. Clicca **Save**
-
+![](/img/TrendErrataNelTempo.png)
 ---
 ## 8 Query Alternative
 ### 8.1 Trend per Severity (alternativa per Panel Trend)
