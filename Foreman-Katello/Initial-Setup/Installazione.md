@@ -515,6 +515,7 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 - [Activation Key](Activation-Key.md)
 - [Guida Registrazione Host Ubuntu 24.04](Guida-Registrazione-Host-Ubuntu-24.04.md)
 - [Errata-Management-Ubuntu-Debian](Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md)
+- [Guida-Upload-Incrementale-Pacchetti](Foreman-Katello/Configurazione-Tutorial/Guida-Upload-Incrementale-Pacchetti.md)
 
 ---
 ## Riferimenti

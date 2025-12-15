@@ -117,13 +117,11 @@ Usare Remote Execution è la scelta migliore per:
 - Avere log centralizzati in Foreman
 - Schedulare esecuzioni senza accedere a ogni VM
 - Monitorare successi/fallimenti
-
 ### 2.1 Prerequisiti
 
 - Host registrati in Foreman come Content Host
 - Remote Execution configurato (katello-agent o SSH)
 - Host raggiungibili da Foreman
-
 ### 2.2 Creare Job Template
 
 1. In Foreman, vai su **Hosts** → **Templates** → **Job templates**
@@ -215,7 +213,6 @@ exit 1
 5. Seleziona **Job template**: `Smart Package Upload - Errata`
 6. Clicca **Submit**
 7. Monitora l'esecuzione nel tab **Jobs**
-
 ### 2.4 Esecuzione su Multipli Host
 
 1. Vai su **Hosts** → **All Hosts**
@@ -224,7 +221,6 @@ exit 1
 4. Clicca **Select Action** → **Schedule Remote Job**
 5. Seleziona il template `Smart Package Upload - Errata`
 6. Clicca **Submit**
-
 ### 2.5 Schedulare Esecuzione Periodica
 
 1. Vai su **Hosts** → **Templates** → **Job templates**
@@ -271,7 +267,6 @@ Output atteso :  `{"hash":"a1b2c3d4...","last_update":"2024-12-11 15:30:00"}`
 ```bash
 curl "http://10.172.5.4:5000/api/history?days=1" | python3 -m json.tool
 ```
-
 ### 3.4 In Grafana
 
 Il panel "Trend Errata nel Tempo" mostrerà un nuovo punto per ogni giorno in cui viene eseguito lo script.
@@ -304,7 +299,6 @@ sudo apt remove -y cowsay
 ### 5.1 "Host not found"
 
 **Causa**: L'hostname della VM non corrisponde a quello in Foreman.
-
 **Verifica**:
 #### Sulla VM
 ```bash
@@ -327,16 +321,13 @@ curl http://10.172.5.4:5000/api/health
 ```
 
 **Soluzione**: Verificare che il container ACI sia in esecuzione e la rete sia corretta.
-
 ### 5.3 Snapshot non creato
-
 **Verifica**:
 ```bash
 curl "http://10.172.5.4:5000/api/history?hostname=test-vm-production"
 ```
 
 **Causa possibile**: L'host non ha errata correlati (nessun pacchetto matcha).
-
 ### 5.4 Forzare Re-upload Completo
 #### Rimuovi stato locale
 ```bash
@@ -352,7 +343,6 @@ sudo /usr/local/bin/katello-smart-upload.sh
 ## 6. API Reference
 
 ### 6.1 GET /api/hosts/{hostname}/hash
-
 Restituisce l'ultimo hash conosciuto per un host.
 
 **Request:**
@@ -369,7 +359,6 @@ curl http://10.172.5.4:5000/api/hosts/test-vm-production/hash
 ```
 
 ### 6.2 POST /api/hosts/{hostname}/packages
-
 Aggiorna i pacchetti per un host.
 
 **Request:**
@@ -412,7 +401,6 @@ curl -X POST http://10.172.5.4:5000/api/hosts/test-vm-production/packages \
 ```
 
 ---
-
 ## 7. Confronto Metodi di Esecuzione
 
 | Metodo | Pro | Contro | Quando Usare |
