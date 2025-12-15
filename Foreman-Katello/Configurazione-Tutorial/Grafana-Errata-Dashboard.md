@@ -95,6 +95,8 @@ Nel pannello a destra:
 4. Clicca **Apply**
 5. Clicca **Save**
 
+![](/img/ErrataPerSecurity.png)
+
 ---
 ## 5 Panel: Errata per Host (Bar Chart)
 ### 5.1 Creazione
@@ -120,7 +122,7 @@ ORDER BY "Errata" DESC
 3. **Title**: `Errata per Host`
 4. Clicca **Apply**
 5. Clicca **Save**
-
+![](/img/ErrataPerHost.png)
 ---
 ## 6 Panel: Errata Critical - Dettaglio (Table)
 ### 6.1 Creazione
