@@ -505,15 +505,15 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 | VM Ubuntu Target | 10.172.2.5                       |
 | OS Target        | Ubuntu 24.04 LTS                 |
 ## NEXT-STEP
-- [Configurazione Organization e Location](Configurazione-Organization-e-Location.md)
-- [Configurazione Content Credentials (Chiavi GPG)](Configurazione-Content-Credentials.md)
-- [Creazione Product e Repository Ubuntu 24.04](Creazione-Product-Repository-Ubuntu-24.04.md)
-- [Lifecycle Environments](Lifecycle-Environments.md)
-- [Content View](Content-View.md)
-- [Operating System](Operating-System.md)
-- [Host Group](Host-Group.md)
-- [Activation Key](Activation-Key.md)
-- [Guida Registrazione Host Ubuntu 24.04](Guida-Registrazione-Host-Ubuntu-24.04.md)
+- [Configurazione Organization e Location](/Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md)
+- [Configurazione Content Credentials (Chiavi GPG)](/Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md)
+- [Creazione Product e Repository Ubuntu 24.04](/Foreman-Katello/Configurazione-Tutorial/Creazione-Product-Repository-Ubuntu-24.04.md)
+- [Lifecycle Environments](/Foreman-Katello/Configurazione-Tutorial/Lifecycle-Environments.md)
+- [Content View](/Foreman-Katello/Configurazione-Tutorial/Content-View.md)
+- [Operating System](/Foreman-Katello/Configurazione-Tutorial/Operating-System.md)
+- [Host Group](/Foreman-Katello/Configurazione-Tutorial/Host-Group.md)
+- [Activation Key](/Foreman-Katello/Configurazione-Tutorial/Activation-Key.md)
+- [Guida Registrazione Host Ubuntu 24.04](/Foreman-Katello/Configurazione-Tutorial/Guida-Registrazione-Host-Ubuntu-24.04.md)
 - [Errata-Management-Ubuntu-Debian](Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md)
 - [Guida-Upload-Incrementale-Pacchetti](Foreman-Katello/Configurazione-Tutorial/Guida-Upload-Incrementale-Pacchetti.md)
 

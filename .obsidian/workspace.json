@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md",
+                "file": "Foreman-Katello/Initial-Setup/Installazione.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Errata-Management-Ubuntu-Debian"
+              "title": "Installazione"
             }
           },
           {
@@ -211,9 +211,12 @@
   },
   "active": "b1102129a9aa5624",
   "lastOpenFiles": [
+    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
     "Foreman-Katello/Initial-Setup/Installazione.md",
-    "Foreman-Katello/Configurazione-Tutorial/Guida-Upload-Incrementale-Pacchetti.md",
+    "Initial-Setup/Installazione.md",
+    "Initial-Setup",
     "Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md",
+    "Foreman-Katello/Configurazione-Tutorial/Guida-Upload-Incrementale-Pacchetti.md",
     "Foreman-Katello/Configurazione-Tutorial/Guida-Registrazione-Host-Ubuntu-24.04.md",
     "Foreman-Katello/Configurazione-Tutorial/Activation-Key.md",
     "Foreman-Katello/Configurazione-Tutorial/Host-Group.md",
@@ -221,7 +224,6 @@
     "Foreman-Katello/Configurazione-Tutorial/Content-View.md",
     "Foreman-Katello/Configurazione-Tutorial/Lifecycle-Environments.md",
     "Foreman-Katello/Configurazione-Tutorial/Creazione-Product-Repository-Ubuntu-24.04.md",
-    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
     "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
     "img/image12-v2.png",
     "README.md",
@@ -243,11 +245,9 @@
     "Uyuni/Initial-Setup",
     "Uyuni",
     "Foreman-Katello",
-    "GeneralDocumentation/Patch Management Metrics.md",
     "GeneralDocumentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf",
     "GeneralDocumentation/ATIXOrcharrhino.pdf",
     "Configurazioni/Non confermato 212913.crdownload",
-    "Configurazioni/Non confermato 839170.crdownload",
     "img/image18-v2.png",
     "image-3.png",
     "image-2.png",
