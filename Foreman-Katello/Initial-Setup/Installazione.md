@@ -524,6 +524,7 @@ rpm -qa | grep -E "rubygem-foreman_|foreman-plugin"
 - [Documentazione Katello](https://docs.theforeman.org/3.15/Quickstart/index-katello.html)
 - [Foreman Remote Execution](https://docs.theforeman.org/3.15/Managing_Hosts/index-katello.html#Configuring_and_Setting_Up_Remote_Jobs_managing-hosts)
 - [ATIX subscription-manager per Ubuntu](https://oss.atix.de/html/ubuntu.html)
+- [ATIX AG errata parser](https://github.com/ATIX-AG/errata_parser)
 
 ---
 ## EXTRA-LAB - Aggiungi Risoluzione DNS per gli Host

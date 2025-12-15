@@ -65,7 +65,7 @@ One possible scenario is that the vulnerability is discovered by developers. In 
 Alternatively, the discovery may be made by hackers, as shown in the middle branch. Here, the vulnerability becomes exploitable, resulting in a 0-day vulnerability. Developers are unaware of the vulnerability, but an exploit exists, giving them zero days to fix the issue. If developers subsequently discover the vulnerability, a patch can be created moving the process from the mid-branch to the left one.
 Another scenario involves hackers disclosing both the vulnerability and the exploit full disclosure), represented as the d+ep event. This is the riskiest scenario, as the risk remains high until a patch is both created and installed. Even after the patch is created, the risk persists if it is not yet widely deployed.
 In some cases, developers are informed about the vulnerability without the exploit being made public. This is the responsible disclosure scenario, represented on the right side, where developers have a certain amount of time to create a patch before the vulnerability is disclosed. 
-![[image-1.png]]
+![[image-1 1.png]]
 The figure above illustrates a timeline example of responsible disclosure, which does not always guarantee low risk. In the first case, developers successfully fix the problem within the grace time, the period given by the vulnerability discoverer to address the issue. In the second case, developers fail to meet the deadline, causing the risk to grow immediately. The risk remains high until the patch is created, published, and installed.
 
 La divulgazione è il processo attraverso cui l'esistenza di una vulnerabilità viene comunicata pubblicamente o al vendor interessato. Esistono diversi modelli di disclosure:
