@@ -8,12 +8,12 @@
 | Datasource | PostgreSQL |
 
 ---
-## 1. Configurazione Datasource
+## 1 Configurazione Datasource
 
 ### 1.1 Aggiungi Datasource PostgreSQL
 
 1. Accedi a Grafana
-2. Vai su **Connections** → **Data sources** (icona ingranaggio nel menu a sinistra)
+2. Vai su **Connections** → **Data sources**
 3. Clicca **Add data source**
 4. Cerca e seleziona **PostgreSQL**
 5. Configura:
@@ -31,20 +31,19 @@
 7. Verifica che appaia "Database Connection OK"
 
 ---
-## 2. Creazione Dashboard
+## 2 Creazione Dashboard
 ### 2.1 Nuova Dashboard
-1. Vai su **Dashboards** (icona quadrati nel menu a sinistra)
+1. Vai su **Dashboards**
 2. Clicca **New** → **New Dashboard**
 3. **IMPORTANTE**: Clicca subito **Save** (in alto a destra)
 4. Nome: `Errata Management`
 5. Clicca **Save**
 
 ---
-## 3. Configurazione Variabile Organization
-
+## 3 Configurazione Variabile Organization
 Prima di creare i panel, configura il filtro per Organization.
 ### 3.1 Aggiungi Variabile
-1. Clicca **Dashboard settings** (icona ingranaggio in alto a destra)
+1. Clicca **Dashboard settings**
 2. Nel menu a sinistra, clicca **Variables**
 3. Clicca **Add variable**
 4. Configura:
@@ -64,12 +63,12 @@ Prima di creare i panel, configura il filtro per Organization.
 Ora vedrai un dropdown "organization" in alto nella dashboard.
 
 ---
-## 4. Panel: Errata per Severity (Pie Chart)
+## 4 Panel: Errata per Severity (Pie Chart)
 ### 4.1 Creazione
 
 1. Clicca **Add** → **Visualization**
 2. Seleziona datasource **Errata-PostgreSQL**
-3. In basso, clicca su **Code** (invece di Builder)
+3. In basso, clicca su **Code**
 4. Incolla la query:
 
 ```sql
@@ -84,10 +83,9 @@ GROUP BY e.severity
 ORDER BY "Count" DESC
 ```
 ### 4.2 Configurazione
-1. **Format**: `Table` (in basso nelle opzioni query)
+1. **Format**: `Table`
 2. Nel pannello a destra, cambia tipo visualizzazione: cerca **Pie chart**
 3. **Title**: `Errata per Severity`
-
 ### 4.3 Opzioni Pie Chart
 Nel pannello a destra:
 - **Legend** → **Visibility**: On
@@ -98,7 +96,7 @@ Nel pannello a destra:
 5. Clicca **Save**
 
 ---
-## 5. Panel: Errata per Host (Bar Chart)
+## 5 Panel: Errata per Host (Bar Chart)
 ### 5.1 Creazione
 
 1. Clicca **Add** → **Visualization**
@@ -124,9 +122,8 @@ ORDER BY "Errata" DESC
 5. Clicca **Save**
 
 ---
-## 6. Panel: Errata Critical - Dettaglio (Table)
+## 6 Panel: Errata Critical - Dettaglio (Table)
 ### 6.1 Creazione
-
 1. Clicca **Add** → **Visualization**
 2. Datasource: **Errata-PostgreSQL**
 3. Modalità **Code**, incolla:
@@ -161,7 +158,7 @@ Nel pannello a destra:
 5. Clicca **Save**
 
 ---
-## 7. Panel: Trend Errata nel Tempo (Time Series)
+## 7 Panel: Trend Errata nel Tempo (Time Series)
 ### 7.1 Creazione
 
 1. Clicca **Add** → **Visualization**
@@ -198,7 +195,7 @@ In alto a destra nella dashboard, imposta l'intervallo temporale:
 5. Clicca **Save**
 
 ---
-## 8. Query Alternative
+## 8 Query Alternative
 ### 8.1 Trend per Severity (alternativa per Panel Trend)
 
 Se si vuoi vedere il trend separato per severity invece che per host:
@@ -255,7 +252,7 @@ WHERE h.organization LIKE '${organization:raw}'
 GROUP BY h.hostname, e.severity
 ORDER BY h.hostname, e.severity
 ```
-## 10. Troubleshooting
+## 10 Troubleshooting
 
 ### 10.1 "No data" nel panel
 

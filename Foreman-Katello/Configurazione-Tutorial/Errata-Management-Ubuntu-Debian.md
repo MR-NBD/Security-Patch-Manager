@@ -1119,12 +1119,12 @@ curl http://10.172.5.4:5000/api/history
 ---
 ## 13. Configurazione Grafana
 
-Vedi la guida dedicata: **Guida-Grafana-Errata-Dashboard.md**
+Vedi la guida dedicata: [Grafana-Errata-Dashboard](Foreman-Katello/Configurazione-Tutorial/Grafana-Errata-Dashboard.md)
 
 ---
 ## 14. Registrazione Host in Foreman
 
-Vedi la guida dedicata: **Guida-Registrazione-Host-Ubuntu-24.04-v2.md**
+Vedi la guida dedicata: [Guida-Registrazione-Host-Ubuntu-24.04](Foreman-Katello/Configurazione-Tutorial/Guida-Registrazione-Host-Ubuntu-24.04.md)
 
 ---
 ## 15. Gestione e Manutenzione

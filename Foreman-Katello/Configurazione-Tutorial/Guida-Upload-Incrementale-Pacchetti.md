@@ -1,22 +1,6 @@
-# Guida Upload Incrementale Pacchetti
-
-**Versione:** 1.0  
-**Data:** Dicembre 2024  
-**Stato:** Testato e Funzionante
-
----
-
 ## Panoramica
 
 Questo sistema permette alle VM Ubuntu/Debian di inviare l'elenco pacchetti al backend errata in modo **incrementale**: se nulla è cambiato, non viene inviato nulla (0 byte di traffico).
-
-### Vantaggi
-
-| Metodo | Prima Esecuzione | Esecuzioni Successive |
-|--------|------------------|----------------------|
-| Tradizionale (sempre tutti) | ~50KB | ~50KB |
-| **Incrementale (questo)** | ~50KB | **0 byte** (se nulla è cambiato) |
-
 ### Come Funziona
 
 1. Lo script calcola l'hash SHA256 della lista pacchetti
@@ -26,7 +10,6 @@ Questo sistema permette alle VM Ubuntu/Debian di inviare l'elenco pacchetti al b
 5. Il backend correla gli errata e crea uno snapshot automatico
 
 ---
-
 ## 1. Installazione Manuale su Singola VM
 
 ### 1.1 Creare lo Script
@@ -108,30 +91,25 @@ sudo /usr/local/bin/katello-smart-upload.sh
 ```
 
 Output atteso (prima esecuzione):
-```
-2024-12-11 15:30:00 - Changes detected, uploading to host: test-vm-production
-2024-12-11 15:30:02 - Success: updated, errata applicabili: 512
-```
+`2024-12-11 15:30:00 - Changes detected, uploading to host: test-vm-production` 
+`2024-12-11 15:30:02 - Success: updated, errata applicabili: 512`
 
 Output atteso (esecuzioni successive senza modifiche):
-```
-2024-12-11 16:00:00 - No changes (hash: a1b2c3d4e5f6...)
-```
+`2024-12-11 16:00:00 - No changes (hash: a1b2c3d4e5f6...)`
 
 ### 1.3 Schedulare con Cron (Opzione Locale)
-
+#### Esegui ogni 6 ore
 ```bash
-# Esegui ogni 6 ore
 echo "0 */6 * * * root /usr/local/bin/katello-smart-upload.sh >> /var/log/katello-smart-upload.log 2>&1" | \
     sudo tee /etc/cron.d/katello-smart-upload
-
-# Oppure ogni giorno alle 6:00
+```
+#### Oppure ogni giorno alle 6:00
+```bash
 echo "0 6 * * * root /usr/local/bin/katello-smart-upload.sh >> /var/log/katello-smart-upload.log 2>&1" | \
     sudo tee /etc/cron.d/katello-smart-upload
 ```
 
 ---
-
 ## 2. Deployment via Foreman Remote Execution (Raccomandato)
 
 Usare Remote Execution è la scelta migliore per:
@@ -271,29 +249,23 @@ exit 1
 - Clicca su un job per vedere dettagli e output per ogni host
 
 ---
-
 ## 3. Verifica Funzionamento
 
 ### 3.1 Dalla VM
-
+#### Verifica stato locale
 ```bash
-# Verifica stato locale
-cat /var/lib/katello-smart-upload/state | head -1
-
-# Log (se usando cron)
 tail -f /var/log/katello-smart-upload.log
 ```
-
-### 3.2 Dal Backend
-
+#### Log (se usando cron)
 ```bash
-# Verifica hash salvato
-curl http://10.172.5.4:5000/api/hosts/test-vm-production/hash
-
-# Output atteso:
-# {"hash":"a1b2c3d4...","last_update":"2024-12-11 15:30:00"}
+tail -f /var/log/katello-smart-upload.log
 ```
-
+### 3.2 Dal Backend
+#### Verifica hash salvato
+```bash
+curl http://10.172.5.4:5000/api/hosts/test-vm-production/hash
+```
+Output atteso :  `{"hash":"a1b2c3d4...","last_update":"2024-12-11 15:30:00"}`
 ### 3.3 Verifica Snapshot
 
 ```bash
@@ -305,49 +277,46 @@ curl "http://10.172.5.4:5000/api/history?days=1" | python3 -m json.tool
 Il panel "Trend Errata nel Tempo" mostrerà un nuovo punto per ogni giorno in cui viene eseguito lo script.
 
 ---
-
 ## 4. Simulare un Cambiamento
 
 Per testare che l'incrementale funzioni, installa un pacchetto:
-
+#### Installa un pacchetto di test
 ```bash
-# Installa un pacchetto di test
 sudo apt install -y cowsay
-
-# Esegui upload - dovrebbe rilevare cambiamento
+```
+#### Esegui upload - dovrebbe rilevare cambiamento
+```bash
 sudo /usr/local/bin/katello-smart-upload.sh
-
-# Output: Changes detected, uploading...
-
-# Esegui di nuovo - dovrebbe dire "No changes"
+```
+Output: `Changes detected, uploading...`
+#### Esegui di nuovo - dovrebbe dire "No changes"
+```bash
 sudo /usr/local/bin/katello-smart-upload.sh
-
-# Output: No changes (hash: ...)
-
-# Rimuovi il pacchetto di test
+```
+Output: `No changes (hash: ...)`
+#### Rimuovi il pacchetto di test
+```bash
 sudo apt remove -y cowsay
 ```
 
 ---
-
 ## 5. Troubleshooting
-
 ### 5.1 "Host not found"
 
 **Causa**: L'hostname della VM non corrisponde a quello in Foreman.
 
 **Verifica**:
+#### Sulla VM
 ```bash
-# Sulla VM
 hostname | tr '[:upper:]' '[:lower:]'
-
-# Confronta con Foreman
+```
+#### Confronta con Foreman
+```bash
 curl -s -u admin:password -k https://foreman.example.com/api/hosts | \
     python3 -c "import json,sys; [print(h['name']) for h in json.load(sys.stdin)['results']]"
 ```
 
 **Soluzione**: L'host deve essere prima registrato in Foreman.
-
 ### 5.2 "Connection refused"
 
 **Causa**: Backend non raggiungibile.
@@ -369,12 +338,12 @@ curl "http://10.172.5.4:5000/api/history?hostname=test-vm-production"
 **Causa possibile**: L'host non ha errata correlati (nessun pacchetto matcha).
 
 ### 5.4 Forzare Re-upload Completo
-
+#### Rimuovi stato locale
 ```bash
-# Rimuovi stato locale
 sudo rm /var/lib/katello-smart-upload/state
-
-# Riesegui
+```
+#### Riesegui
+```bash
 sudo /usr/local/bin/katello-smart-upload.sh
 ```
 
@@ -454,18 +423,3 @@ curl -X POST http://10.172.5.4:5000/api/hosts/test-vm-production/packages \
 
 **Raccomandazione**: Usa **Foreman Remote Execution** per ambienti con più di 5 host.
 
----
-
-## 8. Checklist Implementazione
-
-- [ ] Script creato su ogni VM Ubuntu/Debian
-- [ ] Test manuale eseguito con successo
-- [ ] Job Template creato in Foreman
-- [ ] Test Remote Execution su singolo host
-- [ ] Test Remote Execution su multipli host
-- [ ] Schedule ricorrente configurato
-- [ ] Verifica snapshot in Grafana
-
----
-
-*Documento generato: Dicembre 2024 - Versione 1.0*
