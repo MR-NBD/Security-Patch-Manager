@@ -26,7 +26,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 
 ---
 
-## 🔴 ESSENZIALI - Priorità Alta
+## ESSENZIALI - Priorità Alta
 
 ### 1. [Architettura e Concetti Base UYUNI]
 **Tempo stimato**: 2-3 ore
@@ -49,7 +49,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Best practice isolamento dati
 
 **Foreman equivalent**: Organizations
-**Criticità sicurezza**: 🔒🔒🔒 ALTA
+**Criticità sicurezza**: ALTA
 
 **Output**: Ambiente multi-tenant configurato con isolamento
 
@@ -64,7 +64,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Channel permissions per Organization
 
 **Foreman equivalent**: Products + Repositories
-**Criticità sicurezza**: 🔒🔒 MEDIA
+**Criticità sicurezza**: MEDIA
 
 **Output**: Struttura canali per Ubuntu/Debian configurata
 
@@ -80,14 +80,14 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Storage management
 
 **Foreman equivalent**: Repository sync
-**Criticità sicurezza**: 🔒🔒 MEDIA
+**Criticità sicurezza**: MEDIA
 
 **Output**: Repository Ubuntu 22.04/24.04 e Debian 11/12 sincronizzati
 
 ---
 
 ### 5. [Content Lifecycle Management (CLM)]
-**Tempo stimato**: 6-8 ore ⭐ CRITICO
+**Tempo stimato**: 6-8 ore CRITICO
 - CLM Projects (equivalente Content Views)
 - CLM Environments (Dev → QA → Staging → Prod)
 - Filters: Include/Exclude packages
@@ -97,7 +97,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Rollback
 
 **Foreman equivalent**: Content Views + Lifecycle Environments
-**Criticità sicurezza**: 🔒🔒🔒 ALTA
+**Criticità sicurezza**:  ALTA
 
 **Output**: Pipeline CLM funzionante con promozione controllata
 
@@ -114,14 +114,14 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Re-registration e migration
 
 **Foreman equivalent**: Activation Keys
-**Criticità sicurezza**: 🔒🔒 MEDIA
+**Criticità sicurezza**: MEDIA
 
 **Output**: Client registrati con canali corretti
 
 ---
 
 ### 7. [Patch Management Operativo]
-**Tempo stimato**: 6-8 ore ⭐ CRITICO
+**Tempo stimato**: 6-8 ore CRITICO
 - Errata/Patch types: Security, Bugfix, Enhancement
 - CVE Audit (OVAL data)
 - Patch scheduling
@@ -132,7 +132,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Patch compliance reporting
 
 **Foreman equivalent**: Errata management
-**Criticità sicurezza**: 🔒🔒🔒 ALTA
+**Criticità sicurezza**: ALTA
 
 **Output**: Workflow patching completo con scheduling
 
@@ -147,7 +147,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Targeting per patch/azioni
 
 **Foreman equivalent**: Host Collections + Host Groups
-**Criticità sicurezza**: 🔒 BASSA
+**Criticità sicurezza**: BASSA
 
 **Output**: Gruppi organizzati per ambiente/ruolo/criticità
 
@@ -163,14 +163,14 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Sicurezza: whitelisting comandi
 
 **Foreman equivalent**: Remote Execution (REX)
-**Criticità sicurezza**: 🔒🔒🔒 ALTA
+**Criticità sicurezza**: ALTA
 
 **Output**: Capacità di eseguire comandi su fleet
 
 ---
 
 ### 10. [RBAC - Role-Based Access Control]
-**Tempo stimato**: 4-6 ore ⭐ CRITICO per sicurezza
+**Tempo stimato**: 4-6 ore CRITICO per sicurezza
 - Ruoli predefiniti
 - Ruoli custom
 - Permissions granulari
@@ -179,13 +179,13 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Integration LDAP/AD (opzionale)
 
 **Foreman equivalent**: Roles + Permissions
-**Criticità sicurezza**: 🔒🔒🔒 ALTA
+**Criticità sicurezza**:  ALTA
 
 **Output**: Matrice RBAC per team operations
 
 ---
 
-## 🟡 IMPORTANTI - Priorità Media
+## IMPORTANTI - Priorità Media
 
 ### 11. [Automazione con Salt States]
 **Tempo stimato**: 8-10 ore
@@ -197,7 +197,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Highstate
 
 **Foreman equivalent**: Puppet/Ansible integration
-**Criticità sicurezza**: 🔒🔒 MEDIA
+**Criticità sicurezza**:  MEDIA
 
 **Output**: Stati Salt per configurazioni base
 
@@ -213,7 +213,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Scheduled reports
 
 **Foreman equivalent**: Report templates
-**Criticità sicurezza**: 🔒🔒 MEDIA (per audit)
+**Criticità sicurezza**:  MEDIA (per audit)
 
 **Output**: Dashboard compliance per management
 
@@ -229,7 +229,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Log retention
 
 **Foreman equivalent**: Audit log
-**Criticità sicurezza**: 🔒🔒🔒 ALTA
+**Criticità sicurezza**:  ALTA
 
 **Output**: Audit trail configurato
 
@@ -244,7 +244,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Integration con ticketing (manual)
 
 **Foreman equivalent**: REX scheduling + Host parameters
-**Criticità sicurezza**: 🔒🔒 MEDIA
+**Criticità sicurezza**: MEDIA
 
 **Output**: Workflow change management
 
@@ -259,7 +259,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Network segmentation
 
 **Foreman equivalent**: Smart Proxy / Capsule
-**Criticità sicurezza**: 🔒🔒 MEDIA
+**Criticità sicurezza**:  MEDIA
 
 **Output**: Decisione se serve proxy per la tua architettura
 
@@ -303,7 +303,7 @@ Gestire il patch management in un'organizzazione **multi-tenant** con **sicurezz
 - Recovery procedures
 - High Availability (panoramica)
 
-**Criticità sicurezza**: 🔒🔒🔒 ALTA
+**Criticità sicurezza**: ALTA
 
 **Output**: Procedure DR documentate
 

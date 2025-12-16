@@ -165,18 +165,18 @@ UYUNI Server                              Client (Salt Minion)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    UYUNI Server                              │
-│                                                              │
-│  ┌─────────────────┐    ┌─────────────────┐                │
-│  │  Organization A │    │  Organization B │                │
-│  │  (Tenant 1)     │    │  (Tenant 2)     │                │
-│  │                 │    │                 │                │
-│  │  - Users        │    │  - Users        │                │
-│  │  - Systems      │    │  - Systems      │                │
-│  │  - Channels     │    │  - Channels     │                │
-│  │  - Act. Keys    │    │  - Act. Keys    │                │
-│  │  - Config Ch.   │    │  - Config Ch.   │                │
-│  └─────────────────┘    └─────────────────┘                │
+│                    UYUNI Server                             │
+│                                                             │
+│  ┌─────────────────┐    ┌─────────────────┐                 │
+│  │  Organization A │    │  Organization B │                 │
+│  │  (Tenant 1)     │    │  (Tenant 2)     │                 │
+│  │                 │    │                 │                 │
+│  │  - Users        │    │  - Users        │                 │
+│  │  - Systems      │    │  - Systems      │                 │
+│  │  - Channels     │    │  - Channels     │                 │
+│  │  - Act. Keys    │    │  - Act. Keys    │                 │
+│  │  - Config Ch.   │    │  - Config Ch.   │                 │
+│  └─────────────────┘    └─────────────────┘                 │
 │           │                      │                          │
 │           └──────────┬───────────┘                          │
 │                      │                                      │
@@ -197,16 +197,16 @@ UYUNI Server                              Client (Salt Minion)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Parent Channel                            │
-│                    (Base Channel)                            │
-│                    es: ubuntu-2404-amd64                     │
-│                                                              │
-│    ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │
-│    │Child Channel│  │Child Channel│  │Child Channel│       │
-│    │ubuntu-2404  │  │ubuntu-2404  │  │ubuntu-2404  │       │
-│    │-security    │  │-updates     │  │-backports   │       │
-│    └─────────────┘  └─────────────┘  └─────────────┘       │
-│                                                              │
+│                    Parent Channel                           │
+│                    (Base Channel)                           │
+│                    es: ubuntu-2404-amd64                    │
+│                                                             │
+│    ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│    │Child Channel│  │Child Channel│  │Child Channel│        │
+│    │ubuntu-2404  │  │ubuntu-2404  │  │ubuntu-2404  │        │
+│    │-security    │  │-updates     │  │-backports   │        │
+│    └─────────────┘  └─────────────┘  └─────────────┘        │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
