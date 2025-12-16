@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
+                "file": "Uyuni/Installazione-UYUNI.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "UYUNI-Guida-01-Concetti-Fondamentali"
+              "title": "Installazione-UYUNI"
             }
           }
         ],
@@ -212,10 +212,13 @@
   },
   "active": "bc6f8d38c50153ba",
   "lastOpenFiles": [
+    "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
+    "Uyuni/Installazione-UYUNI.md",
+    "Uyuni/Non confermato 603654.crdownload",
+    "Utenze/ASL0603.md",
     "Uyuni/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
     "Uyuni/UYUNI-Learning-Path.md",
     "GeneralDocumentation/TESI/CAP2/Senza nome.md",
-    "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
     "Foreman-Katello/Initial-Setup/Installazione.md",
     "img/image.png",
     "img/image-1 1.png",
@@ -237,7 +240,6 @@
     "img/img18.png",
     "img/TrendErrataNelTempo.png",
     "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
-    "Utenze/ASL0603.md",
     "Foreman-Katello/Configurazione-Tutorial/Lifecycle-Environments.md",
     "Initial-Setup/Installazione.md",
     "Initial-Setup",
@@ -250,13 +252,11 @@
     "README.md",
     "GeneralDocumentation/Tabella_Comparativa.md",
     "Foreman-Katello/Initial-Setup/errata-management-guide-v2.md",
-    "Foreman-Katello/Initial-Setup/errata-management-guide-v2_new.md",
     "Uyuni/Note-Teoriche",
     "Foreman-Katello/Note-Teoriche",
     "Uyuni/Configurazione-Tutorial",
     "Uyuni/Initial-Setup",
     "Uyuni",
-    "Foreman-Katello",
-    "GeneralDocumentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf"
+    "Foreman-Katello"
   ]
 }
