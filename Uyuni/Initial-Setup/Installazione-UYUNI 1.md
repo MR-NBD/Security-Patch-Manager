@@ -10,7 +10,7 @@ L'accesso alla VM avviene **esclusivamente tramite Azure Bastion** (nessun IP pu
 >A partire da UYUNI 2025.10, l'OS ufficialmente validato è **openSUSE Tumbleweed**. Tuttavia, **openSUSE Leap 15.6 è pienamente supportato dal progetto** in quanto si basa su quello per costruite le immagini container UYUNI stesse.
 ### Requisiti Hardware
 
-| Componente       | Test (Attuale)      | Production               |
+| Componente       | Test                | Production               |
 | ---------------- | ------------------- | ------------------------ |
 | CPU              | 8 core              | 8+ core                  |
 | RAM              | 32 GB               | 32+ GB                   |
@@ -20,7 +20,6 @@ L'accesso alla VM avviene **esclusivamente tramite Azure Bastion** (nessun IP pu
 ### Architettura Target
 
 #### UYUNI SERVER - Host Container (openSUSE Leap 15.6)
-
 ##### Componenti Container (UYUNI 2025.10):
 
 | Container | Immagine | Funzione |
@@ -39,7 +38,6 @@ L'accesso alla VM avviene **esclusivamente tramite Azure Bastion** (nessun IP pu
 - CVE Audit (OVAL-based)
 - Content Lifecycle Management
 - Role-Based Access Control (RBAC)
-
 ##### Layout Storage:
 ```
 sda (OS Disk - 30GB)                     
@@ -69,12 +67,10 @@ sdc (Data Disk 2 - 32GB) [LVM]
 - [FASE 7: Installazione Repository UYUNI](#fase-7-installazione-repository-uyuni)
 - [FASE 8: Deployment Container UYUNI](#fase-8-deployment-container-uyuni)
 - [NON TESTATO - FASE 9: SSL/TLS (Solo Production)](#-fase-9-configurazione-ssltls-solo-production)
-- [NON TESTATO - FASE 10: Hardening Post-Installazione (Solo Production)](#-fase-10-hardening-post-installazione-solo-production)
-- [FASE 11: Verifica dell'Installazione](#fase-11-verifica-dellinstallazione-test)
+- [FASE 10: Verifica dell'Installazione](#fase-10-verifica-dellinstallazione-test)
 - [Troubleshooting](#troubleshooting)
-
 ---
-## DEPLOYMENT SU MICROSOFT AZURE
+## DEPLOYMENT
 ### Configurazione VM Azure - Ambiente TEST
 
 | Parametro | Valore |
@@ -111,6 +107,13 @@ Per il passaggio in production, da valutare:
 - Azure Private DNS Zone
 - Certificati SSL firmati da CA aziendale
 - Azure Monitor + Log Analytics
+
+Quando si passerà, implementare:
+- Politica password forte (12+ caratteri, complessità)
+- Timeout sessione (900 secondi)
+- Audit logging JSON
+- Backup automatico con cron
+- RBAC con ruoli separati (Admin, Channel Admin, System Admin, Viewer)
 
 ---
 ## FASE 1: Preparazione del Sistema Base
@@ -187,7 +190,7 @@ driftfile /var/lib/chrony/drift
 ```bash
 systemctl enable --now chronyd
 ```
-#### Verifica le sorgenti NTP
+#### Verificare le sorgenti NTP
 ```bash
 chronyc sources -v
 ```
@@ -195,7 +198,7 @@ chronyc sources -v
 ```bash
 timedatectl set-ntp true
 ```
-#### Verifica stato sincronizzazione
+#### Verificare stato sincronizzazione
 ```bash
 timedatectl status
 ```
@@ -210,14 +213,14 @@ Verificare che `System clock synchronized: yes` sia presente.
 ## FASE 3: Configurazione Hostname e DNS
 ### 3.1 Prerequisiti DNS
 UYUNI **RICHIEDE** un DNS funzionante con risoluzione diretta e inversa. Il comando `hostname -f` deve restituire l'FQDN completo.
-### 3.2 Configura l'Hostname
-#### Imposta hostname
+### 3.2 Configurare l'Hostname
+#### Impostare hostname
 ```bash
 hostnamectl set-hostname uyuni-server-test.uyuni.internal
 ```
 
 Sostituire `uyuni.internal` con il dominio interno Azure o aziendale.
-#### Verifica hostname
+#### Verificare hostname
 ```bash
 hostname
 ```
@@ -225,7 +228,7 @@ hostname
 hostname -f
 ```
 ### 3.3 Configura il File /etc/hosts
-#### Recupera l'IP privato della VM
+#### Recuperare l'IP privato della VM
 ```bash
 ip addr show eth0 
 ```
@@ -233,144 +236,93 @@ ip addr show eth0
 ```bash
 cp /etc/hosts /etc/hosts.bak
 ```
-#### Edita il file hosts
+#### Editare il file hosts
 ```bash
 vim /etc/hosts
 ```
 
-Aggiungi la riga (sostituire con IP e dominio corretto):
+Aggiungere la riga (sostituire con IP e dominio corretto):
 ```
 10.172.2.5    uyuni-server-test.uyuni.internal    uyuni-server-test
 ```
-### 3.4 Configurazione DNS Azure (Opzionale ma Consigliato)
-
-Per un ambiente production, configura una **Azure Private DNS Zone**:
-
-1. **Portale Azure** → **Private DNS zones** → **Create**
-2. Nome: `uyuni.internal`
-3. Link alla VNet `ASL0603-spoke10-spoke-italynorth`
-4. Aggiungi record A per `uyuni-server-test`
-
-### 3.5 Verifica la Configurazione DNS
+### 3.4 Verificare la Configurazione DNS
 
 #### Test risoluzione diretta
 ```bash
 ping -c 2 $(hostname -f)
 ```
-
 #### Verifica FQDN
 ```bash
 hostname -f
 ```
 
-Output atteso:
-```
-uyuni-server-test.uyuni.internal
-```
-
-> **IMPORTANTE**: Se `hostname -f` non restituisce l'FQDN completo, UYUNI avrà problemi. Verifica `/etc/hosts` e riprova.
-
 ---
 ## FASE 4: Configurazione Base Sicurezza (Test)
 
-> **PER PRODUCTION**: Questa sezione è semplificata per l'ambiente di test. Per production, implementare hardening completo (SSH keys, audit, fail2ban, etc.)
-
-### 4.1 Verifica Stato Servizi Base
-
+> **PER PRODUZIONE**: Questa sezione è semplificata per questa fase di test. Per produzione, implementare hardening completo (SSH keys, audit, fail2ban, etc.)
+### 4.1 Verificare Stato Servizi Base
+#### Verificare che firewalld sia attivo
 ```bash
-# Verifica che firewalld sia attivo
 systemctl status firewalld
-
-# Se non attivo, abilitalo
+```
+#### Se non attivo, abilitalo
+```bash
 systemctl enable --now firewalld
 ```
-
-### 4.2 Hardening Aggiuntivo per Production (Futuro)
-
-Quando passerai in production, implementa:
-
-- [ ] **SSH Hardening**: Disabilita password, usa solo chiavi SSH
-- [ ] **Audit Daemon**: Logging avanzato per compliance
-- [ ] **Fail2Ban**: Protezione brute-force
-- [ ] **SELinux/AppArmor**: Controllo accessi mandatorio
-
-> **NOTA TEST**: Per l'ambiente di test, la configurazione di base con Azure Bastion e NSG è sufficiente.
-
+### 4.2 Hardening per produzione (Futuro)
+- **SSH Hardening**: Disabilitare password, usa solo chiavi SSH
+- **Audit Daemon**: Logging avanzato per compliance
+- **Fail2Ban**: Protezione brute-force
+- **SELinux/AppArmor**: Controllo accessi mandatorio
 ---
 ## FASE 5: Configurazione Storage Dedicato
-> **CRITICO PER PRODUZIONE**: Utilizzare dischi dedicati per repository e database migliora drasticamente le performance e permette recovery più semplice in caso di problemi.
-
-### 5.1 Identifica i Dischi Disponibili (Azure)
-
-In Azure, i dischi dati aggiunti durante la creazione della VM appaiono come dispositivi aggiuntivi:
-
+### 5.1 Identificare i Dischi Disponibili
+In Azure, i dischi dati aggiunti durante la creazione della VM
 ```bash
 lsblk
 ```
-
-Esempio output tipico Azure:
-```
-NAME    SIZE TYPE MOUNTPOINT
-sda      30G disk             <- OS principale
-├─sda1    2M part 
-├─sda2  512M part /boot/efi
-├─sda3    1G part /boot
-└─sda4 28.5G part /
-sdb     128G disk             <- Disco dati 1 (Repository)
-sdc      32G disk             <- Disco dati 2 (PostgreSQL)
-```
-
-> **ATTENZIONE AZURE**: Verificare sempre con `lsblk` quali sono i dischi dati. I nomi possono variare!
-
 ### 5.2 Scelta del Metodo di Configurazione Storage
-
 UYUNI offre due metodi per configurare lo storage:
 
 | Metodo | Pro | Contro | Consigliato per |
 |--------|-----|--------|-----------------|
 | **mgr-storage-server** | Semplice, automatico | No LVM, no resize dinamico | Test rapidi |
 | **LVM Manuale** | Flessibile, resize, snapshot | Configurazione manuale | Production, Cloud |
-
-> **RACCOMANDAZIONE AZURE**: Per ambienti cloud, LVM è preferibile perché permette di espandere i volumi senza downtime.
-
-### 5.3 Metodo A: Script UYUNI (Semplice)
-
-> **NOTA**: Questo metodo formatta i dischi come XFS senza LVM.
-
-```bash
-# Installa tool storage
-zypper install -y uyuni-storage-setup-server
-
-# Configura storage (sostituisci con i tuoi device)
-mgr-storage-server /dev/sdb /dev/sdc
-```
-
-### 5.4 Metodo B: Configurazione LVM Manuale (Consigliato per Azure)
-
-Questa configurazione permette espansione futura dei volumi.
-
+Per ambienti cloud, LVM è preferibile perché permette di espandere i volumi senza downtime.
+### 5.3 Configurazione LVM Manuale
 #### Disco Repository (es. /dev/sdb)
+##### Creare partizione
 ```bash
-# Crea partizione
 parted /dev/sdb --script mklabel gpt
+```
+```bash
 parted /dev/sdb --script mkpart primary 0% 100%
-
-# Configura LVM
+```
+##### Configura LVM
+```bash
 pvcreate /dev/sdb1
+```
+```bash
 vgcreate vg_uyuni_repo /dev/sdb1
+```
+```bash
 lvcreate -l 100%FREE -n lv_repo vg_uyuni_repo
-
-# Formatta XFS
+```
+##### Formatta XFS
+```bash
 mkfs.xfs /dev/mapper/vg_uyuni_repo-lv_repo
-
-# Crea mount point e monta
+```
+##### Crea mount point e monta
+```bash
 mkdir -p /manager_storage
+```
+```bash
 mount /dev/mapper/vg_uyuni_repo-lv_repo /manager_storage
-
-# Aggiungi a fstab
+```
+##### Aggiungi a fstab
+```bash
 echo "/dev/mapper/vg_uyuni_repo-lv_repo /manager_storage xfs defaults,nofail 0 0" >> /etc/fstab
 ```
-
 #### Disco PostgreSQL (es. /dev/sdc)
 ```bash
 # Crea partizione
@@ -392,66 +344,50 @@ mount /dev/mapper/vg_uyuni_pgsql-lv_pgsql /pgsql_storage
 # Aggiungi a fstab
 echo "/dev/mapper/vg_uyuni_pgsql-lv_pgsql /pgsql_storage xfs defaults,nofail 0 0" >> /etc/fstab
 ```
-
-> **NOTA AZURE**: L'opzione `nofail` in fstab è importante per evitare problemi di boot se un disco non è disponibile.
-
+L'opzione `nofail` in fstab è importante per evitare problemi di boot se un disco non è disponibile.
 #### Reload systemd
 ```bash
 systemctl daemon-reload
 ```
-
-### 5.5 Collegamento Storage ai Volumi Podman (CRITICO per LVM)
-
-> **⚠️ IMPORTANTE**: Se hai usato il Metodo B (LVM), devi collegare i mount point ai volumi Podman che UYUNI si aspetta.
-
+### 5.5 Collegamento Storage ai Volumi Podman
+Bisogna collegare il mount point ai volumi Podman che UYUNI si aspetta.
+##### Creare directory per i volumi Podman
 ```bash
-# Crea directory per i volumi Podman
 mkdir -p /var/lib/containers/storage/volumes/var-spacewalk
+```
+```bash
 mkdir -p /var/lib/containers/storage/volumes/var-pgsql
-
-# Crea symlink ai tuoi mount point LVM
-# (oppure monta direttamente sui volumi - vedi alternativa sotto)
+```
+##### Creare symlink per il mount point LVM
+```bash
 ln -s /manager_storage /var/lib/containers/storage/volumes/var-spacewalk/_data
+```
+```bash
 ln -s /pgsql_storage /var/lib/containers/storage/volumes/var-pgsql/_data
 ```
-
-**Alternativa (mount bind):**
+### 5.6 Verificare Configurazione Storage
+##### Verificare mount points
 ```bash
-# Aggiungi a /etc/fstab
-echo "/manager_storage /var/lib/containers/storage/volumes/var-spacewalk/_data none bind 0 0" >> /etc/fstab
-echo "/pgsql_storage /var/lib/containers/storage/volumes/var-pgsql/_data none bind 0 0" >> /etc/fstab
-
-# Crea directory e monta
-mkdir -p /var/lib/containers/storage/volumes/var-spacewalk/_data
-mkdir -p /var/lib/containers/storage/volumes/var-pgsql/_data
-mount -a
-```
-
-### 5.6 Verifica Configurazione Storage
-
-```bash
-# Verifica mount points
 df -hP /manager_storage /pgsql_storage
-
-# Verifica LVM
+```
+##### Verificare LVM
+```bash
 lvs
+```
+```bash
 vgs
-
-# Verifica volumi Podman
+```
+##### Verificare volumi Podman
+```bash
 ls -la /var/lib/containers/storage/volumes/
 ```
-
 Output atteso:
-```
-Filesystem                           Size  Used Avail Use% Mounted on
-/dev/mapper/vg_uyuni_repo-lv_repo    128G  2.5G  126G   2% /manager_storage
-/dev/mapper/vg_uyuni_pgsql-lv_pgsql   32G  659M   32G   3% /pgsql_storage
-```
+
+![[2025-12-17 15_33_43-Greenshot.png]]
 
 ---
 ## FASE 6: Configurazione Firewall
-### 6.1 Abilita Firewalld
-
+### 6.1 Abilitare Firewalld
 ```bash
 systemctl enable --now firewalld
 ```
@@ -459,21 +395,26 @@ systemctl enable --now firewalld
 ```bash
 systemctl status firewalld
 ```
-### 6.2 Configura Porte UYUNI
-
+### 6.2 Configurare Porte UYUNI
+#### HTTP/HTTPS (Web UI e client)
 ```bash
-# HTTP/HTTPS (Web UI e client)
 firewall-cmd --permanent --add-port=80/tcp
+```
+```bash
 firewall-cmd --permanent --add-port=443/tcp
-
-# Salt Master (comunicazione con i client)
+```
+#### Salt Master (comunicazione con i client)
+```bash
 firewall-cmd --permanent --add-port=4505/tcp
+```
+```bash
 firewall-cmd --permanent --add-port=4506/tcp
-
-# PostgreSQL (per container db separato - UYUNI 2025.x)
+```
+#### PostgreSQL (per container db separato - UYUNI 2025.x)
+```bash
 firewall-cmd --permanent --add-port=5432/tcp
 ```
-### 6.3 Applica le Modifiche
+### 6.3 Applicare le Modifiche
 
 ```bash
 firewall-cmd --reload
@@ -483,64 +424,48 @@ firewall-cmd --reload
 ```bash
 firewall-cmd --list-all
 ```
-
 Output atteso:
-```
-public (active)
-  target: default
-  interfaces: eth0
-  services: ssh
-  ports: 80/tcp 443/tcp 4505/tcp 4506/tcp 5432/tcp
-```
+
+![[2025-12-17 15_36_27-Greenshot.png]]
 
 > **PER PRODUCTION**: Aggiungere rich rules per limitare l'accesso a subnet specifiche invece di accettare da qualsiasi IP.
 
 ---
 ## FASE 7: Installazione Repository UYUNI
-### 7.1 Aggiungi Repository UYUNI Stable per openSUSE Leap 15.6
-
-> **NOTA**: Il repository corretto per Leap 15.6 utilizza il path delle immagini container.
-
+### 7.1 Aggiungere Repository UYUNI Stable per openSUSE Leap 15.6
+Il repository corretto per Leap 15.6 utilizza il path delle immagini container.
+#### Verificare se il repository è già presente
 ```bash
-# Verifica se il repository è già presente
 zypper lr | grep uyuni
-
-# Se non presente, aggiungi il repository
+```
+#### Se non presente, aggiungere il repository
+```bash
 zypper ar https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Stable/images/repo/Uyuni-Server-POOL-$(arch)-Media1/ uyuni-server-stable
 ```
-
-### 7.2 Refresh e Installa Pacchetti
-
+### 7.2 Refresh e Installazione dei Pacchetti
+#### Accettare chiave GPG e refresh
 ```bash
-# Accetta chiave GPG e refresh
 zypper --gpg-auto-import-keys refresh
 ```
-
+#### Installare tool di gestione UYUNI
 ```bash
-# Installa tool di gestione UYUNI
 zypper install -y mgradm mgrctl mgradm-bash-completion mgrctl-bash-completion
 ```
 
-> **NOTA**: Se uyuni-storage-setup-server non è già installato:
+#### Se uyuni-storage-setup-server non è già installato eseguire:
 ```bash
 zypper install -y uyuni-storage-setup-server
 ```
-
-### 7.3 Verifica Versione Podman
-
-> **IMPORTANTE**: UYUNI richiede Podman >= 4.5.0
-
+### 7.3 Verificarere Versione Podman
+UYUNI richiede Podman >= 4.5.0
 ```bash
 podman --version
 ```
-
 Output atteso:
-```
-podman version 4.9.5 o superiore
-```
 
-### 7.4 Abilita Podman Socket
+![[2025-12-17 15_40_11-Greenshot.png]]
 
+### 7.4 Abilitare Podman Socket
 ```bash
 systemctl enable --now podman.socket
 ```
@@ -550,31 +475,27 @@ systemctl enable --now podman.socket
 ---
 ## FASE 8: Deployment Container UYUNI
 ### 8.1 Esegui Deployment
-
 ```bash
 mgradm install podman $(hostname -f)
 ```
 
 Il sistema chiederà:
-- **Password CA key**: scegli una password sicura (annotala!)
-- **Password amministratore**: password per login Web UI (annotala!)
+- **Password CA key**: scegli una password sicura
+- **Password amministratore**: password per login Web UI
 - **Email**: email per notifiche sistema
 
 ### 8.2 Monitoraggio Deployment
-In un altro terminale (apri una nuova sessione Bastion), monitora il progresso:
-
+In un altro terminale :
+#### Monitorare tutti i container
 ```bash
-# Monitora tutti i container
 sudo podman logs -f uyuni-server
-
-# Oppure per il database
+```
+#### Oppure per il database
+```bash
 sudo podman logs -f uyuni-db
 ```
-
-### 8.3 Verifica Container Attivi
-
-> **NOTA UYUNI 2025.x**: L'architettura prevede **2 container separati**.
-
+### 8.3 Verificare Container Attivi
+**UYUNI 2025.x**: L'architettura prevede **2 container separati**.
 Al termine del deployment:
 
 ```bash
@@ -586,15 +507,11 @@ podman ps
 ```
 
 Output atteso (UYUNI 2025.10):
-```
-CONTAINER ID  IMAGE                                                 STATUS         NAMES
-abc123def456  registry.opensuse.org/uyuni/server-postgresql:latest  Up (healthy)   uyuni-db
-def456abc789  registry.opensuse.org/uyuni/server:latest             Up (healthy)   uyuni-server
-```
 
-> **IMPORTANTE**: Devono essere presenti **entrambi i container** con status "healthy".
+![[2025-12-17 15_43_12-.png]]
 
-### 8.4 Per Production: Certificati Custom
+Devono essere presenti **entrambi i container** con status "healthy".
+### 8.4 Per Produzione: Certificati Custom
 Per production, invece del comando base, usa:
 
 ```bash
@@ -605,11 +522,9 @@ mgradm install podman $(hostname -f) \
 ```
 
 ---
+## FASE 9: Configurazione SSL/TLS (NON TESTATA)
 
-## FASE 9: Configurazione SSL/TLS (Solo Production)
-
-> **NOTA TEST**: Per l'ambiente di test, UYUNI genera automaticamente certificati self-signed durante l'installazione. Questa fase è necessaria solo per production.
-
+Per l'ambiente di test, UYUNI genera automaticamente certificati self-signed durante l'installazione. Questa fase è necessaria solo per production.
 ### 9.1 Certificati per Test
 
 Durante il deployment (FASE 8), UYUNI crea automaticamente:
@@ -617,165 +532,58 @@ Durante il deployment (FASE 8), UYUNI crea automaticamente:
 - Certificato server self-signed
 
 Questi sono **sufficienti per i test**.
-
-> **⚠️ BROWSER WARNING**: Il browser mostrerà un avviso di sicurezza per il certificato self-signed. È normale per l'ambiente di test.
-
 ### 9.2 Per Production (Futuro)
 
 Quando passerai in production, dovrai:
-- [ ] Generare CSR per la CA aziendale
-- [ ] Ottenere certificato firmato
-- [ ] Sostituire certificati con `podman secret create --replace`
-- [ ] Abilitare HSTS
-- [ ] Configurare certificati per il database
+- Generare CSR per la CA aziendale
+- Ottenere certificato firmato
+- Sostituire certificati con `podman secret create --replace`
+- Abilitare HSTS
+- Configurare certificati per il database
 
 ---
-## FASE 10: Hardening Post-Installazione (Solo Production)
-
-> **NOTA TEST**: Questa fase è opzionale per l'ambiente di test. Implementa solo la verifica base (FASE 11).
-### Per Production (Futuro)
-
-Quando passerai in production, implementa:
-- [ ] Politica password forte (12+ caratteri, complessità)
-- [ ] Timeout sessione (900 secondi)
-- [ ] Audit logging JSON
-- [ ] Backup automatico con cron
-- [ ] RBAC con ruoli separati (Admin, Channel Admin, System Admin, Viewer)
-
----
-## FASE 11: Verifica dell'Installazione (Test)
-
-> **IMPORTANTE**: Questa è la fase principale per validare che l'installazione funzioni correttamente.
-
+## FASE 10: Verificare dell'Installazione (Test)
 ### 11.1 Verifica Stato Container (UYUNI 2025.x)
-
+#### Status generale
 ```bash
-# Status generale
 mgradm status
-
-# Verifica entrambi i container
+```
+#### Verifica entrambi i container
+```bash
 podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 ```
 
 Output atteso: tutti i container "Up" e "healthy"
-
-### 11.2 Verifica Servizi Interni al Container
-
+### 11.2 Verificare Servizi Interni al Container
+#### Verificare Tomcat (Web UI)
 ```bash
-# Verifica Tomcat (Web UI)
 sudo mgrctl exec -- systemctl status tomcat.service --no-pager
-
-# Verifica Salt Master
+```
+#### Verificare Salt Master
+```bash
 sudo mgrctl exec -- systemctl status salt-master.service --no-pager
-
-# Verifica Taskomatic
+```
+#### Verificrea Taskomatic
+```bash
 sudo mgrctl exec -- systemctl status taskomatic.service --no-pager
 ```
-
 ### 11.3 Accesso Web UI
-
-#### Opzione A: Tunneling tramite Bastion (consigliato)
-
-Poiché la VM non ha IP pubblico, per accedere alla Web UI dal tuo PC:
-
-1. **Da Azure Bastion**, crea un tunnel SSH:
-   - Usa la funzione "Bastion Tunneling" (se disponibile nel tuo piano)
-   - Oppure accedi via Bastion e usa `curl` per test rapidi
-
-2. **Test rapido da Bastion**:
-```bash
-curl -k https://localhost/rhn/manager/login
-```
-
-Se ritorna HTML, il server web funziona.
-
-#### Opzione B: Da una VM nella stessa VNet
-
-Da un'altra VM nella stessa VNet (es. una VM client):
-```bash
-curl -k https://uyuni-server-test.uyuni.internal/rhn/manager/login
-```
-
 #### Credenziali Web UI
 - **Username**: `admin`
 - **Password**: quella specificata durante l'installazione (FASE 8)
 
-> **CERTIFICATO**: Il browser mostrerà un warning per il certificato self-signed. Clicca "Avanzate" → "Procedi comunque". È normale per l'ambiente di test.
-
-### 11.4 Verifica Logs Container
-
-```bash
-# Log server principale
-podman logs uyuni-server
-
-# Log database
-podman logs uyuni-db
-
-# Log in tempo reale (Ctrl+C per uscire)
-podman logs -f uyuni-server
-```
-
-### 11.5 Accesso Shell Container
-
-Per diagnostica avanzata:
-
-```bash
-# Shell nel container server
-mgrctl term
-
-# Shell nel container database
-podman exec -it uyuni-db bash
-```
-
-Digita `exit` per uscire.
-
-### 11.6 Verifica Porte in Ascolto
-
-```bash
-ss -tlnp | grep -E '(443|4505|4506|80|5432)'
-```
-
-Output atteso:
-```
-LISTEN  0  128  *:443   *:*   (httpd)
-LISTEN  0  128  *:4505  *:*   (salt-master)
-LISTEN  0  128  *:4506  *:*   (salt-master)
-LISTEN  0  128  *:5432  *:*   (postgres)
-```
-
-### 11.7 Test API (Opzionale)
-
-```bash
-# Test endpoint API
-sudo mgrctl exec -- curl -s -o /dev/null -w "%{http_code}\n" http://localhost/rpc/api
-
-# Output atteso: 200
-```
-
-### 11.8 Test Connettività da Client (Futuro)
-
-Quando registrerai i client, da essi verifica:
-
-```bash
-# Test HTTPS
-curl -k https://uyuni-server-test.uyuni.internal/rhn/manager/login
-
-# Test Salt ports
-nc -zv uyuni-server-test.uyuni.internal 4505
-nc -zv uyuni-server-test.uyuni.internal 4506
-```
+Il browser mostrerà un warning per il certificato self-signed. Clicca "Avanzate" → "Procedi comunque.
 
 ---
 ## Troubleshooting
-
-### Container non si avvia
+### I container non si avvia
 
 ```bash
-# Verifica logs di entrambi i container
+# Verificare logs di entrambi i container
 podman logs uyuni-server
 podman logs uyuni-db
 
-# Verifica stato dettagliato
+# Verificare stato dettagliato
 podman inspect uyuni-server --format '{{.State.Status}}'
 podman inspect uyuni-db --format '{{.State.Status}}'
 
@@ -783,49 +591,49 @@ podman inspect uyuni-db --format '{{.State.Status}}'
 mgradm restart
 ```
 
-### Database non raggiungibile
+### Il database non raggiungibile
 
 ```bash
-# Verifica container db
+# Verificare container db
 podman ps | grep uyuni-db
 
 # Test connessione PostgreSQL
 podman exec -it uyuni-db psql -U spacewalk -c "SELECT 1;"
 
-# Verifica logs database
+# Verificare logs database
 podman logs uyuni-db --tail 50
 ```
 
 ### Problemi Certificati SSL
 
 ```bash
-# Verifica certificato attivo
+# Verificare certificato attivo
 mgrctl exec -- openssl x509 -in /etc/pki/tls/certs/spacewalk.crt -text -noout
 
-# Verifica validità
+# Verificare validità
 openssl s_client -connect localhost:443 </dev/null 2>/dev/null | openssl x509 -noout -dates
 ```
 
 ### Problemi DNS/Hostname
 
 ```bash
-# Verifica FQDN all'interno del container
+# Verificare FQDN all'interno del container
 mgrctl exec -- hostname -f
 
 # Deve corrispondere all'hostname host
 hostname -f
 
-# Verifica risoluzione dal container
+# Verificare risoluzione dal container
 mgrctl exec -- ping -c 1 $(hostname -f)
 ```
 
 ### Storage Pieno
 
 ```bash
-# Verifica spazio
+# Verificare spazio
 df -h /manager_storage /pgsql_storage
 
-# Verifica volumi Podman
+# Verificare volumi Podman
 podman system df
 
 # Pulizia cache repository (con cautela)
@@ -837,50 +645,13 @@ mgrctl exec -- spacewalk-repo-sync --clean-cache
 ```bash
 mgrctl exec -- satpasswd -u admin
 ```
-
-### Problemi Specifici Azure
-
-#### VM non raggiungibile
-1. Verifica che la sessione Bastion sia attiva
-2. Riprova la connessione Bastion dal portale Azure
-3. Come alternativa, usa **Serial Console** (vedi sotto)
-
-#### Disco dati non montato dopo reboot
-```bash
-# Verifica fstab ha l'opzione nofail
-cat /etc/fstab | grep -E "(manager_storage|pgsql_storage)"
-
-# Mount manuale
-mount -a
-
-# Verifica
-df -h
-```
-
-#### Problemi DNS
-```bash
-# Verifica risoluzione interna
-ping $(hostname -f)
-
-# Se fallisce, verifica /etc/hosts
-cat /etc/hosts
-```
-
-#### Serial Console Azure (alternativa a Bastion)
-Se Bastion non funziona:
-1. Portale Azure → **Virtual machines** → **uyuni-server-test**
-2. Menù → **Help** → **Serial Console**
-3. Login con `azureuser` e password
-4. Verifica logs: `journalctl -xe`
-
 ---
-
 ## Comandi Utili - Quick Reference
 
 ### Gestione Container
 ```bash
 mgradm status              # Stato generale UYUNI
-mgradm restart             # Riavvia tutti i container
+mgradm restart             # Riavviare tutti i container
 mgradm stop                # Ferma tutti i container
 mgradm start               # Avvia tutti i container
 podman ps                  # Lista container attivi
