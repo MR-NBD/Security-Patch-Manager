@@ -103,9 +103,6 @@ Per l'ambiente di test, configurare il NSG `uyuni-server-test-nsg` con queste re
 |----------|------|------|----------|--------|--------|
 | 100 | AllowHTTPS | 443 | TCP | VNet | Allow |
 | 110 | AllowSalt | 4505-4506 | TCP | VNet | Allow |
-
-> **NOTA**: SSH non serve nell'NSG perché Bastion usa un canale separato.
-
 ### Configurazioni Aggiuntive per Production (Futuro)
 Per il passaggio in production, da valutare:
 - Premium SSD per i dischi dati
@@ -117,36 +114,20 @@ Per il passaggio in production, da valutare:
 
 ---
 ## FASE 1: Preparazione del Sistema Base
-### 1.1 Accesso alla VM tramite Azure Bastion
-
-1. **Portale Azure** → **Virtual machines** → **uyuni-server-test**
-2. Clicca **Connect** → **Bastion**
-3. Inserisci credenziali:
-   - **Username**: `azureuser`
-   - **Password**: la tua password
-4. Clicca **Connect**
-
+### 1.1 Dalla VM
 #### Diventa root
 ```bash
 sudo su -
 ```
-
-### 1.2 Verifica versione OS
-
+#### Verifica versione OS
 ```bash
 cat /etc/os-release
 ```
 
 Output atteso:
-```
-NAME="openSUSE Leap"
-VERSION="15.6"
-ID="opensuse-leap"
-...
-```
 
-### 1.3 Aggiornamento Sistema
-
+![[image.png]]
+### 1.2 Aggiornamento Sistema
 ```bash
 zypper refresh
 ```
@@ -158,10 +139,7 @@ zypper update -y
 ```bash
 reboot
 ```
-
-> **NOTA**: Dopo il reboot, riconnettiti tramite Bastion e torna root con `sudo su -`
-
-### 1.4 Installazione Pacchetti Prerequisiti
+### 1.3 Installazione Pacchetti Prerequisiti
 
 ```bash
 zypper install -y \
@@ -174,19 +152,17 @@ zypper install -y \
   jq
 ```
 
-> **🔒 PER PRODUCTION**: Aggiungere `audit`, `fail2ban`, `rsync`, `htop`, `iotop` per monitoring e sicurezza.
+> **PER PRODUZIONE**: Aggiungere `audit`, `fail2ban`, `rsync`, `htop`, `iotop` per monitoring e sicurezza.
 
 ---
 ## FASE 2: Configurazione NTP con Chrony
 La sincronizzazione temporale è **CRITICA** per il corretto funzionamento di UYUNI, Salt, e i certificati SSL.
 ### 2.1 Configurazione Chrony
-
 #### Backup configurazione originale
 ```bash
 cp /etc/chrony.conf /etc/chrony.conf.bak
 ```
-
-#### Modifica configurazione per server NTP aziendali (opzionale)
+#### Modifica configurazione per server NTP aziendali (non testato)
 ```bash
 vim /etc/chrony.conf
 ```
@@ -208,54 +184,39 @@ logdir /var/log/chrony
 driftfile /var/lib/chrony/drift
 ```
 ### 2.2 Abilita e Avvia il Servizio
-
 ```bash
 systemctl enable --now chronyd
 ```
-
 #### Verifica le sorgenti NTP
 ```bash
 chronyc sources -v
 ```
-
 #### Abilita NTP via timedatectl
 ```bash
 timedatectl set-ntp true
 ```
-
 #### Verifica stato sincronizzazione
 ```bash
 timedatectl status
 ```
 
 Output atteso:
-```
-               Local time: ...
-           Universal time: ...
-                 RTC time: ...
-                Time zone: Europe/Rome (CET, +0100)
-System clock synchronized: yes
-              NTP service: active
-          RTC in local TZ: no
-```
 
-> **IMPORTANTE**: Verificare che `System clock synchronized: yes` sia presente.
+![[2025-12-17 14_06_29-Greenshot.png]]
+
+Verificare che `System clock synchronized: yes` sia presente.
 
 ---
 ## FASE 3: Configurazione Hostname e DNS
 ### 3.1 Prerequisiti DNS
-
-> **CRITICO**: UYUNI **RICHIEDE** un DNS funzionante con risoluzione diretta e inversa. Il comando `hostname -f` deve restituire l'FQDN completo.
-
+UYUNI **RICHIEDE** un DNS funzionante con risoluzione diretta e inversa. Il comando `hostname -f` deve restituire l'FQDN completo.
 ### 3.2 Configura l'Hostname
-
 #### Imposta hostname
 ```bash
 hostnamectl set-hostname uyuni-server-test.uyuni.internal
 ```
 
-> **NOTA**: Sostituisci `uyuni.internal` con il tuo dominio interno Azure o aziendale.
-
+Sostituire `uyuni.internal` con il dominio interno Azure o aziendale.
 #### Verifica hostname
 ```bash
 hostname
@@ -263,39 +224,23 @@ hostname
 ```bash
 hostname -f
 ```
-
 ### 3.3 Configura il File /etc/hosts
-
 #### Recupera l'IP privato della VM
 ```bash
-# Metodo 1: da metadata Azure
-IP_PRIVATO=$(curl -s -H Metadata:true "http://169.254.169.254/metadata/instance/network/interface/0/ipv4/ipAddress/0/privateIpAddress?api-version=2021-02-01&format=text")
-echo "IP Privato: $IP_PRIVATO"
-
-# Metodo 2: da ip addr
-ip addr show eth0 | grep "inet " | awk '{print $2}' | cut -d/ -f1
+ip addr show eth0 
 ```
-
 #### Backup del file hosts originale
 ```bash
 cp /etc/hosts /etc/hosts.bak
 ```
-
 #### Edita il file hosts
 ```bash
 vim /etc/hosts
 ```
 
-Aggiungi la seguente riga (sostituire con il tuo IP e dominio):
+Aggiungi la riga (sostituire con IP e dominio corretto):
 ```
 10.172.2.5    uyuni-server-test.uyuni.internal    uyuni-server-test
-```
-
-Il file dovrebbe apparire così:
-```
-127.0.0.1       localhost
-::1             localhost
-10.172.2.5      uyuni-server-test.uyuni.internal    uyuni-server-test
 ```
 ### 3.4 Configurazione DNS Azure (Opzionale ma Consigliato)
 
