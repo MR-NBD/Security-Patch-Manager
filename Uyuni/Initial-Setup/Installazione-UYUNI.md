@@ -66,8 +66,7 @@ sdc (Data Disk 2 - 32GB) [LVM]
 - [FASE 6: Configurazione Firewall](#fase-6-configurazione-firewall)
 - [FASE 7: Installazione Repository UYUNI](#fase-7-installazione-repository-uyuni)
 - [FASE 8: Deployment Container UYUNI](#fase-8-deployment-container-uyuni)
-- [NON TESTATO - FASE 9: SSL/TLS (Solo Production)](#-fase-9-configurazione-ssltls-solo-production)
-- [FASE 10: Verifica dell'Installazione](#fase-10-verifica-dellinstallazione-test)
+- [FASE 9: Verifica dell'Installazione](#fase-9-verifica-dellinstallazione-test)
 - [Troubleshooting](#troubleshooting)
 ---
 ## DEPLOYMENT
@@ -114,6 +113,11 @@ Quando si passerà, implementare:
 - Audit logging JSON
 - Backup automatico con cron
 - RBAC con ruoli separati (Admin, Channel Admin, System Admin, Viewer)
+- Generare CSR per la CA aziendale
+- Ottenere certificato firmato
+- Sostituire certificati con `podman secret create --replace`
+- Abilitare HSTS
+- Configurare certificati per il database
 
 ---
 ## FASE 1: Preparazione del Sistema Base
@@ -503,41 +507,9 @@ mgradm install podman $(hostname -f) \
   --ssl-server-cert /path/to/server.crt \
   --ssl-server-key /path/to/server.key
 ```
-
 ---
-## FASE 9: Configurazione SSL/TLS (NON TESTATA)
-
-Per l'ambiente di test, UYUNI genera automaticamente certificati self-signed durante l'installazione. Questa fase è necessaria solo per production.
-### 9.1 Certificati per Test
-
-Durante il deployment (FASE 8), UYUNI crea automaticamente:
-- Certificato CA self-signed
-- Certificato server self-signed
-
-Questi sono **sufficienti per i test**.
-### 9.2 Per Production (Futuro)
-
-Quando passerai in production, dovrai:
-- Generare CSR per la CA aziendale
-- Ottenere certificato firmato
-- Sostituire certificati con `podman secret create --replace`
-- Abilitare HSTS
-- Configurare certificati per il database
-
----
-## FASE 10: Verificare dell'Installazione (Test)
-### 11.1 Verifica Stato Container (UYUNI 2025.x)
-#### Status generale
-```bash
-mgradm status
-```
-#### Verifica entrambi i container
-```bash
-podman ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-```
-
-Output atteso: tutti i container "Up" e "healthy"
-### 11.2 Verificare Servizi Interni al Container
+## FASE 9: Verificare dell'Installazione (Test)
+### 9.1 Verificare Servizi Interni al Container
 #### Verificare Tomcat (Web UI)
 ```bash
 sudo mgrctl exec -- systemctl status tomcat.service --no-pager
@@ -550,7 +522,7 @@ sudo mgrctl exec -- systemctl status salt-master.service --no-pager
 ```bash
 sudo mgrctl exec -- systemctl status taskomatic.service --no-pager
 ```
-### 11.3 Accesso Web UI
+### 9.2 Accesso Web UI
 #### Credenziali Web UI
 - **Username**: `admin`
 - **Password**: quella specificata durante l'installazione (FASE 8)
