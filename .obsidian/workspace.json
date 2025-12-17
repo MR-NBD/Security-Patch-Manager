@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Configurazione-Ubuntu-24.04-UYUNI.md",
+                "file": "Utenze/ASL0603.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Configurazione-Ubuntu-24.04-UYUNI"
+              "title": "ASL0603"
             }
           }
         ]
@@ -197,11 +197,11 @@
   },
   "active": "507683eddf73152e",
   "lastOpenFiles": [
+    "Uyuni/Configurazione-Ubuntu-24.04-UYUNI.md",
     "Uyuni/UYUNI-Learning-Path.md",
     "Uyuni/Initial-Setup/Installazione-UYUNI.md",
     "Utenze/ASL0603.md",
     "Uyuni/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
-    "Uyuni/Configurazione-Ubuntu-24.04-UYUNI.md",
     "GeneralDocumentation/TESI/CAP2/Capitolo 2 Background on Patch Management.md",
     "img/png6.png",
     "img/png4.png",
