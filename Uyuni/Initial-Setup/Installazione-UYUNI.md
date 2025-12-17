@@ -73,25 +73,25 @@ sdc (Data Disk 2 - 32GB) [LVM]
 ## DEPLOYMENT
 ### Configurazione VM Azure - Ambiente TEST
 
-| Parametro | Valore |
-|-----------|--------|
-| **Subscription** | ASL0603-spoke10 |
-| **Resource Group** | test_group |
-| **VM Name** | uyuni-server-test |
-| **Region** | Italy North |
-| **Availability** | Availability Zone 1 |
-| **Security Type** | Trusted launch (Secure boot + vTPM) |
-| **Image** | openSUSE Leap 15.6 - Gen2 |
-| **Architecture** | x64 |
-| **Size** | Standard D8as v5 (8 vCPU, 32 GB RAM) |
-| **Username** | azureuser |
-| **Authentication** | Password |
-| **OS Disk** | Standard SSD LRS |
-| **Data Disks** | 2 dischi (128GB + 32GB) |
-| **VNet** | ASL0603-spoke10-spoke-italynorth |
-| **Subnet** | default (10.172.2.0/27) |
-| **Public IP** | None |
-| **NSG** | uyuni-server-test-nsg |
+| Parametro          | Valore                               |
+| ------------------ | ------------------------------------ |
+| **Subscription**   | ASL0603-spoke10                      |
+| **Resource Group** | test_group                           |
+| **VM Name**        | uyuni-server-test                    |
+| **Region**         | Italy North                          |
+| **Availability**   | Availability Zone 1                  |
+| **Security Type**  | Trusted launch (Secure boot + vTPM)  |
+| **Image**          | openSUSE Leap 15.6 - Gen2            |
+| **Architecture**   | x64                                  |
+| **Size**           | Standard D8as v5 (8 vCPU, 32 GB RAM) |
+| **Username**       | azureuser                            |
+| **Authentication** | Password                             |
+| **OS Disk**        | Standard SSD LRS                     |
+| **Data Disks**     | 2 dischi (128GB + 32GB)              |
+| **VNet**           | ASL0603-spoke10-spoke-italynorth     |
+| **Subnet**         | default (10.172.2.0/27)              |
+| **Public IP**      | None                                 |
+| **NSG**            | uyuni-server-test-nsg                |
 ### Configurazione NSG per Test
 Per l'ambiente di test, configurare il NSG `uyuni-server-test-nsg` con queste regole minime:
 

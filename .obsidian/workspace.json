@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
+                "file": "Uyuni/Initial-Setup/Installazione-UYUNI.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "UYUNI-Guida-02-Setup-Ubuntu2204-CLM"
+              "title": "Installazione-UYUNI"
             }
           }
         ]
@@ -197,6 +197,7 @@
   },
   "active": "507683eddf73152e",
   "lastOpenFiles": [
+    "Uyuni/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
     "Uyuni/UYUNI-Learning-Path.md",
     "Uyuni/Initial-Setup/Installazione-UYUNI.md",
     "Uyuni/Configurazione-Ubuntu-24.04-UYUNI.md",
@@ -226,7 +227,6 @@
     "workflow-DISEGNI/PATCH_INSTALLATION_ENGINE.drawio",
     "workflow-DISEGNI/LLD_SPM.drawio",
     "workflow-DISEGNI/Active_Environment_Discovery-SPM.drawio",
-    "Uyuni/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
     "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
     "Foreman-Katello/Initial-Setup/Installazione.md",
     "GeneralDocumentation/TESI/CAP2/Senza nome.md",
