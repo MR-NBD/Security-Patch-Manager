@@ -148,4 +148,4 @@ Seleziona → **Create Operating System**
 
 
 ---
-![[image.png]]
+![[png2.png]]
