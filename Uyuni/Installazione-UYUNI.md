@@ -76,16 +76,13 @@ nvme0n1
 - [FASE 6: Configurazione Firewall](#fase-6-configurazione-firewall)
 - [FASE 7: Installazione Repository UYUNI](#fase-7-installazione-repository-uyuni)
 - [FASE 8: Deployment Container UYUNI](#fase-8-deployment-container-uyuni)
-- [🔒 FASE 9: SSL/TLS (Solo Production)](#-fase-9-configurazione-ssltls-solo-production)
-- [🔒 FASE 10: Hardening Post-Installazione (Solo Production)](#-fase-10-hardening-post-installazione-solo-production)
+- [NON TESTATO - FASE 9: SSL/TLS (Solo Production)](#-fase-9-configurazione-ssltls-solo-production)
+- [NON TESTATO - FASE 10: Hardening Post-Installazione (Solo Production)](#-fase-10-hardening-post-installazione-solo-production)
 - [FASE 11: Verifica dell'Installazione](#fase-11-verifica-dellinstallazione-test)
-- [Checklist Passaggio a Production](#-checklist-passaggio-a-production)
 - [Troubleshooting](#troubleshooting)
 
 ---
-
 ## DEPLOYMENT SU MICROSOFT AZURE
-
 ### Configurazione VM Azure - Ambiente TEST
 
 | Parametro | Valore |
@@ -109,7 +106,6 @@ nvme0n1
 | **NSG** | uyuni-server-test-nsg |
 
 ### Accesso tramite Azure Bastion
-
 L'accesso alla VM avviene **esclusivamente tramite Azure Bastion**:
 
 1. Vai su **Portale Azure** → **Virtual machines** → **uyuni-server-test**
@@ -124,7 +120,6 @@ Si aprirà una sessione SSH nel browser.
 > **NOTA**: Azure Bastion fornisce accesso sicuro senza esporre porte SSH pubbliche.
 
 ### Configurazione NSG per Test
-
 Per l'ambiente di test, configurare il NSG `uyuni-server-test-nsg` con queste regole minime:
 
 | Priority | Nome | Port | Protocol | Source | Action |
@@ -134,20 +129,17 @@ Per l'ambiente di test, configurare il NSG `uyuni-server-test-nsg` con queste re
 
 > **NOTA**: SSH non serve nell'NSG perché Bastion usa un canale separato.
 
-### 🔒 Configurazioni Aggiuntive per Production (Futuro)
-
-Quando passerai in production, dovrai aggiungere:
-- [ ] Premium SSD per i dischi dati
-- [ ] Azure Backup abilitato
-- [ ] NSG più restrittivo (IP specifici invece di VNet)
-- [ ] Azure Private DNS Zone
-- [ ] Certificati SSL firmati da CA aziendale
-- [ ] Azure Monitor + Log Analytics
+### Configurazioni Aggiuntive per Production (Futuro)
+Per il passaggio in production, da valutare:
+- Premium SSD per i dischi dati
+- Azure Backup abilitato
+- NSG più restrittivo (IP specifici invece di VNet)
+- Azure Private DNS Zone
+- Certificati SSL firmati da CA aziendale
+- Azure Monitor + Log Analytics
 
 ---
-
 ## FASE 1: Preparazione del Sistema Base
-
 ### 1.1 Accesso alla VM tramite Azure Bastion
 
 1. **Portale Azure** → **Virtual machines** → **uyuni-server-test**
@@ -208,11 +200,8 @@ zypper install -y \
 > **🔒 PER PRODUCTION**: Aggiungere `audit`, `fail2ban`, `rsync`, `htop`, `iotop` per monitoring e sicurezza.
 
 ---
-
 ## FASE 2: Configurazione NTP con Chrony
-
 La sincronizzazione temporale è **CRITICA** per il corretto funzionamento di UYUNI, Salt, e i certificati SSL.
-
 ### 2.1 Configurazione Chrony
 
 #### Backup configurazione originale
@@ -241,7 +230,6 @@ logdir /var/log/chrony
 # Drift file
 driftfile /var/lib/chrony/drift
 ```
-
 ### 2.2 Abilita e Avvia il Servizio
 
 ```bash
@@ -277,9 +265,7 @@ System clock synchronized: yes
 > **IMPORTANTE**: Verificare che `System clock synchronized: yes` sia presente.
 
 ---
-
 ## FASE 3: Configurazione Hostname e DNS
-
 ### 3.1 Prerequisiti DNS
 
 > **CRITICO**: UYUNI **RICHIEDE** un DNS funzionante con risoluzione diretta e inversa. Il comando `hostname -f` deve restituire l'FQDN completo.
@@ -334,7 +320,6 @@ Il file dovrebbe apparire così:
 ::1             localhost
 10.172.2.X      uyuni-server-test.yourcompany.local    uyuni-server-test
 ```
-
 ### 3.4 Configurazione DNS Azure (Opzionale ma Consigliato)
 
 Per un ambiente production, configura una **Azure Private DNS Zone**:
@@ -364,10 +349,9 @@ uyuni-server-test.yourcompany.local
 > **IMPORTANTE**: Se `hostname -f` non restituisce l'FQDN completo, UYUNI avrà problemi. Verifica `/etc/hosts` e riprova.
 
 ---
-
 ## FASE 4: Configurazione Base Sicurezza (Test)
 
-> **🔒 PER PRODUCTION**: Questa sezione è semplificata per l'ambiente di test. Per production, implementare hardening completo (SSH keys, audit, fail2ban, etc.)
+> **PER PRODUCTION**: Questa sezione è semplificata per l'ambiente di test. Per production, implementare hardening completo (SSH keys, audit, fail2ban, etc.)
 
 ### 4.1 Verifica Stato Servizi Base
 
@@ -379,7 +363,7 @@ systemctl status firewalld
 systemctl enable --now firewalld
 ```
 
-### 4.2 🔒 Hardening Aggiuntivo per Production (Futuro)
+### 4.2 Hardening Aggiuntivo per Production (Futuro)
 
 Quando passerai in production, implementa:
 
@@ -391,11 +375,8 @@ Quando passerai in production, implementa:
 > **NOTA TEST**: Per l'ambiente di test, la configurazione di base con Azure Bastion e NSG è sufficiente.
 
 ---
-
 ## FASE 5: Configurazione Storage Dedicato
-
 > **CRITICO PER PRODUZIONE**: Utilizzare dischi dedicati per repository e database migliora drasticamente le performance e permette recovery più semplice in caso di problemi.
-
 ### 5.1 Identifica i Dischi Disponibili (Azure)
 
 In Azure, i dischi dati aggiunti durante la creazione della VM appaiono come dispositivi aggiuntivi:
@@ -424,9 +405,7 @@ sdd     100G disk             <- Disco dati 2 (PostgreSQL)
 # Verifica che i dischi siano persistenti
 curl -H Metadata:true "http://169.254.169.254/metadata/instance/compute/storageProfile?api-version=2021-02-01" | jq
 ```
-
 ### 5.2 Preparazione Storage con Script UYUNI
-
 UYUNI fornisce uno script dedicato per la configurazione dello storage. Questo script:
 - Configura i volumi persistenti necessari
 - Monta i dischi nelle posizioni corrette
@@ -445,7 +424,6 @@ zypper install -y mgradm mgrctl uyuni-storage-setup-server
 ```
 
 #### Configura storage separato per repository e database
-
 **Per Azure (tipicamente /dev/sdc e /dev/sdd):**
 ```bash
 # Verifica prima i dischi corretti!
@@ -481,7 +459,6 @@ Filesystem      Size  Used Avail Use% Mounted on
 ```
 
 ### 5.4 Alternativa: Configurazione LVM Manuale
-
 Se si preferisce configurare manualmente LVM (ad esempio per snapshot):
 
 > **NOTA**: Per VM Azure, LVM non è generalmente raccomandato. È preferibile usare dischi managed separati con Azure Backup. Se necessario, procedi come segue:
@@ -498,7 +475,6 @@ mkdir -p /manager_storage
 mount /dev/mapper/vg_uyuni_repo-lv_repo /manager_storage
 echo "/dev/mapper/vg_uyuni_repo-lv_repo /manager_storage xfs defaults,nofail 0 0" >> /etc/fstab
 ```
-
 #### Disco PostgreSQL (es. /dev/sdd in Azure)
 ```bash
 parted /dev/sdd --script mklabel gpt
@@ -520,9 +496,7 @@ systemctl daemon-reload
 ```
 
 ---
-
 ## FASE 6: Configurazione Firewall
-
 ### 6.1 Abilita Firewalld
 
 ```bash
@@ -532,7 +506,6 @@ systemctl enable --now firewalld
 ```bash
 systemctl status firewalld
 ```
-
 ### 6.2 Configura Porte UYUNI
 
 ```bash
@@ -544,13 +517,11 @@ firewall-cmd --permanent --add-port=443/tcp
 firewall-cmd --permanent --add-port=4505/tcp
 firewall-cmd --permanent --add-port=4506/tcp
 ```
-
 ### 6.3 Applica le Modifiche
 
 ```bash
 firewall-cmd --reload
 ```
-
 ### 6.4 Verifica Configurazione
 
 ```bash
@@ -566,12 +537,10 @@ public (active)
   ports: 80/tcp 443/tcp 4505/tcp 4506/tcp
 ```
 
-> **🔒 PER PRODUCTION**: Aggiungere rich rules per limitare l'accesso a subnet specifiche invece di accettare da qualsiasi IP.
+> **PER PRODUCTION**: Aggiungere rich rules per limitare l'accesso a subnet specifiche invece di accettare da qualsiasi IP.
 
 ---
-
 ## FASE 7: Installazione Repository UYUNI
-
 ### 7.1 Aggiungi Repository UYUNI Stable per openSUSE Leap 15.6
 
 > **NOTA**: Se hai già aggiunto il repository nella FASE 5, salta al punto 7.2.
@@ -583,7 +552,6 @@ zypper lr | grep uyuni
 # Se non presente, aggiungilo
 zypper ar https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Stable/openSUSE_Leap_15.6/ uyuni-stable
 ```
-
 ### 7.2 Refresh e Installa Pacchetti
 
 ```bash
@@ -595,7 +563,6 @@ zypper --gpg-auto-import-keys refresh
 # Installa tool di gestione UYUNI
 zypper install -y mgradm mgrctl mgradm-bash-completion
 ```
-
 ### 7.3 Verifica Versione Podman
 
 > **IMPORTANTE**: UYUNI richiede Podman >= 4.5.0
@@ -615,12 +582,10 @@ podman version 4.x.x o superiore
 systemctl enable --now podman.socket
 ```
 
-> **🔒 PER PRODUCTION**: Aggiungere configurazione limiti container in `/etc/containers/containers.conf.d/`
+> **PER PRODUCTION**: Aggiungere configurazione limiti container in `/etc/containers/containers.conf.d/`
 
 ---
-
 ## FASE 8: Deployment Container UYUNI
-
 ### 8.1 Esegui Deployment
 
 ```bash
@@ -631,23 +596,17 @@ Il sistema chiederà:
 - **Password CA key**: scegli una password sicura (annotala!)
 - **Password amministratore**: password per login Web UI (annotala!)
 - **Email**: email per notifiche sistema
-
-> **⏱️ TEMPO**: Il deployment richiede 15-30 minuti. Non interrompere il processo.
-
 ### 8.2 Monitoraggio Deployment
-
 In un altro terminale (apri una nuova sessione Bastion), monitora il progresso:
 
 ```bash
 sudo journalctl -f -u uyuni-server
 ```
-
 Oppure:
 
 ```bash
 sudo podman logs -f uyuni-server
 ```
-
 ### 8.3 Verifica Container Attivo
 
 Al termine del deployment:
@@ -666,8 +625,7 @@ CONTAINER ID  IMAGE                                      STATUS         NAMES
 abc123def456  registry.opensuse.org/uyuni/server:latest  Up 10 minutes  uyuni-server
 ```
 
-### 🔒 8.4 Per Production: Certificati Custom
-
+### 8.4 Per Production: Certificati Custom
 Per production, invece del comando base, usa:
 
 ```bash
@@ -679,7 +637,7 @@ mgradm install podman $(hostname -f) \
 
 ---
 
-## 🔒 FASE 9: Configurazione SSL/TLS (Solo Production)
+## FASE 9: Configurazione SSL/TLS (Solo Production)
 
 > **NOTA TEST**: Per l'ambiente di test, UYUNI genera automaticamente certificati self-signed durante l'installazione. Questa fase è necessaria solo per production.
 
@@ -693,7 +651,7 @@ Questi sono **sufficienti per i test**.
 
 > **⚠️ BROWSER WARNING**: Il browser mostrerà un avviso di sicurezza per il certificato self-signed. È normale per l'ambiente di test.
 
-### 🔒 9.2 Per Production (Futuro)
+### 9.2 Per Production (Futuro)
 
 Quando passerai in production, dovrai:
 - [ ] Generare CSR per la CA aziendale
@@ -703,12 +661,10 @@ Quando passerai in production, dovrai:
 - [ ] Configurare certificati per il database
 
 ---
-
-## 🔒 FASE 10: Hardening Post-Installazione (Solo Production)
+## FASE 10: Hardening Post-Installazione (Solo Production)
 
 > **NOTA TEST**: Questa fase è opzionale per l'ambiente di test. Implementa solo la verifica base (FASE 11).
-
-### 🔒 Per Production (Futuro)
+### Per Production (Futuro)
 
 Quando passerai in production, implementa:
 - [ ] Politica password forte (12+ caratteri, complessità)
@@ -718,7 +674,6 @@ Quando passerai in production, implementa:
 - [ ] RBAC con ruoli separati (Admin, Channel Admin, System Admin, Viewer)
 
 ---
-
 ## FASE 11: Verifica dell'Installazione (Test)
 
 > **IMPORTANTE**: Questa è la fase principale per validare che l'installazione funzioni correttamente.
@@ -759,7 +714,7 @@ curl -k https://uyuni-server-test.yourcompany.local/rhn/manager/login
 - **Username**: `admin`
 - **Password**: quella specificata durante l'installazione (FASE 8)
 
-> **⚠️ CERTIFICATO**: Il browser mostrerà un warning per il certificato self-signed. Clicca "Avanzate" → "Procedi comunque". È normale per l'ambiente di test.
+> **CERTIFICATO**: Il browser mostrerà un warning per il certificato self-signed. Clicca "Avanzate" → "Procedi comunque". È normale per l'ambiente di test.
 
 ### 11.3 Verifica Logs Container
 
@@ -807,76 +762,7 @@ nc -zv uyuni-server-test.yourcompany.local 4505
 nc -zv uyuni-server-test.yourcompany.local 4506
 ```
 
-### 11.7 Checklist Test Completato
-
-- [ ] `mgradm status` mostra tutti i servizi running
-- [ ] `curl -k https://localhost/...` ritorna HTML
-- [ ] Porte 443, 4505, 4506 in ascolto
-- [ ] Nessun errore critico in `podman logs uyuni-server`
-
-Se tutti i check passano, **l'installazione di test è completata con successo!**
-
 ---
-
-## Ambiente di Test - Riepilogo
-
-| Componente | Valore |
-| --- | --- |
-| **VM Name** | uyuni-server-test |
-| **FQDN** | uyuni-server-test.yourcompany.local |
-| **IP Server (Private)** | 10.172.2.x (dalla subnet) |
-| **Accesso** | Azure Bastion (no IP pubblico) |
-| **Cloud Provider** | Microsoft Azure |
-| **Region** | Italy North |
-| **Resource Group** | test_group |
-| **VM Size** | Standard D8as v5 (8 vCPU, 32 GB RAM) |
-| **OS Host** | openSUSE Leap 15.6 Gen2 |
-| **Versione UYUNI** | 2025.10 |
-| **Deployment Type** | Containerized (Podman) |
-| **Certificati** | Self-signed (test) |
-| **Storage Repository** | /manager_storage (500GB) |
-| **Storage Database** | /pgsql_storage (100GB) |
-
----
-
-## NEXT STEPS (Test)
-
-Dopo aver completato l'installazione:
-
-1. **Sincronizza un repository** (es. Ubuntu 24.04) dalla Web UI
-2. **Registra un client di test** per validare la connettività Salt
-3. **Testa l'applicazione di una patch** su un client
-4. **Familiarizza con l'interfaccia** e le funzionalità
-
----
-
-## 🔒 CHECKLIST: Passaggio a Production
-
-Quando sarai pronto per production, implementa:
-
-- [ ] **Infrastruttura**
-  - [ ] Premium SSD per dischi dati
-  - [ ] Azure Backup configurato
-  - [ ] Availability Zone / Set per HA
-
-- [ ] **Sicurezza**
-  - [ ] Certificati SSL firmati da CA aziendale
-  - [ ] SSH solo con chiavi (no password)
-  - [ ] Audit daemon configurato
-  - [ ] Fail2ban attivo
-  - [ ] NSG con IP specifici (non VNet generico)
-
-- [ ] **Monitoring**
-  - [ ] Azure Monitor + Log Analytics
-  - [ ] Prometheus/Grafana per metriche UYUNI
-
-- [ ] **Backup & DR**
-  - [ ] Script backup automatico
-  - [ ] Test restore verificato
-  - [ ] Documentazione DR
-
----
-
 ## Troubleshooting
 
 ### Container non si avvia
@@ -973,9 +859,3 @@ Se Bastion non funziona:
 - [SSL Certificates](https://www.uyuni-project.org/uyuni-docs/en/uyuni/administration/ssl-certs.html)
 - [Client Configuration Guide](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/uyuni-client-config-overview.html)
 - [GitHub UYUNI Project](https://github.com/uyuni-project/uyuni)
-
----
-
-*Documento per installazione UYUNI in ambiente di TEST su Azure.*
-*Per il passaggio in production, seguire la checklist nella sezione dedicata.*
-*Ultima revisione: Dicembre 2025*
