@@ -114,17 +114,17 @@ Se preferisci creare i canali manualmente:
 2. Clicca **Create Channel**
 3. Compila:
 
-| Campo | Valore |
-|-------|--------|
-| **Channel Name** | Ubuntu 24.04 LTS Pool for amd64 |
-| **Channel Label** | ubuntu-2404-pool-amd64-uyuni |
-| **Parent Channel** | None (è il canale base) |
-| **Architecture** | AMD64 Debian |
-| **Checksum Type** | SHA256 |
-| **Channel Summary** | Ubuntu 24.04 LTS base channel |
-| **GPG key URL** | https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C |
-| **GPG key ID** | 871920D1991BC93C |
-| **GPG key Fingerprint** | F6ECB3762474EDA9D21B7022871920D1991BC93C |
+| Campo                   | Valore                                                                   |
+| ----------------------- | ------------------------------------------------------------------------ |
+| **Channel Name**        | Ubuntu 24.04 LTS Pool for amd64                                          |
+| **Channel Label**       | ubuntu-2404-pool-amd64-uyuni                                             |
+| **Parent Channel**      | None (è il canale base)                                                  |
+| **Architecture**        | AMD64 Debian                                                             |
+| **Checksum Type**       | SHA256                                                                   |
+| **Channel Summary**     | Ubuntu 24.04 LTS base channel                                            |
+| **GPG key URL**         | https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C |
+| **GPG key ID**          | 871920D1991BC93C                                                         |
+| **GPG key Fingerprint** | F6ECB3762474EDA9D21B7022871920D1991BC93C                                 |
 
 4. Clicca **Create Channel**
 
