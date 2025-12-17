@@ -132,12 +132,12 @@ Se preferisci creare i canali manualmente:
 
 Ripeti il processo per ogni canale child (usa il canale base come **Parent Channel**):
 
-| Channel Name | Channel Label | Repository (Step 3) |
-|--------------|---------------|---------------------|
-| Ubuntu 24.04 LTS Main amd64 | ubuntu-2404-amd64-main-uyuni | main |
-| Ubuntu 24.04 LTS Main Updates amd64 | ubuntu-2404-amd64-main-updates-uyuni | main updates |
-| Ubuntu 24.04 LTS Main Security amd64 | ubuntu-2404-amd64-main-security-uyuni | main security |
-| Ubuntu 24.04 LTS UYUNI Client amd64 | ubuntu-2404-amd64-uyuni-client | client tools |
+| Channel Name                         | Channel Label                         | Repository (Step 3) |
+| ------------------------------------ | ------------------------------------- | ------------------- |
+| Ubuntu 24.04 LTS Main amd64          | ubuntu-2404-amd64-main-uyuni          | main                |
+| Ubuntu 24.04 LTS Main Updates amd64  | ubuntu-2404-amd64-main-updates-uyuni  | main updates        |
+| Ubuntu 24.04 LTS Main Security amd64 | ubuntu-2404-amd64-main-security-uyuni | main security       |
+| Ubuntu 24.04 LTS UYUNI Client amd64  | ubuntu-2404-amd64-uyuni-client        | client tools        |
 
 ---
 
@@ -162,43 +162,43 @@ Per ogni repository:
 
 #### Repository 1: Ubuntu 24.04 Main
 
-| Campo | Valore |
-|-------|--------|
-| **Repository Label** | ubuntu-2404-amd64-main-repo |
-| **Repository URL** | `http://archive.ubuntu.com/ubuntu/` |
-| **Has Signed Metadata?** | ☑ Yes |
-| **Type** | deb |
-| **In Release path** | dists/noble |
-| **Components** | main |
-| **Architectures** | amd64 |
+| Campo                    | Valore                              |
+| ------------------------ | ----------------------------------- |
+| **Repository Label**     | ubuntu-2404-amd64-main-repo         |
+| **Repository URL**       | `http://archive.ubuntu.com/ubuntu/` |
+| **Has Signed Metadata?** | ☑ Yes                               |
+| **Type**                 | deb                                 |
+| **In Release path**      | dists/noble                         |
+| **Components**           | main                                |
+| **Architectures**        | amd64                               |
 
 Clicca **Create Repository**
 
 #### Repository 2: Ubuntu 24.04 Main Updates
 
-| Campo | Valore |
-|-------|--------|
-| **Repository Label** | ubuntu-2404-amd64-main-updates-repo |
-| **Repository URL** | `http://archive.ubuntu.com/ubuntu/` |
-| **Has Signed Metadata?** | ☑ Yes |
-| **Type** | deb |
-| **In Release path** | dists/noble-updates |
-| **Components** | main |
-| **Architectures** | amd64 |
+| Campo                    | Valore                              |
+| ------------------------ | ----------------------------------- |
+| **Repository Label**     | ubuntu-2404-amd64-main-updates-repo |
+| **Repository URL**       | `http://archive.ubuntu.com/ubuntu/` |
+| **Has Signed Metadata?** | ☑ Yes                               |
+| **Type**                 | deb                                 |
+| **In Release path**      | dists/noble-updates                 |
+| **Components**           | main                                |
+| **Architectures**        | amd64                               |
 
 Clicca **Create Repository**
 
 #### Repository 3: Ubuntu 24.04 Main Security
 
-| Campo | Valore |
-|-------|--------|
-| **Repository Label** | ubuntu-2404-amd64-main-security-repo |
-| **Repository URL** | `http://security.ubuntu.com/ubuntu/` |
-| **Has Signed Metadata?** | ☑ Yes |
-| **Type** | deb |
-| **In Release path** | dists/noble-security |
-| **Components** | main |
-| **Architectures** | amd64 |
+| Campo                    | Valore                               |
+| ------------------------ | ------------------------------------ |
+| **Repository Label**     | ubuntu-2404-amd64-main-security-repo |
+| **Repository URL**       | `http://security.ubuntu.com/ubuntu/` |
+| **Has Signed Metadata?** | ☑ Yes                                |
+| **Type**                 | deb                                  |
+| **In Release path**      | dists/noble-security                 |
+| **Components**           | main                                 |
+| **Architectures**        | amd64                                |
 
 Clicca **Create Repository**
 
