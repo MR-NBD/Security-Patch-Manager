@@ -149,7 +149,7 @@ zypper install -y \
   chrony \
   podman \
   firewalld \
-  vim \
+  nano \
   wget \
   curl \
   jq
@@ -224,9 +224,6 @@ Sostituire `uyuni.internal` con il dominio interno Azure o aziendale.
 ```bash
 hostname
 ```
-```bash
-hostname -f
-```
 ### 3.3 Configura il File /etc/hosts
 #### Recuperare l'IP privato della VM
 ```bash
@@ -238,7 +235,7 @@ cp /etc/hosts /etc/hosts.bak
 ```
 #### Editare il file hosts
 ```bash
-vim /etc/hosts
+nano /etc/hosts
 ```
 
 Aggiungere la riga (sostituire con IP e dominio corretto):
@@ -348,21 +345,7 @@ L'opzione `nofail` in fstab è importante per evitare problemi di boot se un dis
 #### Reload systemd
 ```bash
 systemctl daemon-reload
-```
-### 5.5 Collegamento Storage ai Volumi Podman
-Bisogna collegare il mount point ai volumi Podman che UYUNI si aspetta.
-##### Creare directory per i volumi Podman
-```bash
-mkdir -p /var/lib/containers/storage/volumes/var-spacewalk
-```
-```bash
-mkdir -p /var/lib/containers/storage/volumes/var-pgsql
-```
-##### Creare symlink per il mount point LVM
-```bash
-ln -s /manager_storage /var/lib/containers/storage/volumes/var-spacewalk/_data
-```
-```bash
+
 ln -s /pgsql_storage /var/lib/containers/storage/volumes/var-pgsql/_data
 ```
 ### 5.6 Verificare Configurazione Storage
