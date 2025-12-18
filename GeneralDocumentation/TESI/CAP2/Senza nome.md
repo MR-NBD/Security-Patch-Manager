@@ -59,7 +59,6 @@ The illustrates the vulnerability lifecycle. On the left, it shows the vulnerabi
 progression: initially absent, then created but unknown, followed by discovery and private 
 knowledge, and eventually public disclosure. The central section focuses on the exploit 
 lifecycle, while the right section represents the patch lifecycle
-![[png2.png]]
 The initial state is when the vulnerability is absent. Then, there is the creation of the vulnerability, but it remains unknown. Following this, the discovery phase occurs, which introduces several possible scenarios. At this stage, the vulnerability is known but only privately. The last crossed line in the figure signifies the point where the vulnerability becomes publicly known.
 One possible scenario is that the vulnerability is discovered by developers. In this case, no exploit exists, and the process follows the left branch, where the vulnerability is disclosed, and a patch is published (d+pp). This is the best case because the patch is created before any exploit exists.
 Alternatively, the discovery may be made by hackers, as shown in the middle branch. Here, the vulnerability becomes exploitable, resulting in a 0-day vulnerability. Developers are unaware of the vulnerability, but an exploit exists, giving them zero days to fix the issue. If developers subsequently discover the vulnerability, a patch can be created moving the process from the mid-branch to the left one.
