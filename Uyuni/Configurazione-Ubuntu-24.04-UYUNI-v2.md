@@ -456,15 +456,15 @@ Le Activation Keys automatizzano la configurazione dei client durante la registr
 1. **Systems** → **Activation Keys** → **Create Key**
 2. Compila:
 
-| Campo | Valore |
-|-------|--------|
-| **Description** | Ubuntu 24.04 - Ambiente Test |
-| **Key** | ubuntu-2404-test |
-| **Usage Limit** | (vuoto per illimitato) |
-| **Base Channel** | ubuntu-2404-pool-amd64-uyuni-dev-ubuntu-2404-lifecycle |
-| **Add-on Entitlements** | ☑ Monitoring (opzionale) |
-| **Contact Method** | Default |
-| **Universal Default** | ☐ No |
+| Campo                   | Valore                                                 |
+| ----------------------- | ------------------------------------------------------ |
+| **Description**         | Ubuntu 24.04 - Ambiente Test                           |
+| **Key**                 | ubuntu-2404-test                                       |
+| **Usage Limit**         | (vuoto per illimitato)                                 |
+| **Base Channel**        | ubuntu-2404-pool-amd64-uyuni-dev-ubuntu-2404-lifecycle |
+| **Add-on Entitlements** | ☑ Monitoring (opzionale)                               |
+| **Contact Method**      | Default                                                |
+| **Universal Default**   | ☐ No                                                   |
 
 3. Clicca **Create Activation Key**
 
@@ -482,10 +482,10 @@ Le Activation Keys automatizzano la configurazione dei client durante la registr
 
 Ripeti il processo con:
 
-| Campo | Valore |
-|-------|--------|
-| **Description** | Ubuntu 24.04 - Ambiente Produzione |
-| **Key** | ubuntu-2404-prod |
+| Campo            | Valore                                                  |
+| ---------------- | ------------------------------------------------------- |
+| **Description**  | Ubuntu 24.04 - Ambiente Produzione                      |
+| **Key**          | ubuntu-2404-prod                                        |
 | **Base Channel** | ubuntu-2404-pool-amd64-uyuni-prod-ubuntu-2404-lifecycle |
 
 E associa al gruppo **Ubuntu-24.04-Prod**.
