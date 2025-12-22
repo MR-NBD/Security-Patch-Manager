@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Configurazione-Ubuntu-24.04-UYUNI-v2.md",
+                "file": "TO-DO_ALBERTO.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Configurazione-Ubuntu-24.04-UYUNI-v2"
+              "title": "TO-DO_ALBERTO"
             }
           }
         ]
@@ -197,13 +197,16 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
-    "Uyuni/Configurazione-Ubuntu-24.04-UYUNI.md",
+    "Utenze/ASL0603.md",
+    "Uyuni/uyuni-client-management-guide.md",
+    "Uyuni/Non confermato 243323.crdownload",
+    "Uyuni/Initial-Setup/Installazione-UYUNI.md",
+    "Uyuni/Configurazione-Ubuntu-24.04-UYUNI-v2.md",
     "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
     "Uyuni/Risorse.md",
-    "Utenze/ASL0603.md",
+    "Uyuni/Configurazione-Ubuntu-24.04-UYUNI.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docs/ESEMPI-QUERY.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docs/GUIDA-IMPLEMENTAZIONE.md",
-    "Uyuni/Configurazione-Ubuntu-24.04-UYUNI-v2.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/README.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/INDEX.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/scheduler.py",
@@ -215,8 +218,6 @@
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/requirements-scheduler.txt",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/requirements.txt",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/Dockerfile.api",
-    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/Dockerfile.scheduler",
-    "Uyuni/Initial-Setup/Installazione-UYUNI.md",
     "Uyuni/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
     "GeneralDocumentation/TESI/CAP2/Senza nome.md",
     "GeneralDocumentation/TESI/CAP2/Capitolo 2 Background on Patch Management.md",
@@ -240,7 +241,6 @@
     "img/image.png",
     "img/image-1 1.png",
     "GeneralDocumentation/TESI/CAP2/Senza nome 1.md",
-    "Foreman-Katello/Configurazione-Tutorial/Grafana-Errata-Dashboard.md",
     "img/fwrule.png",
     "img/HLD_SPM_v2.png"
   ]
