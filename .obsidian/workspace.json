@@ -195,8 +195,10 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "fcae071421e98e82",
+  "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
+    "Uyuni/Risorse.md",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docs/ESEMPI-QUERY.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docs/GUIDA-IMPLEMENTAZIONE.md",
     "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
     "Uyuni/Configurazione-Ubuntu-24.04-UYUNI-v2.md",
@@ -209,7 +211,6 @@
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/oval_parser.py",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/app.py",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/api_extensions.py",
-    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docs/ESEMPI-QUERY.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/deployment/deploy-extended.sh",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/requirements-scheduler.txt",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/requirements.txt",
