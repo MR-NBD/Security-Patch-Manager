@@ -163,7 +163,7 @@ mgrctl exec -- spacewalk-common-channels \
 
 **Via CLI**:
 ```bash
-mgrctl exec -- spacecmd -u admin -p 'TUA_PASSWORD' softwarechannel_list | grep ubuntu
+mgrctl exec -- spacecmd -u admin -p 'password' softwarechannel_list | grep ubuntu
 ```
 
 **Via Web UI**:
@@ -250,7 +250,7 @@ mgrctl exec -- tail -20 /var/log/rhn/reposync/ubuntu-2404-amd64-main-security-uy
 
 ```bash
 # Conta pacchetti in un canale (dopo sync completa)
-mgrctl exec -- spacecmd -u admin -p 'TUA_PASSWORD' -- softwarechannel_listallpackages ubuntu-2404-amd64-main-uyuni | wc -l
+mgrctl exec -- spacecmd -u admin -p 'password' -- softwarechannel_listallpackages ubuntu-2404-amd64-main-uyuni | wc -l
 ```
 
 ---
