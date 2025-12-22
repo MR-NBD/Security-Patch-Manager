@@ -8,20 +8,6 @@
         "type": "tabs",
         "children": [
           {
-            "id": "507683eddf73152e",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Utenze/ASL0603.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "ASL0603"
-            }
-          },
-          {
             "id": "62ce1b5725d47bea",
             "type": "leaf",
             "state": {
@@ -209,16 +195,28 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "507683eddf73152e",
+  "active": "fcae071421e98e82",
   "lastOpenFiles": [
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docs/GUIDA-IMPLEMENTAZIONE.md",
     "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
-    "Utenze/ASL0603.md",
-    "Uyuni/Non confermato 400277.crdownload",
     "Uyuni/Configurazione-Ubuntu-24.04-UYUNI-v2.md",
     "Uyuni/Configurazione-Ubuntu-24.04-UYUNI.md",
+    "Utenze/ASL0603.md",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/README.md",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/INDEX.md",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/scheduler.py",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/package_extractor.py",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/oval_parser.py",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/app.py",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/api_extensions.py",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docs/ESEMPI-QUERY.md",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/deployment/deploy-extended.sh",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/requirements-scheduler.txt",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/requirements.txt",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/Dockerfile.api",
+    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/Dockerfile.scheduler",
     "Uyuni/Initial-Setup/Installazione-UYUNI.md",
     "Uyuni/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
-    "Uyuni/Non confermato 849917.crdownload",
     "GeneralDocumentation/TESI/CAP2/Senza nome.md",
     "GeneralDocumentation/TESI/CAP2/Capitolo 2 Background on Patch Management.md",
     "Uyuni/UYUNI-Learning-Path.md",
@@ -227,7 +225,6 @@
     "img/png3.png",
     "img/png2.png",
     "Foreman-Katello/Configurazione-Tutorial/Creazione-Product-Repository-Ubuntu-24.04.md",
-    "Uyuni/Non confermato 622803.crdownload",
     "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
     "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
     "Foreman-Katello/Configurazione-Tutorial/Content-View.md",
@@ -237,25 +234,13 @@
     "Uyuni/Note-Teoriche/Supported Clients and Features.md",
     "img/png5.png",
     "img/png1.png",
-    "Uyuni/Non confermato 893721.crdownload",
-    "workflow-DISEGNI/SECURITY_PATCH_MANAGER.drawio",
-    "workflow-DISEGNI/Security_Patch_Discovery_&_Prioritization.drawio",
-    "workflow-DISEGNI/PATCH_TESTING_VALIDATION.drawio",
-    "workflow-DISEGNI/HLD_SPM.drawio",
-    "workflow-DISEGNI/PSN_workflow.drawio",
-    "workflow-DISEGNI/PATCH_INSTALLATION_ENGINE.drawio",
     "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
     "Foreman-Katello/Initial-Setup/Installazione.md",
     "img/image.png",
     "img/image-1 1.png",
     "GeneralDocumentation/TESI/CAP2/Senza nome 1.md",
     "Foreman-Katello/Configurazione-Tutorial/Grafana-Errata-Dashboard.md",
-    "GeneralDocumentation/Documento allineamenti obbiettivi.md",
     "img/fwrule.png",
-    "img/HLD_SPM_v2.png",
-    "Foreman-Katello/Configurazione-Tutorial/Lifecycle-Environments.md",
-    "Initial-Setup/Installazione.md",
-    "Foreman-Katello/Configurazione-Tutorial/Activation-Key.md",
-    "Foreman-Katello/Configurazione-Tutorial/Host-Group.md"
+    "img/HLD_SPM_v2.png"
   ]
 }
