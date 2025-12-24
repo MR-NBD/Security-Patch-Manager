@@ -1,7 +1,3 @@
-# Configurazione Ubuntu 24.04 LTS su UYUNI - Guida Completa
-
-## Panoramica
-
 Questa guida descrive la configurazione completa di UYUNI per gestire client **Ubuntu 24.04 LTS (Noble Numbat)** in un ambiente enterprise con:
 
 - Importazione chiavi GPG Ubuntu
@@ -14,7 +10,6 @@ Questa guida descrive la configurazione completa di UYUNI per gestire client **U
 - Preparazione al Patch Management
 
 ---
-
 ## Indice
 
 1. [Prerequisiti e Problemi Noti](#1-prerequisiti-e-problemi-noti)
@@ -32,13 +27,10 @@ Questa guida descrive la configurazione completa di UYUNI per gestire client **U
 13. [Quick Reference](#quick-reference)
 
 ---
-
 ## 1. Prerequisiti e Problemi Noti
-
 ### 1.1 Prerequisiti
 
 Prima di iniziare, assicurarsi che:
-
 - UYUNI Server sia installato e funzionante (vedi guida installazione)
 - Web UI accessibile su https://uyuni-server-fqdn
 - Utente admin configurato **senza PAM** (vedi sotto)
