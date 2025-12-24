@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "TO-DO_ALBERTO.md",
+                "file": "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "TO-DO_ALBERTO"
+              "title": "DOCUMENTAZIONE-COMPLETA"
             }
           }
         ]
@@ -61,7 +61,7 @@
                 "sortOrder": "alphabetical"
               },
               "icon": "lucide-search",
-              "title": "Search"
+              "title": "Ricerca"
             }
           },
           {
@@ -197,6 +197,10 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
+    "Uyuni/UYUNI-ERRATA-MANAGER-GUIDA-COMPLETA.md",
+    "Uyuni/Non confermato 292305.crdownload",
+    "GeneralDocumentation/Guide/OLD/Installation.md",
+    "TO-DO_ALBERTO.md",
     "Utenze/ASL0603.md",
     "Uyuni/uyuni-client-management-guide.md",
     "Uyuni/Non confermato 243323.crdownload",
@@ -217,7 +221,6 @@
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/deployment/deploy-extended.sh",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/requirements-scheduler.txt",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/requirements.txt",
-    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/Dockerfile.api",
     "Uyuni/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
     "GeneralDocumentation/TESI/CAP2/Senza nome.md",
     "GeneralDocumentation/TESI/CAP2/Capitolo 2 Background on Patch Management.md",
@@ -236,11 +239,8 @@
     "Uyuni/Note-Teoriche/Supported Clients and Features.md",
     "img/png5.png",
     "img/png1.png",
-    "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
-    "Foreman-Katello/Initial-Setup/Installazione.md",
     "img/image.png",
     "img/image-1 1.png",
-    "GeneralDocumentation/TESI/CAP2/Senza nome 1.md",
     "img/fwrule.png",
     "img/HLD_SPM_v2.png"
   ]
