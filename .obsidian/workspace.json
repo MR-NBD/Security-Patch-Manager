@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Utenze/ASL0603.md",
+                "file": "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ASL0603"
+              "title": "DEPLOYMENT-GUIDE-v2.5"
             }
           }
         ]
@@ -197,6 +197,15 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
+    "Utenze/ASL0603.md",
+    "Uyuni/Initial-Setup/README-v2.5-IMPROVEMENTS.md",
+    "Uyuni/Initial-Setup/README-v2.5-IMPROVEMENTS.md.tmp.1055968.1767776426474",
+    "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md",
+    "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md.tmp.1055968.1767776314649",
+    "Uyuni/Initial-Setup/errata-sync-v2.5-IMPROVED.sh",
+    "Uyuni/Initial-Setup/errata-sync-v2.5-IMPROVED.sh.tmp.1055968.1767776167927",
+    "Uyuni/Initial-Setup/app-v2.5-IMPROVED.py",
+    "Uyuni/Initial-Setup/app-v2.5-IMPROVED.py.tmp.1055968.1767776095363",
     "Uyuni/Initial-Setup/RICHIESTA-NAT-GATEWAY-PSN.md",
     "Uyuni/Initial-Setup/RICHIESTA-NAT-GATEWAY-PSN.md.tmp.1055968.1767775736877",
     "Uyuni/Initial-Setup/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
@@ -207,7 +216,6 @@
     "Uyuni/OLD/UYUNI-ERRATA-MANAGER-GUIDA-COMPLETA.md",
     "Uyuni/OLD",
     "Uyuni/Initial-Setup/UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md",
-    "Utenze/ASL0603.md",
     "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
     "Uyuni/UYUNI-Learning-Path.md",
     "Uyuni/Risorse.md",
@@ -221,12 +229,6 @@
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docs/GUIDA-IMPLEMENTAZIONE.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/README.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/INDEX.md",
-    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/scheduler.py",
-    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/package_extractor.py",
-    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/oval_parser.py",
-    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/app.py",
-    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/api_extensions.py",
-    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/deployment/deploy-extended.sh",
     "GeneralDocumentation/TESI/CAP2/Senza nome.md",
     "GeneralDocumentation/TESI/CAP2/Capitolo 2 Background on Patch Management.md",
     "img/png6.png",
@@ -235,8 +237,6 @@
     "img/png2.png",
     "Foreman-Katello/Configurazione-Tutorial/Creazione-Product-Repository-Ubuntu-24.04.md",
     "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
-    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
-    "Foreman-Katello/Configurazione-Tutorial/Content-View.md",
     "img/png5.png",
     "img/png1.png",
     "img/image.png",
