@@ -21,6 +21,7 @@ import time
 import xmlrpc.client
 from datetime import datetime, timedelta
 from xml.etree import ElementTree as ET
+from functools import wraps
 
 from flask import Flask, jsonify, request, Response
 from flask_cors import CORS
@@ -132,6 +133,7 @@ def version_compare(pkg_version_str, fixed_version_str):
 # FIX #6: Retry decorator con exponential backoff
 def retry_with_backoff(max_attempts=3, initial_delay=2):
     def decorator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             delay = initial_delay
             for attempt in range(max_attempts):
