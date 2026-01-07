@@ -255,6 +255,11 @@ DATABASE_URL="postgresql://errataadmin:ErrataSecure2024@10.172.2.6:5432/uyuni_er
 ## 🧪 FASE 4: Testing v2.5
 
 ### 4.1 Health Check Dettagliato
+```bash
+az container list \
+    --output table \
+    --query "[?contains(name, 'errata')].{Name:name, ResourceGroup:resourceGroup, State:instanceView.state, IP:ipAddress.ip}"
+```
 
 ```bash
 # Verifica health base
