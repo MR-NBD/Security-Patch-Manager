@@ -116,7 +116,7 @@ La v2.5 riutilizza lo schema v2.4, ma verifica che tutte le tabelle siano presen
 
 ```bash
 # Connetti al database
-psql "postgresql://errataadmin:PASSWORD@10.172.2.6:5432/uyuni_errata?sslmode=require"
+psql "postgresql://errataadmin:ErrataSecure2024@10.172.2.6:5432/uyuni_errata?sslmode=require"
 ```
 
 ```sql
@@ -185,11 +185,11 @@ az container create \
   --restart-policy Always \
   --environment-variables \
     FLASK_ENV=production \
-    DATABASE_URL="postgresql://errataadmin:PASSWORD@10.172.2.6:5432/uyuni_errata?sslmode=require" \
+    DATABASE_URL="postgresql://errataadmin:ErrataSecure2024@10.172.2.6:5432/uyuni_errata?sslmode=require" \
     UYUNI_URL="https://10.172.2.5" \
     UYUNI_USER="admin" \
-    UYUNI_PASSWORD="YOUR_UYUNI_PASSWORD" \
-    NVD_API_KEY="YOUR_NVD_API_KEY"  # Opzionale ma raccomandato
+    UYUNI_PASSWORD="password" \
+    NVD_API_KEY="49b6e254-d81d-4b61-abac-2dbe04471e38"  # Opzionale ma raccomandato
 ```
 
 **ANCHE container pubblico** (per sync esterni):
@@ -219,7 +219,7 @@ az container create \
   --ip-address Public \
   --restart-policy Always \
   --environment-variables \
-    DATABASE_URL="postgresql://errataadmin:PASSWORD@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require"
+    DATABASE_URL="postgresql://errataadmin:ErrataSecure2024@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require"
 ```
 
 ### Opzione B: Container Unificato (dopo approvazione NAT Gateway)
@@ -243,11 +243,11 @@ az container create \
   --restart-policy Always \
   --environment-variables \
     FLASK_ENV=production \
-    DATABASE_URL="postgresql://errataadmin:PASSWORD@10.172.2.6:5432/uyuni_errata?sslmode=require" \
+DATABASE_URL="postgresql://errataadmin:ErrataSecure2024@10.172.2.6:5432/uyuni_errata?sslmode=require" \
     UYUNI_URL="https://10.172.2.5" \
     UYUNI_USER="admin" \
-    UYUNI_PASSWORD="YOUR_PASSWORD" \
-    NVD_API_KEY="YOUR_KEY"
+    UYUNI_PASSWORD="password" \
+    NVD_API_KEY="49b6e254-d81d-4b61-abac-2dbe04471e38"
 ```
 
 ---
