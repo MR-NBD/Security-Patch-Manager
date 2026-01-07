@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Initial-Setup/IMPORTANTE.md",
+                "file": "Utenze/ASL0603.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "IMPORTANTE"
+              "title": "ASL0603"
             }
           }
         ]
@@ -197,19 +197,21 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
-    "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
-    "Uyuni/Initial-Setup/IMPORTANTE.md",
-    "Uyuni/UYUNI-ERRATA-MANAGER-GUIDA-COMPLETA.md",
-    "Uyuni/uyuni-client-management-guide.md",
-    "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
-    "Uyuni/Configurazione-System-Ubuntu-24.04.md",
     "Uyuni/Initial-Setup/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
+    "Uyuni/Configurazione-System-Ubuntu-24.04.md",
+    "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
+    "Uyuni/uyuni-client-management-guide.md",
+    "Uyuni/Initial-Setup/IMPORTANTE.md",
+    "Uyuni/OLD/UYUNI-ERRATA-MANAGER-GUIDA-COMPLETA.md",
+    "Uyuni/OLD",
+    "Uyuni/Initial-Setup/UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md",
+    "Utenze/ASL0603.md",
+    "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
     "Uyuni/UYUNI-Learning-Path.md",
     "Uyuni/Risorse.md",
     "Uyuni/Non confermato 292305.crdownload",
     "GeneralDocumentation/Guide/OLD/Installation.md",
     "TO-DO_ALBERTO.md",
-    "Utenze/ASL0603.md",
     "Uyuni/Non confermato 243323.crdownload",
     "Uyuni/Initial-Setup/Installazione-UYUNI.md",
     "Uyuni/Configurazione-Ubuntu-24.04-UYUNI.md",
@@ -224,7 +226,6 @@
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/python/api_extensions.py",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/deployment/deploy-extended.sh",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/requirements-scheduler.txt",
-    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docker/requirements.txt",
     "GeneralDocumentation/TESI/CAP2/Senza nome.md",
     "GeneralDocumentation/TESI/CAP2/Capitolo 2 Background on Patch Management.md",
     "img/png6.png",
@@ -235,8 +236,6 @@
     "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
     "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
     "Foreman-Katello/Configurazione-Tutorial/Content-View.md",
-    "Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md",
-    "Foreman-Katello/Configurazione-Tutorial/Guida-Upload-Incrementale-Pacchetti.md",
     "img/png5.png",
     "img/png1.png",
     "img/image.png",
