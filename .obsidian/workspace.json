@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md",
+                "file": "Uyuni/Initial-Setup/RICHIESTA-NAT-GATEWAY-PSN.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "DEPLOYMENT-GUIDE-v2.5"
+              "title": "RICHIESTA-NAT-GATEWAY-PSN"
             }
           }
         ]
@@ -197,10 +197,10 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
+    "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md",
     "Uyuni/Initial-Setup/app-v2.5-IMPROVED.py.tmp.1055968.1767783134037",
     "Uyuni/Initial-Setup/app-v2.5-IMPROVED.py.tmp.1055968.1767783123132",
     "Utenze/ASL0603.md",
-    "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md",
     "Uyuni/Initial-Setup/README-v2.5-IMPROVEMENTS.md",
     "Uyuni/Initial-Setup/README-v2.5-IMPROVEMENTS.md.tmp.1055968.1767776426474",
     "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md.tmp.1055968.1767776314649",
@@ -221,7 +221,6 @@
     "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
     "Uyuni/UYUNI-Learning-Path.md",
     "Uyuni/Risorse.md",
-    "Uyuni/Non confermato 292305.crdownload",
     "GeneralDocumentation/Guide/OLD/Installation.md",
     "TO-DO_ALBERTO.md",
     "Uyuni/Initial-Setup/Installazione-UYUNI.md",

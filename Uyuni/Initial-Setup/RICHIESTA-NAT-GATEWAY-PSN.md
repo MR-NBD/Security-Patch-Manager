@@ -102,16 +102,16 @@ Attualmente, l'architettura prevede **2 container separati** a causa del vincolo
 
 ### 3.1 Risorsa da Creare
 
-| Parametro | Valore |
-|-----------|--------|
-| **Risorsa** | Azure NAT Gateway |
-| **Nome** | `natgw-errata-manager-spoke10` |
-| **Resource Group** | `ASL0603-spoke10-rg-spoke-italynorth` |
-| **Region** | Italy North |
-| **SKU** | Standard |
-| **Availability Zone** | Zone 1 (allineato con VM UYUNI) |
-| **Public IP** | `pip-natgw-errata-spoke10` (statico) |
-| **Subnet associata** | `errata-aci-subnet` (10.172.5.0/28) |
+| Parametro             | Valore                                |
+| --------------------- | ------------------------------------- |
+| **Risorsa**           | Azure NAT Gateway                     |
+| **Nome**              | `natgw-errata-manager-spoke10`        |
+| **Resource Group**    | `ASL0603-spoke10-rg-spoke-italynorth` |
+| **Region**            | Italy North                           |
+| **SKU**               | Standard                              |
+| **Availability Zone** | Zone 1 (allineato con VM UYUNI)       |
+| **Public IP**         | `pip-natgw-errata-spoke10` (statico)  |
+| **Subnet associata**  | `errata-aci-subnet` (10.172.5.0/28)   |
 
 ### 3.2 Traffico in Uscita Richiesto
 
