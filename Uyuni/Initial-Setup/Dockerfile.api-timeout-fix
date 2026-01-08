@@ -1,0 +1,25 @@
+FROM python:3.11-slim-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl libpq-dev gcc libc-dev libbz2-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir \
+    flask==3.0.0 \
+    flask-cors==4.0.0 \
+    gunicorn==21.2.0 \
+    psycopg2-binary==2.9.9 \
+    requests==2.31.0 \
+    packaging==23.2
+
+COPY app-v2.5-IMPROVED.py /app/app.py
+
+# Logging directory
+RUN mkdir -p /var/log && touch /var/log/errata-manager.log
+
+EXPOSE 5000
+
+# FIX: Aumentato timeout da 900 (15min) a 1800 (30min) per sync OVAL
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "1800", "--access-logfile", "-", "--error-logfile", "-", "app:app"]

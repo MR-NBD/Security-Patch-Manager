@@ -226,6 +226,8 @@
   },
   "active": "4ce1f69bdba65e00",
   "lastOpenFiles": [
+    "Uyuni/Initial-Setup/fix-container-timeout.sh",
+    "Uyuni/Initial-Setup/Dockerfile.api-timeout-fix",
     "Uyuni/Initial-Setup/sync-oval-individual.sh",
     "Uyuni/Initial-Setup/monitor-oval-sync.sh",
     "Uyuni/Initial-Setup/monitor-oval-sync.sh.tmp.1270842.1767901121784",
@@ -239,8 +241,6 @@
     "Uyuni/Initial-Setup/─────────────────────────────┼───────────────┤.sh",
     "Uyuni/Initial-Setup/2.sh",
     "Uyuni/Initial-Setup/IP-CHANGE-NOTICE.md",
-    "Uyuni/Initial-Setup/check-containers.sh",
-    "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md.tmp.1270842.1767896913535",
     "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md",
     "Uyuni/Initial-Setup/RICHIESTA-NAT-GATEWAY-PSN.md",
     "Uyuni/Initial-Setup/README-v2.5-IMPROVEMENTS.md",
