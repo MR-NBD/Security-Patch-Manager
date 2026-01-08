@@ -263,7 +263,7 @@ az container list \
 
 ```bash
 # Verifica health base
-curl -s http://10.172.5.4:5000/api/health | jq
+curl -s http://10.172.5.5:5000/api/health | jq
 
 # Output atteso:
 # {
@@ -274,7 +274,7 @@ curl -s http://10.172.5.4:5000/api/health | jq
 # }
 
 # Verifica health dettagliato (nuovo in v2.5)
-curl -s http://10.172.5.4:5000/api/health/detailed | jq
+curl -s http://10.172.5.5:5000/api/health/detailed | jq
 ```
 
 **Output atteso (health detailed)**:
@@ -348,17 +348,17 @@ time curl -s -X POST http://4.232.4.142:5000/api/sync/dsa/full | jq
 
 ```bash
 # Aggiorna cache pacchetti UYUNI
-curl -s -X POST http://10.172.5.4:5000/api/uyuni/sync-packages | jq
+curl -s -X POST http://10.172.5.5:5000/api/uyuni/sync-packages | jq
 
 # Verifica statistiche pacchetti
-curl -s http://10.172.5.4:5000/api/stats/packages | jq
+curl -s http://10.172.5.5:5000/api/stats/packages | jq
 ```
 
 ### 4.5 Test Push con Version Matching (FIX #1)
 
 ```bash
 # Push 5 errata con version matching migliorato
-curl -s -X POST "http://10.172.5.4:5000/api/uyuni/push?limit=5" | jq
+curl -s -X POST "http://10.172.5.5:5000/api/uyuni/push?limit=5" | jq
 
 # Output atteso:
 # {
@@ -375,7 +375,7 @@ curl -s -X POST "http://10.172.5.4:5000/api/uyuni/push?limit=5" | jq
 
 ```bash
 # Sync OVAL definitions per CVE audit
-curl -s -X POST "http://10.172.5.4:5000/api/sync/oval?platform=all" | jq
+curl -s -X POST "http://10.172.5.5:5000/api/sync/oval?platform=all" | jq
 
 # Verifica mappings creati
 psql "postgresql://..." << EOF
@@ -415,7 +415,7 @@ chmod +x /root/errata-sync.sh
 cat > /root/.errata-sync.env << 'EOF'
 # API Endpoints
 PUBLIC_API=http://4.232.4.142:5000
-INTERNAL_API=http://10.172.5.4:5000
+INTERNAL_API=http://10.172.5.5:5000
 
 # Email alerts (opzionale)
 ALERT_EMAIL=your-email@example.com
@@ -561,7 +561,7 @@ az container restart \
 
 ```bash
 # Verifica che la libreria packaging sia installata
-curl http://10.172.5.4:5000/api/health
+curl http://10.172.5.5:5000/api/health
 # Deve ritornare version: "2.5"
 
 # Test version comparison
@@ -580,7 +580,7 @@ EOF
 ```bash
 # Il sync full DSA può richiedere 15-30 minuti (è normale)
 # Monitora progress con:
-watch -n 5 'curl -s http://10.172.5.4:5000/api/stats/overview | jq ".errata_by_source"'
+watch -n 5 'curl -s http://10.172.5.5:5000/api/stats/overview | jq ".errata_by_source"'
 ```
 
 ### Email alerts non arrivano

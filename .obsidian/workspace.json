@@ -13,15 +13,44 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Initial-Setup/RICHIESTA-NAT-GATEWAY-PSN.md",
+                "file": "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "RICHIESTA-NAT-GATEWAY-PSN"
+              "title": "DEPLOYMENT-GUIDE-v2.5"
+            }
+          },
+          {
+            "id": "34b9afd0706d001b",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Uyuni/Initial-Setup/README-FIX-08-01-2026.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "README-FIX-08-01-2026"
+            }
+          },
+          {
+            "id": "4ce1f69bdba65e00",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "GUIDA-OPERATIVA-FIX"
             }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -195,25 +224,25 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "62ce1b5725d47bea",
+  "active": "4ce1f69bdba65e00",
   "lastOpenFiles": [
-    "Uyuni/Initial-Setup/QUICK-START.sh",
     "Uyuni/Initial-Setup/README-FIX-08-01-2026.md",
-    "Uyuni/Initial-Setup/README-FIX-08-01-2026.md.tmp.1175877.1767867910307",
-    "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md",
-    "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md.tmp.1175877.1767867504009",
-    "Uyuni/Initial-Setup/errata-sync-v2.5-IMPROVED.sh.tmp.1175877.1767867300103",
-    "Uyuni/Initial-Setup/errata-sync-v2.5-IMPROVED.sh.tmp.1175877.1767867261465",
-    "Uyuni/Initial-Setup/errata-sync-v2.5-IMPROVED.sh.tmp.1175877.1767867243568",
-    "Uyuni/Initial-Setup/test-and-sync.sh",
     "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md",
-    "Uyuni/Initial-Setup/README-v2.5-IMPROVEMENTS.md",
+    "Uyuni/Initial-Setup/errata-sync-v2.5-IMPROVED.sh",
+    "Uyuni/Initial-Setup/─────────────────────────────┼───────────────┤.sh",
+    "Uyuni/Initial-Setup/2.sh",
+    "Uyuni/Initial-Setup/IP-CHANGE-NOTICE.md",
+    "Uyuni/Initial-Setup/check-containers.sh",
+    "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md.tmp.1270842.1767896913535",
+    "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md.tmp.1270842.1767896902568",
+    "Uyuni/Initial-Setup/README-FIX-08-01-2026.md.tmp.1270842.1767896896787",
+    "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md",
     "Uyuni/Initial-Setup/RICHIESTA-NAT-GATEWAY-PSN.md",
-    "Uyuni/Initial-Setup/app-v2.5-IMPROVED.py.tmp.1055968.1767783134037",
-    "Uyuni/Initial-Setup/app-v2.5-IMPROVED.py.tmp.1055968.1767783123132",
+    "Uyuni/Initial-Setup/QUICK-START.sh",
+    "Uyuni/Initial-Setup/README-FIX-08-01-2026.md.tmp.1175877.1767867910307",
+    "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md.tmp.1175877.1767867504009",
+    "Uyuni/Initial-Setup/README-v2.5-IMPROVEMENTS.md",
     "Utenze/ASL0603.md",
-    "Uyuni/Initial-Setup/README-v2.5-IMPROVEMENTS.md.tmp.1055968.1767776426474",
-    "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md.tmp.1055968.1767776314649",
     "Uyuni/Initial-Setup/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
     "Uyuni/Configurazione-System-Ubuntu-24.04.md",
     "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
@@ -232,7 +261,6 @@
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docs/GUIDA-IMPLEMENTAZIONE.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/README.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/INDEX.md",
-    "GeneralDocumentation/TESI/CAP2/Senza nome.md",
     "img/png6.png",
     "img/png4.png",
     "img/png3.png",

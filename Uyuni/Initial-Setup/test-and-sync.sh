@@ -16,7 +16,7 @@ set -euo pipefail
 # CONFIGURAZIONE
 # ============================================================
 PUBLIC_API="http://4.232.3.251:5000"
-INTERNAL_API="http://10.172.5.4:5000"
+INTERNAL_API="http://10.172.5.5:5000"
 
 TIMEOUT_HEALTH=30
 TIMEOUT_SHORT=600

@@ -6,7 +6,7 @@
 
 | Container | Stato | IP | Image |
 |-----------|-------|-----|-------|
-| **aci-errata-api-internal** | ✅ Running | 10.172.5.4 | acaborerrata.azurecr.io/errata-api:v2.5-fixed |
+| **aci-errata-api-internal** | ✅ Running | 10.172.5.5 | acaborerrata.azurecr.io/errata-api:v2.5-fixed |
 | **aci-errata-api** (pubblico) | ✅ Running | 4.232.3.251 | acaborerrata.azurecr.io/errata-api:v2.5-fixed |
 
 ### 🐛 Problemi Identificati e Risolti
@@ -22,7 +22,7 @@
 
 **Fix**: ✅ Script aggiornati per usare architettura a 2 container corretta:
 - **Container PUBBLICO** (4.232.3.251): Sync esterni (USN, DSA, NVD, OVAL)
-- **Container INTERNO** (10.172.5.4): Push UYUNI + Cache pacchetti
+- **Container INTERNO** (10.172.5.5): Push UYUNI + Cache pacchetti
 
 #### 3. ❌ OVAL definitions non sincronizzate
 **Causa**: Sync fallito per mancanza connessione internet
@@ -132,7 +132,7 @@ cat > /etc/cron.d/errata-sync << 'EOF'
 
 # Quick sync settimanale (mercoledì)
 # Ogni mercoledì alle 02:00
-0 2 * * 3 root PUBLIC_API=http://4.232.3.251:5000 INTERNAL_API=http://10.172.5.4:5000 /root/test-and-sync.sh quick >> /var/log/errata-sync-quick.log 2>&1
+0 2 * * 3 root PUBLIC_API=http://4.232.3.251:5000 INTERNAL_API=http://10.172.5.5:5000 /root/test-and-sync.sh quick >> /var/log/errata-sync-quick.log 2>&1
 EOF
 
 # Verifica cron installato
@@ -254,10 +254,10 @@ curl -o /tmp/ubuntu-noble.xml.bz2 https://security-metadata.canonical.com/oval/c
 ### Nessuna patch visibile in UYUNI
 
 **Checklist**:
-1. ✅ Errata sincronizzati? → `curl http://10.172.5.4:5000/api/stats/overview`
-2. ✅ Cache pacchetti aggiornata? → `curl http://10.172.5.4:5000/api/stats/packages`
+1. ✅ Errata sincronizzati? → `curl http://10.172.5.5:5000/api/stats/overview`
+2. ✅ Cache pacchetti aggiornata? → `curl http://10.172.5.5:5000/api/stats/packages`
 3. ✅ Push completato? → Verifica log: `cat /var/log/errata-sync.log`
-4. ✅ Canali mappati correttamente? → `curl http://10.172.5.4:5000/api/uyuni/channels`
+4. ✅ Canali mappati correttamente? → `curl http://10.172.5.5:5000/api/uyuni/channels`
 5. ✅ Sistemi registrati nei canali corretti? → UYUNI UI: Systems → Overview
 
 ### CVE Audit non mostra vulnerabilità
@@ -310,13 +310,13 @@ Dopo il primo sync completo, dovresti avere:
 
 ```bash
 # Health check rapido
-curl -s http://10.172.5.4:5000/api/health | python3 -m json.tool
+curl -s http://10.172.5.5:5000/api/health | python3 -m json.tool
 
 # Health dettagliato
-curl -s http://10.172.5.4:5000/api/health/detailed | python3 -m json.tool
+curl -s http://10.172.5.5:5000/api/health/detailed | python3 -m json.tool
 
 # Statistiche
-curl -s http://10.172.5.4:5000/api/stats/overview | python3 -m json.tool
+curl -s http://10.172.5.5:5000/api/stats/overview | python3 -m json.tool
 ```
 
 ### File di Log

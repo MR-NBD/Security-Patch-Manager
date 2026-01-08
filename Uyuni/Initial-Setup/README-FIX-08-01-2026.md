@@ -26,13 +26,13 @@ az container start --resource-group test_group --name aci-errata-api
 | Container | IP | Stato |
 |-----------|-----|-------|
 | aci-errata-api (pubblico) | 4.232.3.251 | ✅ Running |
-| aci-errata-api-internal | 10.172.5.4 | ✅ Running |
+| aci-errata-api-internal | 10.172.5.5 | ✅ Running |
 
 ### 2. Architettura a 2 Container Corretta
 
 **Flusso Corretto**:
 - **Container PUBBLICO** (4.232.3.251) → Sync esterni (USN, DSA, NVD, OVAL)
-- **Container INTERNO** (10.172.5.4) → Push UYUNI + Cache pacchetti
+- **Container INTERNO** (10.172.5.5) → Push UYUNI + Cache pacchetti
 
 **Perché**: Il container interno NON ha accesso internet (VNET privata senza NAT Gateway)
 
@@ -177,7 +177,7 @@ az container restart --resource-group ASL0603-spoke10-rg-spoke-italynorth --name
 az container logs --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal
 
 # Test manualmente gli endpoint
-curl -s http://10.172.5.4:5000/api/health
+curl -s http://10.172.5.5:5000/api/health
 curl -s http://4.232.3.251:5000/api/health
 ```
 

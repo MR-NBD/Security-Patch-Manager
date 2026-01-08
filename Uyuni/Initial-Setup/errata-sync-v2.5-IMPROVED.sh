@@ -31,7 +31,7 @@ ERROR_LOG="/var/log/errata-sync-errors.log"
 
 # API Endpoints (modifica con i tuoi IP)
 PUBLIC_API="${PUBLIC_API:-http://4.232.3.251:5000}"        # Container pubblico (USN, DSA, NVD, OVAL)
-INTERNAL_API="${INTERNAL_API:-http://10.172.5.4:5000}"    # Container interno (UYUNI push, Cache)
+INTERNAL_API="${INTERNAL_API:-http://10.172.5.5:5000}"    # Container interno (UYUNI push, Cache)
 
 # Timeouts (secondi)
 TIMEOUT_HEALTH=30
