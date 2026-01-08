@@ -30,8 +30,8 @@ LOCK_FILE="/var/run/errata-sync.lock"
 ERROR_LOG="/var/log/errata-sync-errors.log"
 
 # API Endpoints (modifica con i tuoi IP)
-PUBLIC_API="${PUBLIC_API:-http://4.232.4.142:5000}"        # Container pubblico (USN, DSA, NVD)
-INTERNAL_API="${INTERNAL_API:-http://10.172.5.4:5000}"    # Container interno (UYUNI push)
+PUBLIC_API="${PUBLIC_API:-http://4.232.3.251:5000}"        # Container pubblico (USN, DSA, NVD, OVAL)
+INTERNAL_API="${INTERNAL_API:-http://10.172.5.4:5000}"    # Container interno (UYUNI push, Cache)
 
 # Timeouts (secondi)
 TIMEOUT_HEALTH=30
@@ -236,6 +236,7 @@ sync_dsa_full() {
 
 sync_nvd() {
     log_info "========== SYNCING NVD CVE DATA =========="
+    log_info "Using PUBLIC container (has internet access)"
 
     local batch_size=100
     local total_processed=0
@@ -243,7 +244,7 @@ sync_nvd() {
 
     while $continue_sync; do
         local response
-        if response=$(call_api "POST" "$INTERNAL_API/api/sync/nvd?batch_size=$batch_size&prioritize=true" "$TIMEOUT_NVD" "NVD Sync Batch"); then
+        if response=$(call_api "POST" "$PUBLIC_API/api/sync/nvd?batch_size=$batch_size&prioritize=true" "$TIMEOUT_NVD" "NVD Sync Batch"); then
             local processed
             processed=$(echo "$response" | jq -r '.processed // 0')
             total_processed=$((total_processed + processed))
@@ -265,9 +266,10 @@ sync_nvd() {
 
 sync_oval() {
     log_info "========== SYNCING OVAL DEFINITIONS =========="
+    log_info "Using PUBLIC container (has internet access)"
 
     local response
-    if response=$(call_api "POST" "$INTERNAL_API/api/sync/oval?platform=all" "$TIMEOUT_OVAL" "OVAL Sync"); then
+    if response=$(call_api "POST" "$PUBLIC_API/api/sync/oval?platform=all" "$TIMEOUT_OVAL" "OVAL Sync"); then
         local processed
         processed=$(echo "$response" | jq -r '.total_processed // 0')
 
