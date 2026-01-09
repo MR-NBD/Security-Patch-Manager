@@ -1,3 +1,4 @@
+cat > app-v2.5-IMPROVED.py << 'EOF'
 #!/usr/bin/env python3
 """
 UYUNI Errata Manager - Enhanced API v2.5 - IMPROVED
@@ -1238,3 +1239,4 @@ def sync_status():
 if __name__ == '__main__':
     logger.info("Starting UYUNI Errata Manager API v2.5")
     app.run(host='0.0.0.0', port=5000, debug=False)
+EOF
