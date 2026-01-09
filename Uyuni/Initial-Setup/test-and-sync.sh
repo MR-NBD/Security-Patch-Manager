@@ -6,7 +6,7 @@
 # (es: server UYUNI 10.172.2.5)
 #
 # ARCHITETTURA A 2 CONTAINER:
-# - Container PUBBLICO (4.232.3.251): Sync esterni (USN, DSA, NVD, OVAL)
+# - Container PUBBLICO (4.232.4.32): Sync esterni (USN, DSA, NVD, OVAL)
 # - Container INTERNO (10.172.5.4): Push UYUNI + Cache pacchetti
 ################################################################################
 
@@ -15,7 +15,7 @@ set -euo pipefail
 # ============================================================
 # CONFIGURAZIONE
 # ============================================================
-PUBLIC_API="http://4.232.3.251:5000"
+PUBLIC_API="http://4.232.4.32:5000"
 INTERNAL_API="http://10.172.5.5:5000"
 
 TIMEOUT_HEALTH=30

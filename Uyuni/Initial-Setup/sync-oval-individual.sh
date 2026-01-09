@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-PUBLIC_API="http://4.232.3.251:5000"
+PUBLIC_API="http://4.232.4.32:5000"
 TIMEOUT=1800  # 30 minuti per piattaforma
 
 # Colori

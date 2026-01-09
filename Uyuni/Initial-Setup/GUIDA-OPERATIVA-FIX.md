@@ -7,7 +7,7 @@
 | Container | Stato | IP | Image |
 |-----------|-------|-----|-------|
 | **aci-errata-api-internal** | ✅ Running | 10.172.5.5 | acaborerrata.azurecr.io/errata-api:v2.5-fixed |
-| **aci-errata-api** (pubblico) | ✅ Running | 4.232.3.251 | acaborerrata.azurecr.io/errata-api:v2.5-fixed |
+| **aci-errata-api** (pubblico) | ✅ Running | 4.232.4.32 | acaborerrata.azurecr.io/errata-api:v2.5-fixed |
 
 ### 🐛 Problemi Identificati e Risolti
 
@@ -21,7 +21,7 @@
 - Errore: `[Errno 101] Network is unreachable` quando prova a scaricare OVAL
 
 **Fix**: ✅ Script aggiornati per usare architettura a 2 container corretta:
-- **Container PUBBLICO** (4.232.3.251): Sync esterni (USN, DSA, NVD, OVAL)
+- **Container PUBBLICO** (4.232.4.32): Sync esterni (USN, DSA, NVD, OVAL)
 - **Container INTERNO** (10.172.5.5): Push UYUNI + Cache pacchetti
 
 #### 3. ❌ OVAL definitions non sincronizzate
@@ -132,7 +132,7 @@ cat > /etc/cron.d/errata-sync << 'EOF'
 
 # Quick sync settimanale (mercoledì)
 # Ogni mercoledì alle 02:00
-0 2 * * 3 root PUBLIC_API=http://4.232.3.251:5000 INTERNAL_API=http://10.172.5.5:5000 /root/test-and-sync.sh quick >> /var/log/errata-sync-quick.log 2>&1
+0 2 * * 3 root PUBLIC_API=http://4.232.4.32:5000 INTERNAL_API=http://10.172.5.5:5000 /root/test-and-sync.sh quick >> /var/log/errata-sync-quick.log 2>&1
 EOF
 
 # Verifica cron installato

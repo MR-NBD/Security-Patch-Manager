@@ -8,7 +8,7 @@
 │                                                         │
 │  ┌──────────────────────────────────────┐              │
 │  │  Container PUBBLICO                  │              │
-│  │  IP: 4.232.3.251 (pubblico)         │              │
+│  │  IP: 4.232.4.32 (pubblico)         │              │
 │  │                                      │              │
 │  │  - Sync USN (Ubuntu)                │              │
 │  │  - Sync DSA (Debian)                │              │
@@ -46,7 +46,7 @@
 ### FASE 1: Sync Esterni (Da Azure Cloud Shell o PC)
 
 **Script**: `remote-sync.sh`
-**Container**: Pubblico (4.232.3.251)
+**Container**: Pubblico (4.232.4.32)
 **Dove**: Azure Cloud Shell, tuo PC, CI/CD pipeline
 
 ```bash
@@ -181,7 +181,7 @@ Opzioni:
 Esempio Azure Automation:
 ```powershell
 # Runbook PowerShell
-$uri = "http://4.232.3.251:5000/api/sync"
+$uri = "http://4.232.4.32:5000/api/sync"
 
 # Sync USN
 Invoke-RestMethod -Method POST -Uri "$uri/usn"
@@ -205,7 +205,7 @@ Invoke-RestMethod -Method POST -Uri "$uri/nvd?batch_size=100&prioritize=true"
 **Da PC/Cloud Shell** (container pubblico):
 ```bash
 ./remote-sync.sh test
-curl -s http://4.232.3.251:5000/api/health
+curl -s http://4.232.4.32:5000/api/health
 ```
 
 **Da Server UYUNI** (container interno):

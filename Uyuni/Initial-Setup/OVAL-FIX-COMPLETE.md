@@ -382,9 +382,9 @@ NEW_IP=$(az container show \
   -o tsv)
 
 # Update tutti gli script
-sed -i "s|http://4.232.3.251|http://$NEW_IP|g" remote-sync.sh
-sed -i "s|http://4.232.3.251|http://$NEW_IP|g" errata-sync-v2.5-IMPROVED.sh
-sed -i "s|http://4.232.3.251|http://$NEW_IP|g" sync-oval-individual.sh
+sed -i "s|http://4.232.4.32|http://$NEW_IP|g" remote-sync.sh
+sed -i "s|http://4.232.4.32|http://$NEW_IP|g" errata-sync-v2.5-IMPROVED.sh
+sed -i "s|http://4.232.4.32|http://$NEW_IP|g" sync-oval-individual.sh
 ```
 
 ---

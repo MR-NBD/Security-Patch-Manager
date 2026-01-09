@@ -7,7 +7,7 @@ Durante il riavvio dei container, l'IP del **container interno è cambiato**:
 | Container | IP Vecchio | IP Nuovo | Stato |
 |-----------|------------|----------|-------|
 | **Container Interno** | ~~10.172.5.4~~ | **10.172.5.5** | ✅ Running |
-| **Container Pubblico** | 4.232.3.251 | 4.232.3.251 | ✅ Running |
+| **Container Pubblico** | 4.232.4.32 | 4.232.4.32 | ✅ Running |
 
 ---
 
@@ -113,7 +113,7 @@ Attualmente non disponibile per ACI in VNET private.
 
 3. **Gli script ora sono variabili d'ambiente**:
    ```bash
-   PUBLIC_API="http://4.232.3.251:5000" INTERNAL_API="http://10.172.5.5:5000" /root/test-and-sync.sh test
+   PUBLIC_API="http://4.232.4.32:5000" INTERNAL_API="http://10.172.5.5:5000" /root/test-and-sync.sh test
    ```
 
 4. **Monitorare restart dei container**:
