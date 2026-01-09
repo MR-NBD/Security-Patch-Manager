@@ -44,10 +44,15 @@ echo "======================================================"
 echo ""
 log_info "This script will:"
 log_info "  1. Build new image with 30-min timeout"
-log_info "  2. Redeploy public container"
+log_info "  2. Redeploy public container with 2GB RAM"
 log_info "  3. Test OVAL sync (all platforms)"
 echo ""
 log_warn "Estimated time: 20-30 minutes total"
+log_info ""
+log_info "Improvements:"
+log_info "  - Worker timeout: 1800s (30 minutes)"
+log_info "  - Memory: 2GB (fixes OOM on large OVAL files)"
+log_info "  - Supports ALL platforms including debian-bullseye"
 echo ""
 
 # Se DATABASE_URL fornito come parametro, mostralo
@@ -250,7 +255,7 @@ if az container create \
     --registry-password "$ACR_PASSWORD" \
     --os-type Linux \
     --cpu 1 \
-    --memory 1.5 \
+    --memory 2 \
     --ports 5000 \
     --ip-address Public \
     --restart-policy Always \
@@ -369,6 +374,7 @@ log_success "Container: $CONTAINER_PUBLIC"
 log_success "Image: $ACR_NAME.azurecr.io/$IMAGE_NAME:$NEW_TAG"
 log_success "IP: $NEW_IP"
 log_success "Timeout: 1800 seconds (30 minutes)"
+log_success "Memory: 2GB (fixes OOM issues)"
 log_success "Database: ${DB_URL:0:50}..."
 echo ""
 log_info "If IP changed, update your scripts:"

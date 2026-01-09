@@ -83,6 +83,7 @@ Step 2/10 : RUN apt-get update...
 ```
 [INFO] Deploying container with new image...
 [INFO] Image: acaborerrata.azurecr.io/errata-api:v2.5-oval-fixed
+[INFO] Memory: 2GB (fixes OOM issues)
 
 [SUCCESS] Container deployed successfully!
 [SUCCESS] Container started with IP: 4.232.X.X

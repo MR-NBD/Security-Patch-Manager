@@ -32,6 +32,20 @@ CMD ["gunicorn", "--timeout", "1800", ...]
 - ✅ Nessun timeout su file grandi
 - ✅ Soluzione permanente
 
+### Fix 2: Aumento Memoria Container (2GB)
+
+**File**: `deploy-oval-fix.sh`
+
+```bash
+# Memoria aumentata da 1.5GB a 2GB
+--memory 2
+```
+
+**Impatto**:
+- ✅ Risolve Out Of Memory su file OVAL enormi (debian-bullseye)
+- ✅ Supporta file con 40k+ definitions (debian-bookworm)
+- ✅ Processing stabile senza crash
+
 ---
 
 ## 🚀 DEPLOYMENT

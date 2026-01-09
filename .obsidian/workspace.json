@@ -41,12 +41,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md",
+                "file": "Uyuni/Initial-Setup/READY-TO-DEPLOY.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "GUIDA-OPERATIVA-FIX"
+              "title": "READY-TO-DEPLOY"
             }
           }
         ],
@@ -226,6 +226,10 @@
   },
   "active": "4ce1f69bdba65e00",
   "lastOpenFiles": [
+    "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md",
+    "Uyuni/Initial-Setup/READY-TO-DEPLOY.md",
+    "Uyuni/Initial-Setup/OVAL-FIX-COMPLETE.md.tmp.1320075.1767955189401",
+    "Uyuni/Initial-Setup/deploy-oval-fix.sh.tmp.1320075.1767955079936",
     "Uyuni/Initial-Setup/QUICK-REFERENCE-DEPLOYMENT.md",
     "Uyuni/Initial-Setup/QUICK-REFERENCE-DEPLOYMENT.md.tmp.1320075.1767949438986",
     "Uyuni/Initial-Setup/deploy-oval-fix.sh.tmp.1320075.1767949383444",
@@ -236,13 +240,10 @@
     "Uyuni/Initial-Setup/OVAL-FIX-COMPLETE.md",
     "Uyuni/Initial-Setup/OVAL-FIX-COMPLETE.md.tmp.1320075.1767948999981",
     "Uyuni/Initial-Setup/deploy-oval-fix.sh",
-    "Uyuni/Initial-Setup/fix-container-timeout.sh",
-    "Uyuni/Initial-Setup/Dockerfile.api-timeout-fix",
     "Uyuni/Initial-Setup/WORKFLOW-CORRETTO.md",
     "Uyuni/Initial-Setup/README-FIX-08-01-2026.md",
     "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md",
     "Uyuni/Initial-Setup/IP-CHANGE-NOTICE.md",
-    "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md",
     "Uyuni/Initial-Setup/RICHIESTA-NAT-GATEWAY-PSN.md",
     "Uyuni/Initial-Setup/README-v2.5-IMPROVEMENTS.md",
     "Utenze/ASL0603.md",
@@ -261,7 +262,6 @@
     "Uyuni/Initial-Setup/Installazione-UYUNI.md",
     "Uyuni/Configurazione-Ubuntu-24.04-UYUNI.md",
     "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docs/ESEMPI-QUERY.md",
-    "Uyuni/uyuni-errata-v2/uyuni-errata-v2/docs/GUIDA-IMPLEMENTAZIONE.md",
     "img/png6.png",
     "img/png4.png",
     "img/png3.png",
