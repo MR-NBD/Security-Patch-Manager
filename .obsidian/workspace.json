@@ -48,9 +48,21 @@
               "icon": "lucide-file",
               "title": "READY-TO-DEPLOY"
             }
+          },
+          {
+            "id": "f82b7bd2fdc5078e",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.11.4"
+              },
+              "icon": "lucide-book-up",
+              "title": "Note di rilascio 1.11.4"
+            }
           }
         ],
-        "currentTab": 2
+        "currentTab": 3
       }
     ],
     "direction": "vertical"
@@ -213,6 +225,7 @@
   },
   "left-ribbon": {
     "hiddenItems": {
+      "bases:Crea nuova Base": false,
       "switcher:Apri selezione rapida": false,
       "graph:Apri vista grafo": false,
       "canvas:Crea nuova lavagna": false,
@@ -220,18 +233,20 @@
       "templates:Inserisci modello": false,
       "command-palette:Apri riquadro comandi": false,
       "obsidian-excalidraw-plugin:New drawing": false,
-      "bases:Create new base": false,
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "4ce1f69bdba65e00",
+  "active": "f82b7bd2fdc5078e",
   "lastOpenFiles": [
+    "Uyuni/Initial-Setup/UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md",
+    "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md",
+    "Uyuni/Initial-Setup/IMPORTANTE.md",
+    "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
+    "Uyuni/Initial-Setup/READY-TO-DEPLOY.md",
     "Uyuni/Initial-Setup/sedNZOZ0w",
     "Uyuni/Initial-Setup/sedAx36TC",
     "Uyuni/Initial-Setup/sedqQaB2Y",
     "Uyuni/Initial-Setup/app-v2.5-IMPROVED-FIXED.py",
-    "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md",
-    "Uyuni/Initial-Setup/READY-TO-DEPLOY.md",
     "Uyuni/Initial-Setup/OVAL-FIX-COMPLETE.md.tmp.1320075.1767955189401",
     "Uyuni/Initial-Setup/deploy-oval-fix.sh.tmp.1320075.1767955079936",
     "Uyuni/Initial-Setup/QUICK-REFERENCE-DEPLOYMENT.md",
@@ -239,7 +254,6 @@
     "Uyuni/Initial-Setup/deploy-oval-fix.sh.tmp.1320075.1767949383444",
     "Uyuni/Initial-Setup/deploy-oval-fix.sh.tmp.1320075.1767949363820",
     "Uyuni/Initial-Setup/deploy-oval-fix.sh.tmp.1320075.1767949327552",
-    "Uyuni/Initial-Setup/deploy-oval-fix.sh.tmp.1320075.1767949308286",
     "Uyuni/Initial-Setup/OVAL-FIX-COMPLETE.md",
     "Uyuni/Initial-Setup/WORKFLOW-CORRETTO.md",
     "Uyuni/Initial-Setup/README-FIX-08-01-2026.md",
@@ -252,10 +266,7 @@
     "Uyuni/Configurazione-System-Ubuntu-24.04.md",
     "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
     "Uyuni/uyuni-client-management-guide.md",
-    "Uyuni/Initial-Setup/IMPORTANTE.md",
     "Uyuni/OLD/UYUNI-ERRATA-MANAGER-GUIDA-COMPLETA.md",
-    "Uyuni/Initial-Setup/UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md",
-    "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
     "Uyuni/UYUNI-Learning-Path.md",
     "Uyuni/Risorse.md",
     "GeneralDocumentation/Guide/OLD/Installation.md",
