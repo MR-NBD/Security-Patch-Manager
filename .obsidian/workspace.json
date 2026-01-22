@@ -197,6 +197,10 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
+    "Uyuni/Infrastructure-Design/SPM-Architecture-v2.drawio",
+    "Uyuni/Infrastructure-Design/SPM-Architecture-v2.drawio.tmp.2415.1769091914980",
+    "Uyuni/Infrastructure-Design/Security-Patch-Manager.png",
+    "Uyuni/Infrastructure-Design/SPM-Architecture.drawio.tmp.2415.1769091662947",
     "Uyuni/Infrastructure-Design/SPM-Architecture.drawio",
     "Uyuni/Infrastructure-Design/SPM-Architecture.drawio.tmp.2415.1769091333650",
     "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090942171",
@@ -206,7 +210,6 @@
     "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090751208",
     "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090719667",
     "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md",
-    "Uyuni/Infrastructure-Design",
     "Uyuni/README.md",
     "Uyuni/Initial-Setup/README.md",
     "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md",
@@ -216,8 +219,6 @@
     "Uyuni/Initial-Setup/docs/RICHIESTA-NAT-GATEWAY-PSN.md",
     "Uyuni/Initial-Setup/docs/README-v2.5-IMPROVEMENTS.md",
     "Uyuni/Initial-Setup/docs/DEPLOYMENT-GUIDE-v2.5.md",
-    "Uyuni/Initial-Setup/scripts/uyuni-server-sync.sh",
-    "Uyuni/Initial-Setup/scripts/test-and-sync.sh",
     "Uyuni/Initial-Setup/README-FIX-08-01-2026.md",
     "Uyuni/Initial-Setup/READY-TO-DEPLOY.md",
     "Uyuni/Initial-Setup/UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md",
@@ -241,7 +242,6 @@
     "img/png1.png",
     "img/image.png",
     "img/image-1 1.png",
-    "img/fwrule.png",
-    "img/HLD_SPM_v2.png"
+    "img/fwrule.png"
   ]
 }
