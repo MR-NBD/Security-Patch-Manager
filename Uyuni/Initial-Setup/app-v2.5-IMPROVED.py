@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-UYUNI Errata Manager - Enhanced API v2.5 - IMPROVED
+UYUNI Errata Manager - Enhanced API v2.6
 Integra: USN, DSA, NVD, OVAL con ASSOCIAZIONE PACCHETTI MIGLIORATA
++ P3 Patch Testing Module
+
+CHANGELOG v2.6:
+- NEW: P3 Patch Testing module integration
+- NEW: Automated patch testing in isolated environment
+- NEW: Pass/fail criteria evaluation
 
 CHANGELOG v2.5:
 - FIX #1: Version matching per associazione pacchetti (no più solo nome)
@@ -1235,6 +1241,18 @@ def sync_status():
     conn.close()
     return jsonify({'logs': logs})
 
+# ============================================================
+# P3 PATCH TESTING MODULE INTEGRATION
+# ============================================================
+try:
+    from p3_patch_testing import register_p3_blueprint
+    register_p3_blueprint(app)
+    logger.info("P3 Patch Testing module loaded successfully")
+except ImportError as e:
+    logger.warning(f"P3 Patch Testing module not available: {e}")
+except Exception as e:
+    logger.error(f"Failed to load P3 module: {e}")
+
 if __name__ == '__main__':
-    logger.info("Starting UYUNI Errata Manager API v2.5")
+    logger.info("Starting UYUNI Errata Manager API v2.6")
     app.run(host='0.0.0.0', port=5000, debug=False)
