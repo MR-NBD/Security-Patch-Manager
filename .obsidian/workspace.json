@@ -48,21 +48,9 @@
               "icon": "lucide-file",
               "title": "READY-TO-DEPLOY"
             }
-          },
-          {
-            "id": "f82b7bd2fdc5078e",
-            "type": "leaf",
-            "state": {
-              "type": "release-notes",
-              "state": {
-                "currentVersion": "1.11.4"
-              },
-              "icon": "lucide-book-up",
-              "title": "Note di rilascio 1.11.4"
-            }
           }
         ],
-        "currentTab": 3
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -236,7 +224,7 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "f82b7bd2fdc5078e",
+  "active": "4ce1f69bdba65e00",
   "lastOpenFiles": [
     "Uyuni/Initial-Setup/UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md",
     "Uyuni/Initial-Setup/GUIDA-OPERATIVA-FIX.md",
