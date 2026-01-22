@@ -160,7 +160,7 @@ def retry_with_backoff(max_attempts=3, initial_delay=2):
 # ============================================================
 @app.route('/api/health', methods=['GET'])
 def health():
-    status = {'api': 'ok', 'database': 'unknown', 'uyuni': 'unknown', 'version': '2.5'}
+    status = {'api': 'ok', 'database': 'unknown', 'uyuni': 'unknown', 'version': '2.6', 'modules': {'p3_patch_testing': 'unknown'}}
 
     try:
         conn = get_db()
@@ -183,6 +183,14 @@ def health():
     except Exception as e:
         status['uyuni'] = f'error: {str(e)}'
         logger.error(f"UYUNI health check failed: {e}")
+
+    # Check P3 module
+    try:
+        from p3_patch_testing import _active_tests
+        status['modules']['p3_patch_testing'] = 'ok'
+        status['modules']['p3_active_tests'] = len(_active_tests)
+    except:
+        status['modules']['p3_patch_testing'] = 'not loaded'
 
     return jsonify(status)
 
