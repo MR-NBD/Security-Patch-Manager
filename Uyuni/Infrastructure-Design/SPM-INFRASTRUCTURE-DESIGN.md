@@ -1,22 +1,72 @@
 # Security Patch Manager - Infrastructure Design
 
-## Azure Security-First Architecture
+## Azure Security-First Architecture (Conforme PSN)
 
-Questo documento definisce l'architettura infrastrutturale del Security Patch Manager (SPM) per ambienti B2B IaaS nel contesto PSN, rispettando i principi di sicurezza Azure.
+Questo documento definisce l'architettura infrastrutturale del Security Patch Manager (SPM) per ambienti B2B IaaS nel contesto PSN (Polo Strategico Nazionale), conforme alle linee guida Secure Public Cloud (SPC) Azure.
+
+**Riferimenti Normativi PSN:**
+- PSN_HLD Secure Public Cloud v1.3
+- PSN_LLD Network Secure Public Cloud Azure v1.0
+- PSN_LLD Secure Public Cloud Azure v1.2
+- PSN_LLD SPC Governance Model v1.0
+- PSN_LLD Servizio Gestione delle Chiavi v1.1
 
 ---
 
-## 1. PRINCIPI DI SICUREZZA AZURE APPLICATI
+## 1. PRINCIPI DI SICUREZZA AZURE APPLICATI (PSN Compliant)
 
-| Principio | Implementazione |
-|-----------|-----------------|
-| **Zero Trust** | Nessun IP pubblico per risorse interne, verifica identità sempre |
-| **Network Segmentation** | VNet separate, subnet dedicate, NSG per ogni subnet |
-| **Defense in Depth** | Multi-layer: NSG + Azure Firewall + Private Endpoints |
-| **Least Privilege** | RBAC granulare, Managed Identities, no permanent access |
-| **Encryption Everywhere** | TLS 1.3 in transit, encryption at rest con CMK |
-| **Private by Default** | Private Endpoints per tutti i servizi PaaS |
-| **Centralized Logging** | Log Analytics workspace condiviso |
+### 1.1 Principi Generali
+
+| Principio | Implementazione | Riferimento PSN |
+|-----------|-----------------|-----------------|
+| **Zero Trust** | Nessun IP pubblico per risorse interne, verifica identità sempre | BR-003, POG-PSN-023 |
+| **Network Segmentation** | VNet separate, subnet dedicate, NSG per ogni subnet | BR-001, BR-002 |
+| **Defense in Depth** | Multi-layer: NSG + Azure Firewall + Private Endpoints | BR-002.5, BR-002.6 |
+| **Least Privilege** | RBAC granulare, Managed Identities, no permanent access | BR-010, POG-PSN-012 |
+| **Encryption Everywhere** | TLS 1.3 in transit, encryption at rest con CMK/BYOK | SR-PSN-046, SR-PSN-047 |
+| **Private by Default** | Private Endpoints per tutti i servizi PaaS | POG-PSN-023 |
+| **Centralized Logging** | Log Analytics + Sentinel | SR-PSN-011, POG-PSN-002 |
+| **Data Sovereignty** | Tutti i dati risiedono su territorio italiano | BR-003, POG-PSN-007 |
+
+### 1.2 Requisiti di Business PSN (BR)
+
+| ID | Requisito | Applicazione SPM |
+|----|-----------|------------------|
+| **BR-001** | Soluzione Hub & Spoke | Architettura Master (Hub) + Client (Spoke) |
+| **BR-002** | Hub controlla traffico SUD/NORD, NORD/SUD, EST/OVEST | Firewall su Hub con NSG su ogni subnet |
+| **BR-002.5** | Traffico controllato tramite Firewall nell'Hub | Azure Firewall Premium in Tenant Master |
+| **BR-002.6** | Firewall NGFW con IDS/IPS | Firewall con threat intelligence enabled |
+| **BR-002.7** | Firewall logga tutto il traffico | Diagnostic logs → Log Analytics |
+| **BR-003** | Accesso admin via Bastion con 2FA + whitelist IP | Azure Bastion Standard + MFA + NSG whitelist |
+| **BR-004** | Policy che impediscono IP pubblici su risorse | Azure Policy deny public IP assignment |
+| **BR-005** | Lighthouse per monitoring PSN | Configurato per visibilità centralizzata |
+
+### 1.3 Requisiti di Sicurezza PSN (SR)
+
+| ID | Requisito | Implementazione |
+|----|-----------|-----------------|
+| **SR-PSN-017** | Network Security | NSG su ogni subnet, NGFW su Hub |
+| **SR-PSN-029** | Topologia Network | Hub & Spoke con peering |
+| **SR-PSN-045** | Network Security | Micro-segmentazione con NSG |
+| **SR-PSN-046** | Data Security | Encryption at rest con CMK |
+| **SR-PSN-047** | Chiavi di cifratura | BYOK via Thales CipherTrust Manager |
+| **SR-PSN-051** | Network Security | Traffico cifrato in transit (TLS 1.3) |
+| **SR-PSN-056** | Vulnerability Management | Integrato con SPM P2 prioritization |
+| **SR-PSN-060** | Logging | Log Analytics + Sentinel |
+
+### 1.4 Policy di Governance PSN (POG)
+
+| ID | Policy | Enforcement |
+|----|--------|-------------|
+| **POG-PSN-007** | Sovranità dati (Italy) | Azure Policy location = italynorth/italycentral |
+| **POG-PSN-014** | MFA obbligatoria | Conditional Access Policy |
+| **POG-PSN-017** | Accesso VM solo via Bastion | NSG deny SSH/RDP da internet |
+| **POG-PSN-019** | Traffico perimetrale controllato | Azure Firewall + UDR |
+| **POG-PSN-020** | IPS/IDS attivo | Azure Firewall Premium con threat intel |
+| **POG-PSN-021** | DDoS Protection | DDoS Protection Standard su VNet |
+| **POG-PSN-022** | WAF per servizi web | Application Gateway con WAF |
+| **POG-PSN-023** | No IP pubblici su risorse | Azure Policy deny |
+| **POG-PSN-024** | VNet protection | NSG + Service Endpoints |
 
 ---
 
@@ -169,7 +219,34 @@ Ogni tenant cliente ha una VNet spoke dedicata.
 
 ---
 
-## 4. NETWORK SECURITY DESIGN
+## 4. NETWORK SECURITY DESIGN (PSN Compliant)
+
+### 4.0 Azure Landing Zone Structure (PSN)
+
+L'architettura SPM si inserisce nella struttura Azure Landing Zone definita dal PSN:
+
+```
+Tenant Root Group
+└── Azure Landing Zones
+    ├── Platform (gestito PSN + PA)
+    │   ├── Identity (DNS Resolver, Azure AD)
+    │   ├── Management (Log Analytics, Sentinel)
+    │   └── Connectivity (Hub: Firewall, VPN Gateway, Bastion)
+    │
+    ├── Landing Zone (workload PA)
+    │   ├── Spoke-SPM-Master (SPM Server)
+    │   └── Spoke-SPM-Client-{N} (per ogni tenant)
+    │
+    └── Decommissioned
+```
+
+**Management Groups & Responsabilità:**
+
+| Management Group | PSN | Cliente PA | SPM |
+|------------------|-----|------------|-----|
+| Platform/Connectivity | ✓ | ✓ | - |
+| Platform/Management | ✓ | ✓ | Logs |
+| Landing Zone/Spoke-SPM | - | ✓ | ✓ |
 
 ### 4.1 Network Security Groups (NSG)
 
@@ -206,76 +283,164 @@ Ogni tenant cliente ha una VNet spoke dedicata.
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.2 Azure Private Link
+### 4.2 Azure Private Link (PSN Pattern)
 
-Comunicazione sicura tra Tenant Master e Tenant Client:
+Comunicazione sicura tra Tenant Master e Tenant Client secondo pattern PSN:
 
 ```
-Master Server ──► Private Link Service ──► Private Endpoint ──► Proxy Server
-                  (espone servizio)         (consuma servizio)
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    PRIVATE LINK ARCHITECTURE (PSN)                       │
+│                                                                          │
+│  TENANT MASTER (Hub)                    TENANT CLIENT (Spoke)           │
+│  ═══════════════════                    ═════════════════════           │
+│                                                                          │
+│  ┌──────────────────┐                   ┌──────────────────┐            │
+│  │  Master Server   │                   │  Proxy Server    │            │
+│  │  10.100.1.4      │                   │  10.172.1.4      │            │
+│  └────────┬─────────┘                   └────────▲─────────┘            │
+│           │                                      │                       │
+│           ▼                                      │                       │
+│  ┌──────────────────┐    Private Link   ┌───────┴────────┐             │
+│  │ Private Link     │◄─────────────────►│ Private        │             │
+│  │ Service          │                    │ Endpoint       │             │
+│  │ (Standard LB)    │                    │ 10.172.1.100   │             │
+│  └──────────────────┘                    └────────────────┘             │
+│           │                                      │                       │
+│           ▼                                      ▼                       │
+│  ┌──────────────────┐                   ┌────────────────┐              │
+│  │ Private DNS Zone │◄──────────────────│ DNS Resolver   │              │
+│  │ spm.privatelink  │    DNS forward    │ (Identity sub) │              │
+│  │ .azure.com       │                   └────────────────┘              │
+│  └──────────────────┘                                                    │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Configurazione:**
+**Configurazione (conforme BR-002.4):**
 - Private Link Service sul Master Server (port 443, 5000)
-- Private Endpoint nel Tenant Client
-- DNS privato per risoluzione nomi
+- Private Endpoint nel Tenant Client (Spoke)
+- Private DNS Zone per risoluzione nomi interna
+- DNS Resolver nella subscription Identity (per forwarding)
+- Nessun traffico transita su internet pubblico
 
-### 4.3 Azure Firewall (Hub)
+### 4.3 Azure Firewall (Hub) - PSN Requirements
 
-Se architettura Hub-Spoke completa:
+Conforme a BR-002.5, BR-002.6, BR-002.7, POG-PSN-019, POG-PSN-020:
 
 ```
-Internet ◄──► Azure Firewall ◄──► VNet-Master-Hub
-                    │
-                    └──► VNet-Client-Spoke (via peering)
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    FIREWALL ARCHITECTURE (PSN)                           │
+│                                                                          │
+│                          ┌───────────────┐                               │
+│                          │   INTERNET    │                               │
+│                          └───────┬───────┘                               │
+│                                  │                                       │
+│                          ┌───────▼───────┐                               │
+│                          │ Azure Firewall│                               │
+│                          │   Premium     │                               │
+│                          │  (Hub VNet)   │                               │
+│                          │               │                               │
+│                          │ • NGFW        │                               │
+│                          │ • IDS/IPS     │ ◄── SR-PSN-017, POG-PSN-020  │
+│                          │ • Threat Intel│                               │
+│                          │ • TLS Inspect │                               │
+│                          └───────┬───────┘                               │
+│                                  │                                       │
+│        ┌─────────────────────────┼─────────────────────────┐            │
+│        │                         │                         │            │
+│        ▼                         ▼                         ▼            │
+│  ┌───────────┐            ┌───────────┐            ┌───────────┐        │
+│  │ Spoke-SPM │            │ Spoke-SPM │            │ Spoke-PA  │        │
+│  │  Master   │◄──────────►│  Client   │            │ Workload  │        │
+│  └───────────┘  peering   └───────────┘            └───────────┘        │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Rules:**
-- DNAT: nessuna (no inbound da internet)
-- Application Rules:
-  - Allow ubuntu.com/security/* (USN sync)
-  - Allow security-tracker.debian.org (DSA sync)
-  - Allow nvd.nist.gov (NVD sync)
-  - Allow security-metadata.canonical.com (OVAL sync)
-- Network Rules:
-  - Allow TCP 443 outbound per sync
+**Azure Firewall Premium Configuration (PSN Compliant):**
+
+| Tipo | Regola | Direzione | Riferimento |
+|------|--------|-----------|-------------|
+| **DNAT** | Nessuna | - | POG-PSN-023 (no IP pubblici) |
+| **Network** | Allow TCP 443 to Internet | Outbound | Sync USN/DSA/NVD |
+| **Network** | Allow TCP 5432 Hub→Data subnet | Internal | PostgreSQL |
+| **Network** | Allow TCP 443,5000 Spoke→Hub | Internal | API SPM |
+| **Application** | Allow ubuntu.com/security/* | Outbound | USN sync |
+| **Application** | Allow security-tracker.debian.org | Outbound | DSA sync |
+| **Application** | Allow nvd.nist.gov | Outbound | NVD sync |
+| **Application** | Allow security-metadata.canonical.com | Outbound | OVAL sync |
+
+**Logging (BR-002.7):**
+- Tutti i log → Log Analytics Workspace
+- Retention: minimo 90 giorni
+- Alert su: deny events, IDS/IPS triggers, anomalies
+
+**Threat Intelligence (POG-PSN-020):**
+- Mode: Alert and Deny
+- Feed: Microsoft Threat Intelligence
+- Categories: Malware, C2, Phishing
 
 ---
 
-## 5. IDENTITY & ACCESS MANAGEMENT
+## 5. IDENTITY & ACCESS MANAGEMENT (PSN Compliant)
 
 ### 5.1 Azure AD / Entra ID Integration
 
+Conforme a SR-PSN-036 → SR-PSN-044, POG-PSN-008 → POG-PSN-016:
+
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    IDENTITY ARCHITECTURE                         │
-│                                                                  │
-│  ┌─────────────────┐     ┌─────────────────┐                    │
-│  │ Azure AD Tenant │     │ Azure AD Groups │                    │
-│  │                 │     │                 │                    │
-│  │ ┌─────────────┐ │     │ SPM-Admins      │──► Full Access     │
-│  │ │ Users       │ │     │ SPM-Operators   │──► P2,P3,P4 only   │
-│  │ │ ──────────  │ │     │ SPM-Viewers     │──► Read-only       │
-│  │ │ admin@...   │ │     │ SPM-Auditors    │──► Logs only       │
-│  │ │ operator@...│ │     └─────────────────┘                    │
-│  │ └─────────────┘ │                                             │
-│  └─────────────────┘                                             │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────────┐│
-│  │ Managed Identities                                          ││
-│  │ ─────────────────                                           ││
-│  │                                                              ││
-│  │  Master-Server-MI ──► KeyVault: Get secrets                 ││
-│  │                   ──► Storage: Read/Write blobs             ││
-│  │                   ──► PostgreSQL: db_owner                  ││
-│  │                                                              ││
-│  │  Proxy-Server-MI  ──► KeyVault: Get secrets                 ││
-│  │                   ──► Master API: Authenticated calls       ││
-│  │                   ──► VM Snapshots: Create/Delete           ││
-│  │                                                              ││
-│  └─────────────────────────────────────────────────────────────┘│
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    IDENTITY ARCHITECTURE (PSN)                           │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │                    AZURE AD TENANT (PA)                          │    │
+│  │  ┌─────────────────┐     ┌─────────────────┐                    │    │
+│  │  │ Privileged      │     │ Azure AD Groups │                    │    │
+│  │  │ Identity Mgmt   │     │ (RBAC)          │                    │    │
+│  │  │ (PIM)           │     │                 │                    │    │
+│  │  │ ═══════════════ │     │ SPM-Admins      │──► Full Access     │    │
+│  │  │ • JIT Access    │     │ SPM-Operators   │──► P2,P3,P4 only   │    │
+│  │  │ • Time-limited  │     │ SPM-Viewers     │──► Read-only       │    │
+│  │  │ • Approval req. │     │ SPM-Auditors    │──► Logs only       │    │
+│  │  └─────────────────┘     └─────────────────┘                    │    │
+│  │                                                                  │    │
+│  │  MFA OBBLIGATORIA (POG-PSN-014)                                 │    │
+│  │  ════════════════════════════════                               │    │
+│  │  • Conditional Access: Require MFA for all users                │    │
+│  │  • Bastion access: 2FA + IP whitelist (BR-003)                  │    │
+│  │  • Admin roles: Always require MFA                              │    │
+│  │                                                                  │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │ Managed Identities (SR-PSN-036)                                 │    │
+│  │ ═══════════════════════════════                                 │    │
+│  │                                                                  │    │
+│  │  Master-Server-MI ──► KeyVault: Get secrets                     │    │
+│  │                   ──► Storage: Read/Write blobs                 │    │
+│  │                   ──► PostgreSQL: db_owner                      │    │
+│  │                                                                  │    │
+│  │  Proxy-Server-MI  ──► KeyVault: Get secrets                     │    │
+│  │                   ──► Master API: Authenticated calls           │    │
+│  │                   ──► VM Snapshots: Create/Delete               │    │
+│  │                                                                  │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────┐    │
+│  │ Azure Lighthouse (BR-005) - PSN Monitoring                      │    │
+│  │ ═════════════════════════════════════════                       │    │
+│  │                                                                  │    │
+│  │  PSN Provider Tenant ──► Delegated access to:                   │    │
+│  │                         • Platform/Management (Log Analytics)   │    │
+│  │                         • Platform/Connectivity (Network)       │    │
+│  │                         • Security posture monitoring           │    │
+│  │                                                                  │    │
+│  │  Scope: Reader + Security Reader                                │    │
+│  │  NO write access to customer workloads                          │    │
+│  │                                                                  │    │
+│  └─────────────────────────────────────────────────────────────────┘    │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 5.2 RBAC Assignments
@@ -289,74 +454,191 @@ Internet ◄──► Azure Firewall ◄──► VNet-Master-Hub
 
 ---
 
-## 6. DATA PROTECTION
+## 6. DATA PROTECTION (PSN BYOK)
 
-### 6.1 Azure Key Vault
+### 6.1 Key Management System (PSN Architecture)
+
+Conforme a SR-PSN-046 → SR-PSN-050, BR-001 → BR-007 del LLD Gestione Chiavi:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    KEY MANAGEMENT SYSTEM (PSN)                           │
+│                                                                          │
+│  PSN Data Center (On-Premise)           Azure Secure Public Cloud       │
+│  ════════════════════════════           ═════════════════════════       │
+│                                                                          │
+│  ┌─────────────────────┐               ┌─────────────────────┐          │
+│  │ Thales Luna HSM     │               │ Azure Managed HSM   │          │
+│  │ (Root of Trust)     │───BYOK───────►│ (Azure Key Vault    │          │
+│  │                     │               │  Premium)           │          │
+│  │ • FIPS 140-2 L3     │               │                     │          │
+│  │ • Region Nord+Sud   │               │ • CMK per storage   │          │
+│  └─────────────────────┘               │ • CMK per database  │          │
+│           │                            │ • CMK per VM disks  │          │
+│           ▼                            └─────────────────────┘          │
+│  ┌─────────────────────┐                        │                       │
+│  │ CipherTrust Manager │                        │                       │
+│  │ (Key Lifecycle)     │                        ▼                       │
+│  │                     │               ┌─────────────────────┐          │
+│  │ • Key generation    │               │ SPM Resources       │          │
+│  │ • Key rotation      │               │ • PostgreSQL (TDE)  │          │
+│  │ • Key revocation    │               │ • Storage (SSE)     │          │
+│  │ • Audit logging     │               │ • VM Disks (ADE)    │          │
+│  └─────────────────────┘               └─────────────────────┘          │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Requisiti BYOK (BR-001, BR-002):**
+- Chiavi generate e archiviate ESTERNAMENTE al CSP
+- Chiavi sotto pieno controllo del PSN
+- Residenza chiavi: territorio italiano
+
+### 6.2 Azure Key Vault Premium (SPM)
 
 Secrets gestiti:
 
-| Secret | Uso |
-|--------|-----|
-| `db-connection-string` | PostgreSQL connection |
-| `uyuni-api-password` | UYUNI XML-RPC auth |
-| `nvd-api-key` | NVD API authentication |
-| `ssh-private-key` | Accesso VM Linux |
-| `winrm-credentials` | Accesso VM Windows |
+| Secret | Uso | Encryption |
+|--------|-----|------------|
+| `db-connection-string` | PostgreSQL connection | RSA-HSM |
+| `uyuni-api-password` | UYUNI XML-RPC auth | RSA-HSM |
+| `nvd-api-key` | NVD API authentication | RSA-HSM |
+| `ssh-private-key` | Accesso VM Linux | RSA-HSM |
+| `winrm-credentials` | Accesso VM Windows | RSA-HSM |
 
-**Access Policy:**
+**Access Policy (conforme SR-PSN-042):**
 - Master-Server-MI: Get, List
 - Proxy-Server-MI: Get
-- SPM-Admins: All operations
+- SPM-Admins: All operations (via PIM JIT)
 
-### 6.2 Encryption
+### 6.3 Encryption Matrix (PSN Compliant)
 
-| Data | Encryption |
-|------|------------|
-| PostgreSQL | TDE + CMK |
-| Blob Storage | SSE + CMK |
-| VM Disks | Azure Disk Encryption |
-| In Transit | TLS 1.3 |
+| Data | Encryption | Key Source | Riferimento PSN |
+|------|------------|------------|-----------------|
+| PostgreSQL | TDE + CMK | BYOK (HSM) | SR-PSN-047 |
+| Blob Storage | SSE + CMK | BYOK (HSM) | SR-PSN-046 |
+| VM Disks | Azure Disk Encryption | CMK | SR-PSN-046 |
+| In Transit | TLS 1.3 | - | SR-PSN-051 |
+| Backup | Encrypted at rest | BYOK | SR-PSN-058 |
+
+### 6.4 Data Classification (PSN)
+
+| Tipo Dato | Protezione | Requisito |
+|-----------|------------|-----------|
+| Dati ordinari | At-rest + In-transit | TDE + TLS |
+| Dati critici | At-rest + In-transit + In-use | + Confidential Computing |
 
 ---
 
-## 7. MONITORING & LOGGING
+## 7. MONITORING & LOGGING (PSN SOC Integration)
 
-### 7.1 Log Analytics Workspace
+### 7.1 Log Analytics Workspace + Microsoft Sentinel
 
-Tutti i log centralizzati:
+Conforme a SR-PSN-011 → SR-PSN-016, POG-PSN-002 → POG-PSN-004:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                 LOG ANALYTICS WORKSPACE                          │
-│                 ═══════════════════════                          │
-│                                                                  │
-│  Sources:                                                        │
-│  ├── Azure Activity Logs                                         │
-│  ├── NSG Flow Logs                                               │
-│  ├── Azure Firewall Logs                                         │
-│  ├── VM Diagnostics (Azure Monitor Agent)                        │
-│  ├── PostgreSQL Logs                                             │
-│  ├── Key Vault Audit Logs                                        │
-│  └── Application Logs (SPM API)                                  │
-│                                                                  │
-│  Alerts:                                                         │
-│  ├── Failed patch deployment                                     │
-│  ├── P3 test failure                                             │
-│  ├── Unauthorized access attempt                                 │
-│  ├── NSG deny events spike                                       │
-│  └── VM health degradation                                       │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│           SECURITY MONITORING ARCHITECTURE (PSN)                         │
+│                                                                          │
+│  ┌───────────────────────────────────────────────────────────────┐      │
+│  │              LOG ANALYTICS WORKSPACE                           │      │
+│  │              (Subscription: Management)                        │      │
+│  │              ═══════════════════════════                       │      │
+│  │                                                                │      │
+│  │  Data Sources:                                                 │      │
+│  │  ├── Azure Activity Logs                                       │      │
+│  │  ├── Azure AD Sign-in & Audit Logs (SR-PSN-022)               │      │
+│  │  ├── NSG Flow Logs (SR-PSN-017)                               │      │
+│  │  ├── Azure Firewall Logs (BR-002.7)                           │      │
+│  │  ├── VM Diagnostics (Azure Monitor Agent)                     │      │
+│  │  ├── PostgreSQL Logs                                          │      │
+│  │  ├── Key Vault Audit Logs                                     │      │
+│  │  └── Application Logs (SPM API)                               │      │
+│  │                                                                │      │
+│  │  Solutions Enabled:                                            │      │
+│  │  ├── AgentHealthAssessment                                    │      │
+│  │  ├── AntiMalware                                              │      │
+│  │  ├── AzureActivity                                            │      │
+│  │  ├── ChangeTracking                                           │      │
+│  │  ├── Security                                                 │      │
+│  │  ├── SecurityInsights (Sentinel)                              │      │
+│  │  ├── SQLAdvancedThreatProtection                              │      │
+│  │  ├── SQLVulnerabilityAssessment                               │      │
+│  │  └── VMInsight                                                │      │
+│  │                                                                │      │
+│  └───────────────────────────────────────────────────────────────┘      │
+│                              │                                           │
+│                              ▼                                           │
+│  ┌───────────────────────────────────────────────────────────────┐      │
+│  │              MICROSOFT SENTINEL                                │      │
+│  │              ══════════════════                                │      │
+│  │                                                                │      │
+│  │  Connectors:                                                   │      │
+│  │  ├── Azure Activity                                           │      │
+│  │  ├── Azure AD Identity Protection                             │      │
+│  │  ├── Microsoft Defender for Cloud                             │      │
+│  │  ├── Azure Firewall                                           │      │
+│  │  └── Custom (SPM API logs)                                    │      │
+│  │                                                                │      │
+│  │  Analytics Rules (SPM Specific):                              │      │
+│  │  ├── Failed patch deployment pattern                          │      │
+│  │  ├── P3 test anomalies                                        │      │
+│  │  ├── Unauthorized API access                                  │      │
+│  │  ├── Mass SSH failures to VMs                                 │      │
+│  │  └── Privilege escalation attempts                            │      │
+│  │                                                                │      │
+│  │  Playbooks (SOAR):                                            │      │
+│  │  ├── Auto-isolate compromised VM                              │      │
+│  │  ├── Notify SOC on critical alert                             │      │
+│  │  └── Auto-block IP on brute force                             │      │
+│  │                                                                │      │
+│  └───────────────────────────────────────────────────────────────┘      │
+│                              │                                           │
+│                              ▼                                           │
+│  ┌───────────────────────────────────────────────────────────────┐      │
+│  │              PSN SOC (via Lighthouse)                          │      │
+│  │              ════════════════════════                          │      │
+│  │                                                                │      │
+│  │  • Security posture monitoring (POG-PSN-002)                  │      │
+│  │  • Workload security monitoring (POG-PSN-003)                 │      │
+│  │  • Security alerts notification (POG-PSN-004)                 │      │
+│  │                                                                │      │
+│  └───────────────────────────────────────────────────────────────┘      │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 7.2 Azure Monitor Alerts
+### 7.2 Microsoft Defender for Cloud
 
-| Alert | Condition | Action |
-|-------|-----------|--------|
-| Patch Deployment Failed | Custom metric from API | Email + Teams |
-| P3 Test Failed | Custom metric | Email |
-| High CPU on Master | CPU > 80% for 5min | Email |
-| DB Connection Failed | Availability < 99% | PagerDuty |
+Conforme a SR-PSN-013, SR-PSN-021, SR-PSN-023:
+
+| Feature | Status | Riferimento |
+|---------|--------|-------------|
+| Defender for Servers | Enabled (P2) | SR-PSN-021 |
+| Defender for Databases | Enabled | SQL threat detection |
+| Defender for Key Vault | Enabled | Secret access anomaly |
+| Vulnerability Assessment | Enabled | SR-PSN-023, SR-PSN-056 |
+| Secure Score monitoring | Active | POG-PSN-002 |
+
+### 7.3 Azure Monitor Alerts (SPM Specific)
+
+| Alert | Condition | Severity | Action |
+|-------|-----------|----------|--------|
+| Patch Deployment Failed | Custom metric from API | Sev 1 | SOC + Email |
+| P3 Test Failed | Custom metric | Sev 2 | Email |
+| High CPU on Master | CPU > 80% for 5min | Sev 3 | Email |
+| DB Connection Failed | Availability < 99% | Sev 1 | SOC + PagerDuty |
+| NSG Deny Spike | > 100 denies in 5min | Sev 2 | SOC |
+| Brute Force Detected | > 10 failed SSH in 1min | Sev 1 | Auto-block + SOC |
+
+### 7.4 Log Retention (SR-PSN-060)
+
+| Log Type | Retention | Storage |
+|----------|-----------|---------|
+| Security Logs | 365 giorni | Log Analytics + Archive |
+| Activity Logs | 90 giorni | Log Analytics |
+| Firewall Logs | 90 giorni | Log Analytics |
+| Application Logs | 30 giorni | Log Analytics |
 
 ---
 
@@ -514,7 +796,102 @@ Test VM creata ──► Test eseguito ──► Test completato ──► VM el
 
 ---
 
-## 12. COMPLIANCE MAPPING
+## 12. AZURE POLICY (PSN Enforcement)
+
+### 12.1 Policy Assignments (Landing Zone)
+
+Conforme al modello Policy Driven Governance del PSN:
+
+| Policy | Scope | Effect | Riferimento |
+|--------|-------|--------|-------------|
+| **Deny-PublicIP** | All subscriptions | Deny | POG-PSN-023 |
+| **Deny-RDP-From-Internet** | All subscriptions | Deny | POG-PSN-017 |
+| **Deny-SSH-From-Internet** | All subscriptions | Deny | POG-PSN-017 |
+| **Allowed-Locations** | All subscriptions | Deny (only italynorth) | POG-PSN-007 |
+| **Require-NSG-On-Subnet** | All subscriptions | Audit/Deny | SR-PSN-045 |
+| **Deploy-DiagSettings-LogAnalytics** | All subscriptions | DeployIfNotExists | SR-PSN-060 |
+| **Require-TLS-1.2-Minimum** | All subscriptions | Deny | SR-PSN-051 |
+| **Deny-Storage-Public-Access** | All subscriptions | Deny | POG-PSN-023 |
+| **Policy-Lock-Listino** | All subscriptions | Deny | Blocca risorse non in listino PSN |
+
+### 12.2 Custom Policy Definitions (SPM Specific)
+
+```json
+// Policy: Require-P3-Test-Before-Deployment
+{
+  "mode": "All",
+  "policyRule": {
+    "if": {
+      "allOf": [
+        {"field": "type", "equals": "Microsoft.Compute/virtualMachines"},
+        {"field": "tags['SPM-PatchStatus']", "equals": "PendingDeployment"},
+        {"field": "tags['SPM-P3-Tested']", "notEquals": "true"}
+      ]
+    },
+    "then": {
+      "effect": "audit"
+    }
+  }
+}
+```
+
+---
+
+## 13. BACKUP SYSTEM (PSN Sovereign)
+
+### 13.1 Architettura Backup PSN
+
+Conforme a BR-005, SR-PSN-058, SR-PSN-059:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    BACKUP ARCHITECTURE (PSN)                             │
+│                                                                          │
+│  Azure Secure Public Cloud              PSN Data Center (On-Premise)    │
+│  ═════════════════════════              ═════════════════════════════   │
+│                                                                          │
+│  ┌─────────────────────┐               ┌─────────────────────────┐      │
+│  │ SPM Master Server   │               │ Veeam Backup Manager    │      │
+│  │ SPM Proxy Server    │               │ (On-Premise PSN)        │      │
+│  │ PostgreSQL          │───Backup──────│                         │      │
+│  │ Storage Account     │   Agent       │ • Veeam B&R             │      │
+│  └─────────────────────┘               │ • Repository on PSN     │      │
+│           │                            │   storage               │      │
+│           │                            │ • Encryption BYOK       │      │
+│           ▼                            └─────────────────────────┘      │
+│  ┌─────────────────────┐                                                │
+│  │ Virtual Server      │               SOVRANITÀ DEL DATO:              │
+│  │ Agent (VSA)         │               • Backup risiedono in Italia     │
+│  │ (Media Agent)       │               • Chiavi gestite da HSM PSN      │
+│  │                     │               • Retention conforme normativa   │
+│  └─────────────────────┘                                                │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### 13.2 Backup Policy
+
+| Componente | Frequenza | Retention | Storage |
+|------------|-----------|-----------|---------|
+| PostgreSQL DB | Daily | 30 giorni | PSN On-Premise |
+| SPM Master VM | Weekly | 4 settimane | PSN On-Premise |
+| Configuration | On-change | Unlimited | Git + PSN Storage |
+| Snapshots P3 | Temporary | Max 4 ore | Azure (auto-delete) |
+
+### 13.3 Disaster Recovery (SR-PSN-059)
+
+| Componente | RTO | RPO | Strategy |
+|------------|-----|-----|----------|
+| Master Server | 4h | 24h | Restore from backup |
+| PostgreSQL | 1h | 1h | Geo-redundant + Veeam |
+| Proxy Server | 2h | N/A | Stateless, redeploy |
+| Configuration | 15min | Real-time | Git repo |
+
+---
+
+## 14. COMPLIANCE MAPPING
+
+### 14.1 Standard Compliance
 
 | Requisito | Standard | Implementazione |
 |-----------|----------|-----------------|
@@ -524,40 +901,142 @@ Test VM creata ──► Test eseguito ──► Test completato ──► VM el
 | Audit Logging | SOC 2, ISO 27001 | Log Analytics, Key Vault audit |
 | Patch Management | NIST 800-40 | SPM framework (P2, P3, P4) |
 
+### 14.2 PSN Compliance Checklist
+
+| Requisito PSN | Stato | Note |
+|---------------|-------|------|
+| BR-001 Hub & Spoke | ✅ | Architettura Master/Client |
+| BR-002 Firewall control | ✅ | Azure Firewall Premium |
+| BR-003 Bastion + 2FA | ✅ | Azure Bastion + MFA |
+| BR-004 No public IP policy | ✅ | Azure Policy deny |
+| BR-005 Lighthouse | ✅ | Delegated access |
+| SR-PSN-017 Network Security | ✅ | NSG + Firewall |
+| SR-PSN-046 Data encryption | ✅ | CMK/BYOK |
+| SR-PSN-047 Key management | ✅ | HSM + Key Vault |
+| SR-PSN-060 Logging | ✅ | Log Analytics + Sentinel |
+| POG-PSN-007 Data sovereignty | ✅ | Italy only |
+| POG-PSN-014 MFA | ✅ | Conditional Access |
+| POG-PSN-020 IDS/IPS | ✅ | Firewall threat intel |
+
 ---
 
-## 13. DIAGRAMMA PER DRAW.IO
+## 15. DIAGRAMMA PER DRAW.IO (PSN Architecture)
 
-Struttura consigliata per creare il diagramma in Draw.io:
+### 15.1 Struttura Consigliata
 
 ```
-Layers:
-├── L1: Azure Subscription boundary
-├── L2: Tenant Master (VNet + Subnets)
-├── L3: Tenant Client (VNet + Subnets)
-├── L4: Shared Services
-├── L5: Network connections (Private Link, Peering)
-└── L6: Security components (NSG, Firewall, Bastion)
+Layers Draw.io:
+├── L1: Azure Subscription boundary (Tenant Root → Landing Zones)
+├── L2: Management Groups (Platform, Landing Zone, Decommissioned)
+├── L3: Subscriptions (Connectivity, Management, Identity, SPM-Spoke)
+├── L4: Hub VNet (Firewall, Bastion, VPN Gateway)
+├── L5: Spoke VNets (SPM Master, SPM Client)
+├── L6: Subnets con NSG
+├── L7: Private Link connections
+├── L8: On-Premise PSN (HSM, Backup, KMS)
+└── L9: Data flows (arrows with labels)
+```
 
-Icone Azure da usare:
-- Virtual Network
+### 15.2 Icone Azure da Usare
+
+**Core Infrastructure:**
+- Virtual Network (VNet)
 - Subnet
+- Network Security Group (NSG)
+- Azure Firewall (Premium)
+- Azure Bastion
+- VPN Gateway
+- Application Gateway + WAF
+
+**Compute & Data:**
 - Virtual Machine
-- Azure Database for PostgreSQL
-- Key Vault
+- Azure Database for PostgreSQL (Flexible)
 - Storage Account
-- Load Balancer
+- Azure Container Instance (ACI)
+
+**Security & Identity:**
+- Azure Active Directory / Entra ID
+- Azure Key Vault (Premium)
+- Managed Identity
 - Private Link Service
 - Private Endpoint
-- Network Security Group
-- Azure Bastion
+
+**Monitoring:**
+- Log Analytics Workspace
+- Microsoft Sentinel
 - Azure Monitor
-- Log Analytics
-- Azure Active Directory
-```
+- Microsoft Defender for Cloud
+
+**PSN On-Premise:**
+- HSM (Hardware Security Module)
+- Backup Server (Veeam)
+- CipherTrust Manager
+
+### 15.3 Color Coding Suggerito
+
+| Colore | Significato |
+|--------|-------------|
+| 🔵 Blu | Hub/Platform components |
+| 🟢 Verde | SPM workload (Master, Proxy) |
+| 🟠 Arancione | Security components (FW, NSG, Bastion) |
+| 🟣 Viola | Data/Storage |
+| 🔴 Rosso | On-Premise PSN |
+| ⚫ Grigio | Connections (peering, private link) |
+
+### 15.4 Flow Arrows
+
+| Arrow | Descrizione |
+|-------|-------------|
+| ─────► | Network traffic flow |
+| ─ ─ ─► | Private Link connection |
+| ═════► | VPN/ExpressRoute |
+| ····► | Backup flow |
+| ─·─·─► | Management/Monitoring |
 
 ---
 
-**Versione:** 1.0
+## 16. ONBOARDING CHECKLIST (PSN)
+
+### 16.1 Pre-requisiti
+
+- [ ] EA (Enrollment Agreement) attivo o creato
+- [ ] Department PSN creato
+- [ ] Azure AD Tenant PA configurato
+- [ ] Global Admin assegnato
+- [ ] SPN per automazione creato
+
+### 16.2 Infrastruttura Base
+
+- [ ] Management Groups creati (Platform, Landing Zone)
+- [ ] Subscriptions create (Connectivity, Management, Identity)
+- [ ] Azure Policy assegnate
+- [ ] RBAC roles definiti
+
+### 16.3 Network
+
+- [ ] Hub VNet creata con Firewall
+- [ ] Bastion configurato
+- [ ] DNS Resolver configurato
+- [ ] Spoke VNet create con peering
+
+### 16.4 Security
+
+- [ ] Log Analytics + Sentinel attivi
+- [ ] Defender for Cloud enabled
+- [ ] Key Vault con BYOK configurato
+- [ ] Lighthouse per PSN SOC
+
+### 16.5 SPM Specific
+
+- [ ] SPM Master Server deployed
+- [ ] SPM Proxy Server(s) deployed
+- [ ] PostgreSQL con CMK
+- [ ] API Flask configurata
+- [ ] P3 Test Subnet isolata
+
+---
+
+**Versione:** 2.0 (PSN Compliant)
 **Data:** 2026-01-22
 **Autore:** Security Patch Management Team
+**Conformità:** PSN Secure Public Cloud Azure v1.3

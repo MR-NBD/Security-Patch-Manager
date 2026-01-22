@@ -11,10 +11,14 @@
             "id": "62ce1b5725d47bea",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "Nuova scheda"
+              "title": "SPM-INFRASTRUCTURE-DESIGN"
             }
           }
         ]
@@ -193,6 +197,12 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
+    "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090942171",
+    "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090867591",
+    "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090831954",
+    "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090775180",
+    "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090751208",
+    "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090719667",
     "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md",
     "Uyuni/Infrastructure-Design",
     "Uyuni/README.md",
@@ -208,11 +218,6 @@
     "Uyuni/Initial-Setup/scripts/test-and-sync.sh",
     "Uyuni/Initial-Setup/scripts/sync-oval-individual.sh",
     "Uyuni/Initial-Setup/scripts/remote-sync.sh",
-    "Uyuni/Initial-Setup/scripts/monitor-oval-sync.sh",
-    "Uyuni/Initial-Setup/scripts/fix-container-timeout.sh",
-    "Uyuni/Initial-Setup/scripts/errata-sync-v2.5-IMPROVED.sh",
-    "Uyuni/Initial-Setup/scripts/deploy-oval-fix.sh",
-    "Uyuni/Initial-Setup/scripts/check-containers.sh",
     "Uyuni/Initial-Setup/README-FIX-08-01-2026.md",
     "Uyuni/Initial-Setup/READY-TO-DEPLOY.md",
     "Uyuni/Initial-Setup/UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md",
@@ -228,7 +233,6 @@
     "Utenze/ASL0603.md",
     "Uyuni/Initial-Setup/UYUNI-Guida-02-Setup-Ubuntu2204-CLM.md",
     "Uyuni/Configurazione-System-Ubuntu-24.04.md",
-    "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
     "img/png6.png",
     "img/png4.png",
     "img/png3.png",
