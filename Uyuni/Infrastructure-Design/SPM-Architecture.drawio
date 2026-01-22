@@ -1,0 +1,332 @@
+<mxfile host="app.diagrams.net" modified="2026-01-22T12:00:00.000Z" agent="Claude" version="22.0.0">
+  <diagram name="SPM Infrastructure PSN" id="spm-infra">
+    <mxGraphModel dx="1434" dy="780" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- AZURE SUBSCRIPTION BOUNDARY -->
+        <mxCell id="azure-boundary" value="Azure Subscription (Italy North)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=14;dashed=1;dashPattern=8 8;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1120" height="820" as="geometry" />
+        </mxCell>
+
+        <!-- TENANT MASTER (HUB) -->
+        <mxCell id="hub-vnet" value="TENANT MASTER (Hub)&#xa;VNet: 10.100.0.0/16" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="480" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- Hub Subnet: Connectivity -->
+        <mxCell id="hub-connectivity" value="Subnet-Connectivity&#xa;10.100.1.0/24" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;verticalAlign=top;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="200" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Azure Firewall -->
+        <mxCell id="firewall" value="Azure Firewall&#xa;Premium&#xa;(NGFW + IDS/IPS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="150" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Bastion -->
+        <mxCell id="bastion" value="Azure Bastion&#xa;+ MFA" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="100" y="220" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- VPN Gateway -->
+        <mxCell id="vpn-gw" value="VPN&#xa;Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="180" y="220" width="70" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Hub Subnet: Master Server -->
+        <mxCell id="hub-master" value="Subnet-Master&#xa;10.100.2.0/24" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="300" y="120" width="220" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- Master Server -->
+        <mxCell id="master-server" value="SPM Master Server&#xa;(UYUNI/Foreman)&#xa;10.100.2.4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="150" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- API Container -->
+        <mxCell id="api-container" value="API Flask&#xa;(ACI)&#xa;:5000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="320" y="220" width="80" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Hub Subnet: Data -->
+        <mxCell id="hub-data" value="Subnet-Data&#xa;10.100.3.0/24" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;verticalAlign=top;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="300" width="440" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- PostgreSQL -->
+        <mxCell id="postgresql" value="PostgreSQL&#xa;(Private Endpoint)&#xa;CMK Encryption" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="340" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Storage -->
+        <mxCell id="storage" value="Storage Account&#xa;(Private Endpoint)&#xa;SSE + CMK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="260" y="340" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Key Vault -->
+        <mxCell id="keyvault" value="Key Vault&#xa;Premium&#xa;(BYOK)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="400" y="340" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- TENANT CLIENT (SPOKE) -->
+        <mxCell id="spoke-vnet" value="TENANT CLIENT (Spoke)&#xa;VNet: 10.172.0.0/16" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="540" height="380" as="geometry" />
+        </mxCell>
+
+        <!-- Spoke Subnet: Proxy -->
+        <mxCell id="spoke-proxy" value="Subnet-Proxy&#xa;10.172.1.0/24" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="120" width="180" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Proxy Server -->
+        <mxCell id="proxy-server" value="SPM Proxy Server&#xa;(Smart Proxy)&#xa;10.172.1.4" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="150" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Spoke Subnet: Client VMs -->
+        <mxCell id="spoke-vms" value="Subnet-Client-VMs&#xa;10.172.2.0/24" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="820" y="120" width="300" height="120" as="geometry" />
+        </mxCell>
+
+        <!-- Client VMs -->
+        <mxCell id="vm1" value="VM1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="840" y="160" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vm2" value="VM2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="910" y="160" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vm3" value="VM3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="980" y="160" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vmn" value="VM-N" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="160" width="60" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Spoke Subnet: Test (ISOLATED) -->
+        <mxCell id="spoke-test" value="Subnet-Test (ISOLATED)&#xa;10.172.3.0/24&#xa;NSG: DENY ALL except Proxy" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;fontSize=10;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="620" y="260" width="500" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Test VM Clone -->
+        <mxCell id="test-vm" value="Test VM Clone&#xa;(P3 Testing)&#xa;Snapshot-based" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="300" width="120" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- P3 Flow -->
+        <mxCell id="p3-flow" value="P3: Snapshot → Clone → Test → Cleanup" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="780" y="310" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Spoke Subnet: Management -->
+        <mxCell id="spoke-mgmt" value="Subnet-Management&#xa;10.172.4.0/24" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="620" y="380" width="500" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Log Analytics -->
+        <mxCell id="log-analytics" value="Log Analytics&#xa;+ Sentinel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="640" y="400" width="100" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Defender -->
+        <mxCell id="defender" value="Defender&#xa;for Cloud" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="760" y="400" width="80" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- PSN ON-PREMISE -->
+        <mxCell id="psn-onprem" value="PSN Data Center (On-Premise)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=12;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="500" width="480" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- HSM -->
+        <mxCell id="hsm" value="Thales Luna HSM&#xa;(Root of Trust)&#xa;FIPS 140-2 L3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="540" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- CipherTrust -->
+        <mxCell id="ciphertrust" value="CipherTrust&#xa;Manager&#xa;(Key Lifecycle)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="230" y="540" width="100" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Backup -->
+        <mxCell id="backup" value="Veeam Backup&#xa;(Data Sovereignty)&#xa;Repository" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="350" y="540" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- INTERNET -->
+        <mxCell id="internet" value="Internet" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="680" width="100" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- CONNECTIONS -->
+
+        <!-- Peering Hub-Spoke -->
+        <mxCell id="peering" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=3;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="540" y="270" as="sourcePoint" />
+            <mxPoint x="600" y="270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="peering-label" value="VNet&#xa;Peering" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="545" y="240" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Private Link -->
+        <mxCell id="private-link" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#82b366;dashed=1;dashPattern=8 8;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="460" y="180" as="sourcePoint" />
+            <mxPoint x="640" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pl-label" value="Private Link" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="520" y="160" width="70" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Proxy to VMs -->
+        <mxCell id="proxy-vms" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="780" y="180" as="sourcePoint" />
+            <mxPoint x="840" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Proxy to Test -->
+        <mxCell id="proxy-test" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#b85450;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="710" y="210" as="sourcePoint" />
+            <mxPoint x="710" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- VPN to On-Prem -->
+        <mxCell id="vpn-onprem" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=3;strokeColor=#666666;dashed=1;dashPattern=12 12;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="215" y="270" as="sourcePoint" />
+            <mxPoint x="215" y="500" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="vpn-label" value="VPN&#xa;IPSec" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="170" y="380" width="40" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- BYOK Arrow -->
+        <mxCell id="byok" value="" style="endArrow=classic;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="145" y="540" as="sourcePoint" />
+            <mxPoint x="450" y="420" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="byok-label" value="BYOK" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=9;fontStyle=1;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="280" y="460" width="40" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Internet to Firewall -->
+        <mxCell id="inet-fw" value="" style="endArrow=classic;startArrow=classic;html=1;strokeWidth=2;strokeColor=#b85450;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="110" y="680" as="sourcePoint" />
+            <mxPoint x="180" y="220" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- LEGEND -->
+        <mxCell id="legend" value="LEGENDA" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;verticalAlign=top;fontStyle=1;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="600" y="500" width="540" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="620" y="530" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1-txt" value="Hub / Platform" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="645" y="525" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="620" y="555" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2-txt" value="SPM Workload" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="645" y="550" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="620" y="580" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3-txt" value="Security / Isolated" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="645" y="575" width="90" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="620" y="605" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4-txt" value="Data / Storage" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="645" y="600" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="760" y="530" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5-txt" value="Client VMs (Spoke)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="785" y="525" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg6" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="760" y="555" width="20" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6-txt" value="On-Premise PSN" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="785" y="550" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Connection types -->
+        <mxCell id="leg-conn1" value="" style="endArrow=none;html=1;strokeWidth=3;strokeColor=#6c8ebf;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="920" y="537" as="sourcePoint" />
+            <mxPoint x="960" y="537" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg-conn1-txt" value="VNet Peering" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="965" y="527" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-conn2" value="" style="endArrow=none;html=1;strokeWidth=2;strokeColor=#82b366;dashed=1;dashPattern=8 8;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="920" y="562" as="sourcePoint" />
+            <mxPoint x="960" y="562" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg-conn2-txt" value="Private Link" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="965" y="552" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="leg-conn3" value="" style="endArrow=none;html=1;strokeWidth=3;strokeColor=#666666;dashed=1;dashPattern=12 12;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="920" y="587" as="sourcePoint" />
+            <mxPoint x="960" y="587" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="leg-conn3-txt" value="VPN IPSec" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="965" y="577" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Title -->
+        <mxCell id="title" value="SPM Infrastructure - PSN Secure Public Cloud Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="10" width="400" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- NSG Labels -->
+        <mxCell id="nsg1" value="NSG" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="265" y="120" width="30" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="nsg2" value="NSG" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="505" y="120" width="30" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="nsg3" value="NSG" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="785" y="120" width="30" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="nsg4" value="NSG" style="text;html=1;strokeColor=#b85450;fillColor=#f8cecc;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=1;fontSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1105" y="120" width="30" height="15" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

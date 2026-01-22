@@ -197,6 +197,8 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
+    "Uyuni/Infrastructure-Design/SPM-Architecture.drawio",
+    "Uyuni/Infrastructure-Design/SPM-Architecture.drawio.tmp.2415.1769091333650",
     "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090942171",
     "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090867591",
     "Uyuni/Infrastructure-Design/SPM-INFRASTRUCTURE-DESIGN.md.tmp.2415.1769090831954",
@@ -216,8 +218,6 @@
     "Uyuni/Initial-Setup/docs/DEPLOYMENT-GUIDE-v2.5.md",
     "Uyuni/Initial-Setup/scripts/uyuni-server-sync.sh",
     "Uyuni/Initial-Setup/scripts/test-and-sync.sh",
-    "Uyuni/Initial-Setup/scripts/sync-oval-individual.sh",
-    "Uyuni/Initial-Setup/scripts/remote-sync.sh",
     "Uyuni/Initial-Setup/README-FIX-08-01-2026.md",
     "Uyuni/Initial-Setup/READY-TO-DEPLOY.md",
     "Uyuni/Initial-Setup/UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md",
