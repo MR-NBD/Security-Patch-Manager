@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Teoria/Concetti-Fondamentali-UYUNI.md",
+                "file": "Uyuni/Deployment/Installazione-UYUNI-Server.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Concetti-Fondamentali-UYUNI"
+              "title": "Installazione-UYUNI-Server"
             }
           }
         ]
@@ -197,20 +197,23 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
-    "Uyuni/Teoria/Client-Management-Guide.md",
-    "Uyuni/Initial-Setup/UYUNI Errata Manager - Setup & Deployment.md",
-    "Uyuni/README.md",
-    "Uyuni/Teoria/Concetti-Fondamentali-UYUNI.md",
-    "Uyuni/Teoria/Supported-Clients Systems.md",
-    "TO-DO_ALBERTO.md",
-    "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
+    "Uyuni/Teoria/Concetti-Fondamentali-UYUNI.md.tmp.1594.1769422463900",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/DEPLOYMENT-GUIDE.md",
+    "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
+    "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
+    "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
+    "Uyuni/Initial-Setup/UYUNI Errata Manager - Setup & Deployment.md",
+    "README.md",
+    "TO-DO_ALBERTO.md",
+    "Uyuni/Teoria/Client-Management-Guide.md",
+    "Uyuni/Teoria/Concetti-Fondamentali-UYUNI.md",
+    "Uyuni/README.md",
+    "Uyuni/Teoria/Supported-Clients Systems.md",
     "Uyuni/Deployment",
     "Uyuni/Teoria",
     "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
-    "README.md",
     "Uyuni/Configurazione-System-Ubuntu-24.04.md",
     "Initial-Setup/Installazione.md",
     "Uyuni/Initial-Setup/docs/DEPLOYMENT-GUIDE-v2.5.md",
@@ -222,8 +225,6 @@
     "Uyuni/UYUNI-Guida-01-Concetti-Fondamentali.md",
     "Uyuni/uyuni-client-management-guide.md",
     "Uyuni/Initial-Setup/docs/RICHIESTA-NAT-GATEWAY-PSN.md",
-    "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
-    "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
     "Uyuni/Initial-Setup/app-v2.5-IMPROVED.py.tmp.10447.1769116512065",
     "Uyuni/Initial-Setup/app-v2.5-IMPROVED.py.tmp.10447.1769116500597",
     "Uyuni/Initial-Setup/app-v2.5-IMPROVED.py.tmp.10447.1769109513372",
@@ -233,7 +234,6 @@
     "Uyuni/Initial-Setup/sql/p3_patch_testing_schema.sql.tmp.10447.1769109281488",
     "Uyuni/Initial-Setup/sql",
     "Uyuni/Infrastructure-Design/Security-Patch-Manager.png",
-    "Uyuni/Initial-Setup/DEPLOYMENT-GUIDE-v2.5.md",
     "img/png6.png",
     "img/png4.png",
     "img/png3.png",
