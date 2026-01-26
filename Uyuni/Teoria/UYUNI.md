@@ -115,26 +115,8 @@ UYUNI implementa un modello Role-Based Access Control:
 ### Multi-Tenancy (Organizations)
 UYUNI supporta **isolamento multi-tenant** tramite Organizations:
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        UYUNI Server                                 │
-│                                                                     │
-│   ┌───────────────────┐        ┌───────────────────┐                │
-│   │  Organization A   │        │  Organization B   │                │
-│   │  (Tenant 1)       │        │  (Tenant 2)       │                │
-│   │                   │        │                   │                │
-│   │  - Utenti         │        │  - Utenti         │                │
-│   │  - Sistemi        │   ══   │  - Sistemi        │                │
-│   │  - Canali         │ Trust  │  - Canali         │                │
-│   │  - Activation Key │        │  - Activation Key │                │
-│   │  - Config Channels│        │  - Config Channels│                │
-│   └───────────────────┘        └───────────────────┘                │
-│                                                                     │
-│   Risorse ISOLATE per default                                       │
-│   Condivisione ESPLICITA via Trust Relationship                     │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+![[Untitled Diagram.drawio.png]]
+
 **Casi d'uso:**
 - Separazione ambienti (DEV/QA/PROD)
 - Multi-cliente in ambienti MSP
