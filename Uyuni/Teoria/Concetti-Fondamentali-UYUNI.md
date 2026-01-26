@@ -13,70 +13,8 @@ UYUNI supporta **molti sistemi operativi** come client:
 | **Raspberry Pi OS** | ✅ Funziona | |
 | **openEuler** | ✅ Nuovo | 22.03 |
 **Il server UYUNI** gira su openSUSE, ma **può gestire client di qualsiasi OS supportato**.
-### UYUNI gestisce Docker/Container?
-**SÌ, ma in modo specifico.** UYUNI non è un orchestratore come Kubernetes, ma offre:
 
-| Funzionalità | Supporto | Descrizione |
-|--------------|----------|-------------|
-| **Build container images** | ✅ | Costruisci immagini Docker da Dockerfile |
-| **Build OS images (Kiwi)** | ✅ | Immagini VM, bare metal, cloud |
-| **Push a registry** | ✅ | Pubblica su Docker registry |
-| **Inspect images** | ✅ | Analisi vulnerabilità |
-| **Container Build Host** | ✅ | Designa client come build server |
-| **Runtime orchestration** | ❌ | Non è Kubernetes/Docker Swarm |
-
-**In pratica**: UYUNI ti aiuta a **costruire e analizzare** immagini container, non a orchestrarle in produzione.
-
-### 📦 spacewalk-errata per Ubuntu/Debian funziona? È mantenuto?
-
-**Risposta onesta e dettagliata:**
-
-| Progetto | Status | Note |
-|----------|--------|------|
-| **spacewalk-ubuntu-errata** (GitHub) | ⚠️ Semi-mantenuto | Funziona, ma richiede adattamenti |
-| **CEFS (CentOS Errata)** | ⚠️ In chiusura | Steve Meier chiuderà a fine 2024 (CentOS 7 EOL) |
-| **Debian errata scripts** | ⚠️ Funziona | Richiede configurazione manuale |
-
-**La situazione reale:**
-
-```
-spacewalk-errata scripts (community)
-         │
-         ├── Funzionano? → SÌ, con lavoro di configurazione
-         │
-         ├── Mantenuti? → Sporadicamente, fork vari
-         │
-         ├── Integrati in UYUNI? → NO, sono esterni
-         │
-         └── Alternativa? → CVE Audit OVAL (nativo in UYUNI)
-```
-
-**Il mio consiglio:**
-
-1. **Per i test**: Non preoccuparti degli errata, usa il CVE Audit OVAL nativo
-2. **Per production**: Valuta se gli errata sono essenziali per te
-   - Se sì → Configura spacewalk-ubuntu-errata + cron
-   - Se no → Il CVE Audit OVAL è sufficiente per vedere le vulnerabilità
-
----
-
-## Perché Provare Comunque UYUNI?
-
-Nonostante le limitazioni sugli errata Deb-based, UYUNI ha vantaggi concreti:
-
-| Aspetto | UYUNI | Foreman/Katello |
-|---------|-------|-----------------|
-| **CVE Audit** | ✅ OVAL nativo (funziona su Ubuntu/Debian!) | ⚠️ Limitato per Deb |
-| **Multi-OS client** | ✅ Nativo | ✅ Ma errata solo RHEL |
-| **Salt integration** | ✅ Nativo, potente | ⚠️ REX via SSH |
-| **Content Lifecycle** | ✅ Maturo | ✅ Maturo |
-| **Architettura** | ✅ Container (moderna) | ⚠️ RPM hell |
-| **Curva apprendimento** | ⚠️ Nuova terminologia | ✅ La conosci già |
-
----
-
-## Parte 1: Architettura UYUNI
-
+## Architettura UYUNI
 ### 1.1 Componenti Principali
 
 ```
@@ -112,19 +50,24 @@ Nonostante le limitazioni sugli errata Deb-based, UYUNI ha vantaggi concreti:
    │ (Salt)  │  │ (Salt)  │  │ (Salt)  │
    └─────────┘  └─────────┘  └─────────┘
 ```
-
 ### 1.2 Componenti Spiegati
 
-| Componente | Funzione | Equivalente Foreman |
-|------------|----------|---------------------|
-| **Web UI (Tomcat)** | Interfaccia grafica | Foreman WebUI |
-| **Taskomatic** | Scheduler di job asincroni | Dynflow/Sidekiq |
-| **Salt Master** | Comunicazione con client | Smart Proxy + REX |
-| **PostgreSQL** | Database centrale | PostgreSQL |
-| **Apache HTTPD** | Reverse proxy, serve repo | Apache/Pulp |
-| **Cobbler** | PXE/Provisioning | Foreman Provisioning |
-| **Squid** | Cache pacchetti (opzionale) | Pulp on-demand |
+- **Web UI (Tomcat)** :  Interfaccia grafica         
+- **Taskomatic** : Scheduler di job asincroni
+- **Salt Master** : Comunicazione con client
+- 
+| ------------------- | --------------------------- |
+| ------------------- | --------------------------- |
 
+| Componente          | Funzione                    |
+| ------------------- | --------------------------- |
+| **Web UI (Tomcat)** | Interfaccia grafica         |
+| **Taskomatic**      | Scheduler di job asincroni  |
+| **Salt Master**     | Comunicazione con client    |
+| **PostgreSQL**      | Database centrale           |
+| **Apache HTTPD**    | Reverse proxy, serve repo   |
+| **Cobbler**         | PXE/Provisioning            |
+| **Squid**           | Cache pacchetti (opzionale) |
 ### 1.3 Comunicazione con i Client
 
 ```
