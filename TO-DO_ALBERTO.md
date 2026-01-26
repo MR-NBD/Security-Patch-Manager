@@ -1,5 +1,2 @@
 - [ ] Definzione a grande linee dei KPI e degli obbiettivi che devono rappresentare
-- [ ] Scrivere due capitoli
 - [ ] Definzione di una struttura AZURE HLD e PSN style
-- [ ] Capire come fare il monitoring 
-- [ ] Capire come mettere su il primo lab
