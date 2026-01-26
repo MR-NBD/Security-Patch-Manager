@@ -13,8 +13,7 @@ Uyuni/
 ├── README.md                              # Questo file
 │
 ├── Teoria/                                # Documenti teorici
-│   ├── Concetti-Fondamentali-UYUNI.md    # Concetti base UYUNI vs Foreman/Katello
-│   ├── Client-Management-Guide.md         # Guida gestione client Salt
+│   ├── Concetti-Fondamentali-UYUNI.md    # Architettura, sicurezza, concetti tecnici
 │   └── Supported-Clients.md               # OS e features supportati
 │
 ├── Infrastructure-Design/                 # Design architetturale
@@ -66,9 +65,8 @@ curl -X POST http://10.172.5.5:5000/api/uyuni/push
 
 | Documento | Contenuto |
 |-----------|-----------|
-| [Concetti Fondamentali](Teoria/Concetti-Fondamentali-UYUNI.md) | UYUNI vs Foreman, Organizations, Channels, CLM |
-| [Client Management](Teoria/Client-Management-Guide.md) | Salt Minion, Salt-SSH, registrazione client |
-| [Supported Clients](Supported-Clients%20Systems.md) | Tabella OS e features supportati |
+| [Concetti Fondamentali UYUNI](UYUNI.md) | Architettura, sicurezza, comunicazione Salt, gestione vulnerabilità |
+| [Supported Clients](Teoria/Supported-Clients.md) | Tabella OS e features supportati |
 
 ### Architettura
 
