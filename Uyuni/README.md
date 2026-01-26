@@ -11,19 +11,28 @@ UYUNI (fork open source di SUSE Manager) non supporta nativamente gli avvisi di 
 ```
 Uyuni/
 ├── README.md                              # Questo file
-├── DOCUMENTAZIONE-COMPLETA.md             # Documentazione architetturale completa
-├── UYUNI-Guida-01-Concetti-Fondamentali.md    # Concetti base UYUNI
-├── Configurazione-System-Ubuntu-24.04.md  # Setup sistema Ubuntu
-├── uyuni-client-management-guide.md       # Guida gestione client
 │
-├── Initial-Setup/                         # Setup e deployment
-│   ├── README.md                          # Guida rapida setup
-│   ├── app-v2.5-IMPROVED.py              # API Flask v2.5
-│   ├── scripts/                           # Script operativi
-│   └── docs/                              # Documentazione deployment
+├── Teoria/                                # Documenti teorici
+│   ├── Concetti-Fondamentali-UYUNI.md    # Concetti base UYUNI vs Foreman/Katello
+│   ├── Client-Management-Guide.md         # Guida gestione client Salt
+│   └── Supported-Clients.md               # OS e features supportati
 │
-└── Note-Teoriche/                         # Background teorico
-    └── Supported Clients and Features.md
+├── Infrastructure-Design/                 # Design architetturale
+│   ├── Azure Security-First Architecture (Conforme PSN).md
+│   └── P3-PATCH-TESTING-DESIGN.md        # Design modulo Patch Testing
+│
+├── Deployment/                            # Guide operative
+│   ├── DEPLOYMENT-GUIDE.md               # Guida deployment API
+│   ├── Installazione-UYUNI-Server.md     # Setup UYUNI su Azure
+│   ├── Setup-Canali-Ubuntu.md            # Configurazione canali Ubuntu 22.04
+│   └── Configurazione-Ubuntu-24.04.md    # Setup completo Ubuntu 24.04
+│
+└── Initial-Setup/                         # Codice sorgente
+    ├── UYUNI Errata Manager - Setup & Deployment.md  # Quick reference
+    ├── app-v2.5-IMPROVED.py              # API Flask v2.6
+    ├── p3_patch_testing.py               # Modulo P3 Patch Testing
+    ├── sql/                               # Schema database
+    └── scripts/                           # Script operativi
 ```
 
 ## Quick Start
@@ -31,19 +40,19 @@ Uyuni/
 ### 1. Verifica Sistema
 
 ```bash
-cd Initial-Setup
-./scripts/check-containers.sh
+curl -s http://10.172.5.5:5000/api/health | jq
 ```
 
-### 2. Sync Completo (Prima Esecuzione)
+### 2. Sync Completo
 
 ```bash
-# Da PC/Azure Cloud Shell - sync esterni
-./scripts/remote-sync.sh full
+# FASE 1: Sync esterni (da PC/Azure Cloud Shell)
+curl -X POST http://4.232.4.32:5000/api/sync/usn
+curl -X POST http://4.232.4.32:5000/api/sync/dsa/full
 
-# Da server UYUNI - sync interni
-ssh root@10.172.2.5
-/root/uyuni-server-sync.sh quick
+# FASE 2: Sync interni (da server UYUNI)
+curl -X POST http://10.172.5.5:5000/api/uyuni/sync-packages
+curl -X POST http://10.172.5.5:5000/api/uyuni/push
 ```
 
 ### 3. Verifica in UYUNI
@@ -51,14 +60,30 @@ ssh root@10.172.2.5
 - **Patches**: Web UI > Patches > Patch List
 - **CVE Audit**: Web UI > Audit > CVE Audit
 
-## Documentazione Principale
+## Documentazione
+
+### Teoria e Concetti
 
 | Documento | Contenuto |
 |-----------|-----------|
-| [Initial-Setup/README.md](UYUNI%20Errata%20Manager%20-%20Setup%20&%20Deployment.md) | Guida rapida setup e script |
-| [Initial-Setup/docs/DEPLOYMENT-GUIDE-v2.5.md](Initial-Setup/docs/DEPLOYMENT-GUIDE-v2.5.md) | Guida deployment completa |
-| [DOCUMENTAZIONE-COMPLETA.md](DOCUMENTAZIONE-COMPLETA.md) | Architettura e background |
-| [UYUNI-Guida-01-Concetti-Fondamentali.md](UYUNI-Guida-01-Concetti-Fondamentali.md) | Concetti base UYUNI |
+| [Concetti Fondamentali](Teoria/Concetti-Fondamentali-UYUNI.md) | UYUNI vs Foreman, Organizations, Channels, CLM |
+| [Client Management](Teoria/Client-Management-Guide.md) | Salt Minion, Salt-SSH, registrazione client |
+| [Supported Clients](Supported-Clients%20Systems.md) | Tabella OS e features supportati |
+
+### Architettura
+
+| Documento | Contenuto |
+|-----------|-----------|
+| [Azure PSN Architecture](Infrastructure-Design/Azure%20Security-First%20Architecture%20(Conforme%20PSN).md) | Infrastruttura Azure conforme PSN |
+| [P3 Patch Testing](Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md) | Design modulo test patch automatizzato |
+
+### Deployment e Operazioni
+
+| Documento | Contenuto |
+|-----------|-----------|
+| [Deployment Guide](Deployment/DEPLOYMENT-GUIDE.md) | Deploy container API Flask |
+| [Installazione UYUNI](Deployment/Installazione-UYUNI-Server.md) | Setup UYUNI Server su Azure |
+| [Setup Ubuntu 24.04](Deployment/Configurazione-Ubuntu-24.04.md) | Configurazione completa canali Ubuntu |
 
 ## Architettura
 
@@ -73,7 +98,7 @@ Internet                          VNET Privata (10.172.0.0/16)
 │                 │   Condiviso  │                 │
 │ - Sync USN      │              │ - Push UYUNI    │
 │ - Sync DSA      │              │ - Cache pkgs    │
-│ - Sync OVAL     │              │                 │
+│ - Sync OVAL     │              │ - P3 Testing    │
 │ - Sync NVD      │              └────────┬────────┘
 └─────────────────┘                       │
                                           ▼
@@ -83,26 +108,31 @@ Internet                          VNET Privata (10.172.0.0/16)
                               └─────────────────┘
 ```
 
+## API Endpoints
+
+| Endpoint | Metodo | Descrizione |
+|----------|--------|-------------|
+| `/api/health` | GET | Health check |
+| `/api/health/detailed` | GET | Health check dettagliato |
+| `/api/sync/usn` | POST | Sync Ubuntu USN |
+| `/api/sync/dsa/full` | POST | Sync Debian DSA |
+| `/api/sync/oval` | POST | Sync OVAL definitions |
+| `/api/uyuni/sync-packages` | POST | Update cache pacchetti |
+| `/api/uyuni/push` | POST | Push errata a UYUNI |
+| `/api/patch-test/start` | POST | Avvia test patch (P3) |
+| `/api/stats/overview` | GET | Statistiche generali |
+
 ## Fonti Dati
 
-| Fonte | URL | Descrizione |
-|-------|-----|-------------|
-| Ubuntu USN | ubuntu.com/security/notices | Advisory sicurezza Ubuntu |
-| Debian DSA | security-tracker.debian.org | Advisory sicurezza Debian |
-| OVAL | security-metadata.canonical.com | Definizioni per CVE audit |
-| NVD | nvd.nist.gov | CVE enrichment (CVSS scores) |
+| Fonte | Descrizione |
+|-------|-------------|
+| Ubuntu USN | Advisory sicurezza Ubuntu |
+| Debian DSA | Advisory sicurezza Debian |
+| OVAL | Definizioni per CVE audit |
+| NVD | CVE enrichment (CVSS scores) |
 
-## Versione Corrente
+## Versione
 
-- **API**: v2.5
-- **Features**:
-  - Version matching migliorato
-  - Integrazione OVAL per CVE audit
-  - Sync ottimizzato (5x pi veloce)
-  - Retry automatico con exponential backoff
-  - Health check dettagliato
-
----
-
-**Ambiente**: PSN (Polo Strategico Nazionale)
-**Ultimo aggiornamento**: 2026-01-22
+- **API**: v2.6 (con modulo P3 Patch Testing)
+- **Ambiente**: PSN (Polo Strategico Nazionale)
+- **Ultimo aggiornamento**: 2026-01-26
