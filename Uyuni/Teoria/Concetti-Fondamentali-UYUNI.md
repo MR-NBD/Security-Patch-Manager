@@ -55,34 +55,23 @@ UYUNI supporta **molti sistemi operativi** come client:
 - **Web UI (Tomcat)** :  Interfaccia grafica         
 - **Taskomatic** : Scheduler di job asincroni
 - **Salt Master** : Comunicazione con client
-- 
-| ------------------- | --------------------------- |
-| ------------------- | --------------------------- |
-
-| Componente          | Funzione                    |
-| ------------------- | --------------------------- |
-| **Web UI (Tomcat)** | Interfaccia grafica         |
-| **Taskomatic**      | Scheduler di job asincroni  |
-| **Salt Master**     | Comunicazione con client    |
-| **PostgreSQL**      | Database centrale           |
-| **Apache HTTPD**    | Reverse proxy, serve repo   |
-| **Cobbler**         | PXE/Provisioning            |
-| **Squid**           | Cache pacchetti (opzionale) |
+- **PostgreSQL** : Database centrale
+- **Apache HTTPD** : Reverse proxy, serve repo
+- **Cobbler** : PXE/Provisioning
+- **Squid** : Cache pacchetti (opzionale)
 ### 1.3 Comunicazione con i Client
 
 ```
 UYUNI Server                              Client (Salt Minion)
      │                                           │
-     │  ◄──── Port 4505 (ZeroMQ PUB) ────────   │  Eventi/Comandi broadcast
+     │  ◄──── Port 4505 (ZeroMQ PUB) ────────    │  Eventi/Comandi broadcast
      │                                           │
-     │  ◄──── Port 4506 (ZeroMQ REQ) ────────   │  Risposte/Return data
+     │  ◄──── Port 4506 (ZeroMQ REQ) ────────    │  Risposte/Return data
      │                                           │
-     │  ────► Port 443 (HTTPS) ──────────────►  │  Package download
+     │  ────► Port 443 (HTTPS) ──────────────►   │  Package download
      │                                           │
 ```
 
-**Differenza chiave vs Foreman:**
-- Foreman REX: SSH push (server → client)
 - UYUNI Salt: ZeroMQ persistent connection (client → server)
 
 **Vantaggi Salt:**
@@ -90,11 +79,7 @@ UYUNI Server                              Client (Salt Minion)
 - Comunicazione real-time
 - Minore overhead di connessione
 - Event-driven architecture
-
----
-
-## Parte 2: Concetti Chiave (con Mappatura a Foreman)
-
+## Concetti Chiave
 ### 2.1 Organizations (Multi-Tenancy)
 
 ```
@@ -119,14 +104,9 @@ UYUNI Server                              Client (Salt Minion)
 └─────────────────────────────────────────────────────────────┘
 ```
 
-| Concetto | UYUNI | Foreman/Katello |
-|----------|-------|-----------------|
-| Tenant isolation | Organization | Organization |
-| Sub-grouping | (non presente) | Location |
-| Channel sharing | Trust + Sharing | Content View sharing |
-
+- Tenant isolation : Organization
+- Channel sharing : Trust + Sharing
 ### 2.2 Software Channels (= Products + Repositories)
-
 **Struttura Gerarchica:**
 
 ```
@@ -151,7 +131,6 @@ UYUNI Server                              Client (Salt Minion)
 | **Product** | Parent Channel | Contenitore logico |
 | **Repository** | Child Channel | Repository effettivo |
 | **Sync Plan** | Channel → Repositories → Sync | Scheduling sync |
-
 **Tipi di Channel:**
 
 | Tipo | Descrizione | Esempio |
