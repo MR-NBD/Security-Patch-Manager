@@ -1,9 +1,3 @@
-# P3 - Patch Testing Design Document
-
-## Overview
-
-P3 implementa un sistema automatizzato di test delle patch in ambiente isolato prima del deployment in produzione.
-
 ## Workflow
 
 ```
@@ -69,7 +63,6 @@ P3 implementa un sistema automatizzato di test delle patch in ambiente isolato p
 ```
 
 ## Database Schema
-
 ### Nuove Tabelle
 
 ```sql
@@ -165,11 +158,9 @@ CREATE TABLE patch_test_events (
 
 CREATE INDEX idx_test_events_test ON patch_test_events(test_id);
 ```
-
 ## API Endpoints
 
 ### POST /api/patch-test/start
-
 Avvia un nuovo test patch.
 
 **Request:**
@@ -201,9 +192,7 @@ Avvia un nuovo test patch.
     "estimated_duration_minutes": 45
 }
 ```
-
 ### GET /api/patch-test/status/{test_id}
-
 Ottiene lo stato di un test.
 
 **Response:**
@@ -223,9 +212,7 @@ Ottiene lo stato di un test.
     ]
 }
 ```
-
 ### GET /api/patch-test/result/{test_id}
-
 Ottiene il risultato completo di un test.
 
 **Response:**
@@ -265,11 +252,8 @@ Ottiene il risultato completo di un test.
     "recommendation": "auto_approve"
 }
 ```
-
 ### POST /api/patch-test/approve/{test_id}
-
 Approva una patch testata per il deployment.
-
 **Response:**
 ```json
 {
@@ -279,30 +263,21 @@ Approva una patch testata per il deployment.
     "next_step": "ready_for_deployment"
 }
 ```
-
 ### POST /api/patch-test/reject/{test_id}
-
 Rigetta una patch dopo il test.
-
 **Request:**
 ```json
 {
     "reason": "Service X failed to restart after patch"
 }
 ```
-
 ### POST /api/patch-test/cleanup/{test_id}
-
 Forza cleanup manuale di un test.
-
 ### GET /api/patch-test/list
-
 Lista tutti i test con filtri.
 
 **Query params:** `status`, `errata_id`, `system_id`, `limit`, `offset`
-
 ## Pass/Fail Criteria
-
 ### Criteri Automatici (configurabili)
 
 | Criterio | Default | Descrizione |
@@ -321,7 +296,6 @@ Lista tutti i test con filtri.
 - **ERROR**: Errore durante il test → richiede investigazione
 
 ## Integrazione con Componenti Esistenti
-
 ### Salt Integration
 
 ```python
@@ -336,9 +310,7 @@ SALT_COMMANDS = {
     'reboot': 'salt-call system.reboot',
 }
 ```
-
 ### Azure Integration
-
 ```python
 # Azure SDK per P3
 from azure.mgmt.compute import ComputeManagementClient
@@ -366,9 +338,7 @@ def create_snapshot(vm_name, resource_group):
     )
     return snapshot.result()
 ```
-
 ### UYUNI Integration
-
 ```python
 # Mapping sistema UYUNI → VM Azure
 def get_azure_vm_for_system(uyuni_system_id):
@@ -387,9 +357,7 @@ def get_azure_vm_for_system(uyuni_system_id):
         'vm_name': custom_info.get('azure_vm_name', hostname)
     }
 ```
-
 ## Configurazione
-
 ### Environment Variables
 
 ```bash
@@ -411,9 +379,7 @@ P3_SNAPSHOT_RETENTION_DAYS=7
 P3_AUTO_CLEANUP=true
 P3_MAX_CONCURRENT_TESTS=5
 ```
-
 ### Test Configuration Template
-
 ```json
 {
     "timeout_minutes": 60,
@@ -437,9 +403,7 @@ P3_MAX_CONCURRENT_TESTS=5
     "custom_checks": []
 }
 ```
-
 ## Logging e Audit
-
 Tutti gli eventi P3 vengono tracciati per compliance:
 
 ```python
@@ -449,16 +413,13 @@ def log_test_event(test_id, event_type, message, data=None):
         VALUES (%s, %s, %s, %s)
     """, (test_id, event_type, message, json.dumps(data) if data else None))
 ```
-
 ## Error Handling
-
 ### Retry Logic
 
 - Snapshot creation: max 3 tentativi con backoff
 - Clone creation: max 3 tentativi
 - Metrics collection: max 2 tentativi
 - Patch application: NO retry (too risky)
-
 ### Timeout Handling
 
 Se un test supera il timeout:
@@ -466,9 +427,7 @@ Se un test supera il timeout:
 2. Set status = 'error'
 3. Attempt cleanup
 4. Notify administrator
-
 ### Cleanup on Failure
-
 Anche in caso di errore, il cleanup viene sempre tentato:
 1. Delete test VM (se esiste)
 2. Delete snapshot (se configurato)

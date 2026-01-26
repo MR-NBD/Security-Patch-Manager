@@ -55,7 +55,7 @@ ssh root@10.172.2.5
 
 | Documento | Contenuto |
 |-----------|-----------|
-| [Initial-Setup/README.md](Initial-Setup/README.md) | Guida rapida setup e script |
+| [Initial-Setup/README.md](UYUNI%20Errata%20Manager%20-%20Setup%20&%20Deployment.md) | Guida rapida setup e script |
 | [Initial-Setup/docs/DEPLOYMENT-GUIDE-v2.5.md](Initial-Setup/docs/DEPLOYMENT-GUIDE-v2.5.md) | Guida deployment completa |
 | [DOCUMENTAZIONE-COMPLETA.md](DOCUMENTAZIONE-COMPLETA.md) | Architettura e background |
 | [UYUNI-Guida-01-Concetti-Fondamentali.md](UYUNI-Guida-01-Concetti-Fondamentali.md) | Concetti base UYUNI |

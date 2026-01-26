@@ -1,7 +1,5 @@
 ## Per ambiente di Test
-
 Installazione di **UYUNI 2025.10** su **openSUSE Leap 15.6** in ambiente **Azure** con deployment containerizzato tramite **Podman**. 
-
 ### Accesso alla VM
 L'accesso alla VM avviene **esclusivamente tramite Azure Bastion** (nessun IP pubblico).
 
@@ -18,7 +16,6 @@ L'accesso alla VM avviene **esclusivamente tramite Azure Bastion** (nessun IP pu
 | Disco Repository | 128 GB Standard SSD | 500+ GB Premium SSD      |
 | Disco PostgreSQL | 32 GB Standard SSD  | 100+ GB Premium SSD NVMe |
 ### Architettura Target
-
 #### UYUNI SERVER - Host Container (openSUSE Leap 15.6)
 ##### Componenti Container (UYUNI 2025.10):
 

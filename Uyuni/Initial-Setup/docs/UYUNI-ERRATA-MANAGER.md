@@ -1,5 +1,3 @@
-# UYUNI Errata Manager v2.4 - Guida Completa
-
 ## Indice
 
 1. [Panoramica](#1-panoramica)
@@ -15,22 +13,18 @@
 11. [Riferimenti API](#11-riferimenti-api)
 
 ---
-
 ## 1. Panoramica
 
 ### 1.1 Obiettivo
 
 UYUNI Errata Manager è un sistema automatizzato per sincronizzare security advisories (errata) da fonti pubbliche e integrarli in UYUNI Server, **associando correttamente i pacchetti** per una gestione centralizzata delle patch di sicurezza.
-
 ### 1.2 Problema Risolto
-
 UYUNI (fork open source di SUSE Manager) ha supporto limitato per errata Ubuntu/Debian. Questo sistema:
 
 - **Colma il gap**: Importa errata da fonti ufficiali Ubuntu e Debian
 - **Associa i pacchetti**: Collega ogni errata ai pacchetti corretti nei canali UYUNI
 - **Arricchisce i dati**: Aggiunge CVSS scores da NVD per prioritizzazione
 - **Automatizza**: Sync periodico senza intervento manuale
-
 ### 1.3 Fonti Dati Integrate
 
 | Fonte | Tipo | Descrizione |
@@ -39,20 +33,14 @@ UYUNI (fork open source di SUSE Manager) ha supporto limitato per errata Ubuntu/
 | **DSA** (Debian Security Advisories) | Errata + Pacchetti | Advisory di sicurezza Debian con pacchetti |
 | **NVD** (National Vulnerability Database) | CVE Enrichment | CVSS scores, severity, CWE |
 | **OVAL** (Open Vulnerability Assessment Language) | Definitions | Definizioni per vulnerability scanning |
-
 ### 1.4 Versione e Changelog
-
 **Versione attuale: 2.4**
 
-| Versione | Data | Modifiche |
-|----------|------|-----------|
-| 2.3 | Dic 2024 | Versione iniziale con sync errata |
-| 2.4 | Dic 2024 | **FIX CRITICO**: Associazione pacchetti agli errata, cache UYUNI |
-
----
-
+| Versione | Data     | Modifiche                                                        |
+| -------- | -------- | ---------------------------------------------------------------- |
+| 2.3      | Dic 2024 | Versione iniziale con sync errata                                |
+| 2.4      | Dic 2024 | **FIX CRITICO**: Associazione pacchetti agli errata, cache UYUNI |
 ## 2. Architettura
-
 ### 2.1 Diagramma Architetturale
 
 ```
@@ -100,9 +88,7 @@ UYUNI (fork open source di SUSE Manager) ha supporto limitato per errata Ubuntu/
 │                              └─────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
-
 ### 2.2 Perché Due Container?
-
 L'infrastruttura PSN (Polo Strategico Nazionale) ha restrizioni di rete severe:
 
 | Problema | Soluzione |
@@ -110,7 +96,6 @@ L'infrastruttura PSN (Polo Strategico Nazionale) ha restrizioni di rete severe:
 | Container nella VNet non possono accedere a Internet | Container pubblico per sync esterni |
 | Container pubblico non può raggiungere UYUNI (rete privata) | Container interno per push a UYUNI |
 | NAT Gateway bloccato da policy Azure | Architettura a due container |
-
 ### 2.3 Flusso Dati Dettagliato
 
 ```
@@ -154,7 +139,6 @@ L'infrastruttura PSN (Polo Strategico Nazionale) ha restrizioni di rete severe:
 │                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
-
 ### 2.4 Schema Database
 
 ```
@@ -179,11 +163,7 @@ L'infrastruttura PSN (Polo Strategico Nazionale) ha restrizioni di rete severe:
 │ cve_id (UNIQUE)     │       └─────────────────────┘
 └─────────────────────┘
 ```
-
----
-
 ## 3. Prerequisiti
-
 ### 3.1 Risorse Azure
 
 - **Sottoscrizione Azure** con accesso a:
@@ -191,21 +171,16 @@ L'infrastruttura PSN (Polo Strategico Nazionale) ha restrizioni di rete severe:
   - Azure Container Registry (ACR)
   - Azure Database for PostgreSQL Flexible Server
   - Virtual Network con subnet dedicata per ACI
-
 ### 3.2 UYUNI Server
-
 - UYUNI Server installato e funzionante (testato con 2024.x)
 - Canali Ubuntu 24.04 configurati e sincronizzati
 - Credenziali admin per API XML-RPC
 - Accesso di rete al container interno (porta 5000)
-
 ### 3.3 Strumenti
-
 - Azure CLI (`az`) configurato
 - `curl` e `jq` per testing
 - `psql` client per PostgreSQL
 - Accesso SSH al server UYUNI
-
 ### 3.4 Credenziali Necessarie
 
 | Risorsa | Credenziali | Note |
@@ -214,11 +189,7 @@ L'infrastruttura PSN (Polo Strategico Nazionale) ha restrizioni di rete severe:
 | UYUNI | Admin username, Password | Per XML-RPC API |
 | NVD API | API Key (opzionale) | Velocizza sync CVE |
 | Azure ACR | Username, Password | Per push immagini |
-
----
-
 ## 4. Fase 1: Setup Database PostgreSQL
-
 ### 4.1 Creazione Database (Azure)
 
 ```bash
@@ -247,8 +218,7 @@ az postgres flexible-server db create \
   --server-name $PG_SERVER \
   --database-name $DB_NAME
 ```
-
-### 4.2 Schema Database Completo (v2.4)
+### 4.2 Schema Database Completo
 
 ```bash
 # Connettiti e crea lo schema
@@ -413,9 +383,7 @@ CREATE INDEX IF NOT EXISTS idx_uyuni_pkg_cache_channel ON uyuni_package_cache(ch
 
 EOF
 ```
-
 ### 4.3 Configurazione Private Endpoint (per VNet)
-
 Se il container interno è in una VNet privata, configura un Private Endpoint per PostgreSQL:
 
 ```bash
@@ -431,11 +399,7 @@ az network private-endpoint create \
 ```
 
 Annota l'**IP privato** del Private Endpoint (es. `10.172.2.6`) per il DATABASE_URL del container interno.
-
----
-
 ## 5. Fase 2: Creazione API Flask
-
 ### 5.1 Struttura File
 
 ```
@@ -443,9 +407,7 @@ uyuni-errata-manager/
 ├── app.py           # API Flask principale (v2.4)
 ├── Dockerfile.api   # Dockerfile per container
 ```
-
 ### 5.2 Codice API Completo (app.py v2.4)
-
 Crea il file `app.py`:
 
 ```bash
@@ -1321,7 +1283,6 @@ if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
 ENDOFPYTHON
 ```
-
 ### 5.3 Dockerfile
 
 ```bash
@@ -1350,9 +1311,7 @@ EOF
 ```
 
 ---
-
 ## 6. Fase 3: Build e Deploy Container
-
 ### 6.1 Creazione Azure Container Registry
 
 ```bash
@@ -1365,7 +1324,6 @@ az acr create \
   --sku Basic \
   --admin-enabled true
 ```
-
 ### 6.2 Build Immagine
 
 ```bash
@@ -1376,7 +1334,6 @@ az acr build \
   --image errata-api:v2.4 \
   --file Dockerfile.api .
 ```
-
 ### 6.3 Deploy Container Pubblico
 
 ```bash
@@ -1398,7 +1355,6 @@ az container create \
     DATABASE_URL="postgresql://USER:PASS@HOST:5432/DB?sslmode=require" \
   --restart-policy Always
 ```
-
 ### 6.4 Deploy Container Interno (VNet)
 
 ```bash
@@ -1427,13 +1383,9 @@ az container create \
 ```
 
 **IMPORTANTE**: Per il container interno, usa l'**IP privato** del Private Endpoint PostgreSQL nel DATABASE_URL.
-
----
-
 ## 7. Fase 4: Configurazione Automazione
 
 ### 7.1 Script Automazione (sul server UYUNI)
-
 ```bash
 cat > /root/errata-sync.sh << 'EOF'
 #!/bin/bash
@@ -1479,7 +1431,6 @@ EOF
 
 chmod +x /root/errata-sync.sh
 ```
-
 ### 7.2 Configurazione Cron
 
 ```bash
@@ -1489,11 +1440,7 @@ chmod +x /root/errata-sync.sh
 # Verifica
 crontab -l
 ```
-
----
-
 ## 8. Fase 5: Test e Verifica
-
 ### 8.1 Test Container Pubblico
 
 ```bash
@@ -1505,7 +1452,6 @@ curl -s http://$PUBLIC_IP:5000/api/health | jq
 # Test sync USN
 curl -s -X POST http://$PUBLIC_IP:5000/api/sync/usn | jq
 ```
-
 ### 8.2 Test Container Interno (dal server UYUNI)
 
 ```bash
@@ -1522,7 +1468,6 @@ curl -s http://$INTERNAL_IP:5000/api/health | jq
 #   "version": "2.4"
 # }
 ```
-
 ### 8.3 Test Sync Pacchetti
 
 ```bash
@@ -1532,7 +1477,6 @@ curl -s -X POST "http://$INTERNAL_IP:5000/api/uyuni/sync-packages" | jq
 # Verifica statistiche
 curl -s "http://$INTERNAL_IP:5000/api/stats/packages" | jq
 ```
-
 ### 8.4 Test Push Errata
 
 ```bash
@@ -1542,11 +1486,7 @@ curl -s -X POST "http://$INTERNAL_IP:5000/api/uyuni/push?limit=5" | jq
 # Verifica in UYUNI Web UI:
 # Patches → Manage Patches → cerca gli errata importati
 ```
-
----
-
 ## 9. Operazioni e Manutenzione
-
 ### 9.1 Comandi Utili
 
 ```bash
@@ -1571,7 +1511,6 @@ az container logs --resource-group VNET_RG --name aci-errata-api-internal
 # === VERIFICA ERRATA SPECIFICO ===
 curl -s "http://INTERNAL_IP:5000/api/errata/USN-7931-4/packages" | jq
 ```
-
 ### 9.2 Quando Aggiungi Nuovi Canali
 
 ```bash
@@ -1581,11 +1520,7 @@ curl -s -X POST "http://INTERNAL_IP:5000/api/uyuni/sync-packages" | jq
 # 2. I nuovi errata andranno automaticamente sui nuovi canali
 # 3. Per errata già sincronizzati, sono già associati ai canali base
 ```
-
----
-
 ## 10. Troubleshooting
-
 ### Container non raggiunge Database
 
 **Sintomo**: `"database": "error: Connection timed out"`
@@ -1631,9 +1566,6 @@ curl -s -X POST "http://INTERNAL_IP:5000/api/uyuni/sync-packages" | jq
 | `/api/uyuni/channels` | GET | Lista canali UYUNI |
 | `/api/uyuni/sync-packages` | POST | Aggiorna cache pacchetti |
 | `/api/uyuni/push` | POST | Push errata a UYUNI |
-
----
-
 ## Appendice: Variabili d'Ambiente
 
 | Variabile | Descrizione | Esempio |
@@ -1644,9 +1576,3 @@ curl -s -X POST "http://INTERNAL_IP:5000/api/uyuni/sync-packages" | jq
 | `UYUNI_PASSWORD` | Password UYUNI | `secret` |
 | `NVD_API_KEY` | API Key NVD (opzionale) | `xxxxxxxx-xxxx-xxxx-xxxx` |
 | `FLASK_ENV` | Ambiente Flask | `production` |
-
----
-
-*Documento creato: Dicembre 2024*
-*Versione: 2.4*
-*Autore: UYUNI Errata Manager Project*

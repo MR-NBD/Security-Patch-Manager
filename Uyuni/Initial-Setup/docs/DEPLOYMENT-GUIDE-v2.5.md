@@ -625,7 +625,7 @@ Dopo il deployment v2.5, dovresti vedere:
 - [RICHIESTA-NAT-GATEWAY-PSN.md](./RICHIESTA-NAT-GATEWAY-PSN.md) - Template richiesta NAT Gateway
 - [app-v2.5-IMPROVED.py](./app-v2.5-IMPROVED.py) - Codice sorgente API
 - [errata-sync-v2.5-IMPROVED.sh](./errata-sync-v2.5-IMPROVED.sh) - Script automazione
-- [UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md](./UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md) - Documentazione base
+- [UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md](UYUNI-ERRATA-MANAGER.md) - Documentazione base
 
 ---
 
