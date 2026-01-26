@@ -28,26 +28,13 @@ Spacewalk (Red Hat, 2008)
             └──► SUSE Manager (commerciale)
 ```
 
-| Prodotto | Licenza | Supporto | Target |
-|----------|---------|----------|--------|
-| **UYUNI** | GPL v2 | Community | Qualsiasi Linux |
-| SUSE Manager | Commerciale | Enterprise | SUSE + altri |
-| Red Hat Satellite | Commerciale | Enterprise | RHEL |
-| Foreman/Katello | GPL | Community | RHEL-based |
-### Sistemi Operativi Supportati
-**Server UYUNI**: openSUSE Leap 15.x (unico OS supportato per il server)
-**Client gestibili**:
-
-| Famiglia                 | Versioni            | Livello Supporto |
-| ------------------------ | ------------------- | ---------------- |
-| SUSE Linux Enterprise    | 12, 15              | Completo         |
-| openSUSE Leap            | 15.x                | Completo         |
-| Red Hat Enterprise Linux | 7, 8, 9             | Completo         |
-| CentOS / Rocky / Alma    | 7, 8, 9             | Completo         |
-| Oracle Linux             | 7, 8, 9             | Completo         |
-| **Ubuntu LTS**           | 20.04, 22.04, 24.04 | Buono            |
-| **Debian**               | 11, 12              | Buono            |
-| Amazon Linux             | 2, 2023             | Buono            |
+| Prodotto          | Licenza     | Supporto   | Target          |
+| ----------------- | ----------- | ---------- | --------------- |
+| **UYUNI**         | GPL v2      | Community  | Qualsiasi Linux |
+| SUSE Manager      | Commerciale | Enterprise | SUSE + altri    |
+| Red Hat Satellite | Commerciale | Enterprise | RHEL            |
+| Foreman/Katello   | GPL         | Community  | RHEL-based      |
+> [GPL v2](https://www.google.com/search?q=GPL+v2&oq=GPL+v2&gs_lcrp=EgZjaHJvbWUyBggAEEUYOTIICAEQABgWGB4yCAgCEAAYFhgeMggIAxAAGBYYHjIICAQQABgWGB4yCAgFEAAYFhgeMggIBhAAGBYYHjIICAcQABgWGB4yCAgIEAAYFhgeMggICRAAGBYYHtIBCDI0MzlqMGo3qAIAsAIA&sourceid=chrome&ie=UTF-8&ved=2ahUKEwjynbzKjqmSAxVrRP4FHWOPHVkQgK4QegYIAQgAEAM) (GNU General Public License versione 2) è una licenza di software libero "copyleft" forte, rilasciata nel 1991, che garantisce agli utenti la libertà di usare, modificare e distribuire il software, richiedendo che le versioni modificate siano distribuite sotto la stessa licenza
 ## Architettura Tecnica
 ### Componenti del Server
 - **UYUNI SERVER** : Container Podman o VM
@@ -219,38 +206,7 @@ Raggruppamenti logici di sistemi per:
 ### Architettura Salt
 UYUNI utilizza **SaltStack** come motore di automazione:
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    SALT ARCHITECTURE                                │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│                      UYUNI Server                                   │
-│                    (Salt Master)                                    │
-│                          │                                          │
-│            ┌─────────────┼─────────────┐                            │
-│            │             │             │                            │
-│            ▼             ▼             ▼                            │
-│     ┌──────────┐  ┌──────────┐  ┌──────────┐                        │
-│     │  ZeroMQ  │  │  ZeroMQ  │  │  Event   │                        │
-│     │   PUB    │  │   REQ    │  │   Bus    │                        │
-│     │  :4505   │  │  :4506   │  │          │                        │
-│     └────┬─────┘  └────┬─────┘  └────┬─────┘                        │
-│          │             │             │                              │
-│          └─────────────┼─────────────┘                              │
-│                        │                                            │
-│          ══════════════╪══════════════ (Network)                    │
-│                        │                                            │
-│            ┌───────────┼───────────┐                                │
-│            │           │           │                                │
-│            ▼           ▼           ▼                                │
-│     ┌──────────┐ ┌──────────┐ ┌──────────┐                          │
-│     │  Salt    │ │  Salt    │ │  Salt    │                          │
-│     │  Minion  │ │  Minion  │ │  Minion  │                          │
-│     │ (Client) │ │ (Client) │ │ (Client) │                          │
-│     └──────────┘ └──────────┘ └──────────┘                          │ 
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
-```
+![[treUntitled Diagram.drawio.png]]
 ### Protocollo di Comunicazione
 
 | Porta | Pattern | Funzione |
