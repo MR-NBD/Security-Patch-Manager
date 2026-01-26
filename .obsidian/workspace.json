@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Initial-Setup/UYUNI Errata Manager - Setup & Deployment.md",
+                "file": "Uyuni/Teoria/Concetti-Fondamentali-UYUNI.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "UYUNI Errata Manager - Setup & Deployment"
+              "title": "Concetti-Fondamentali-UYUNI"
             }
           }
         ]
@@ -197,9 +197,9 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
-    "Uyuni/README.md",
-    "Uyuni/Initial-Setup/UYUNI Errata Manager - Setup & Deployment.md",
     "Uyuni/Teoria/Client-Management-Guide.md",
+    "Uyuni/Initial-Setup/UYUNI Errata Manager - Setup & Deployment.md",
+    "Uyuni/README.md",
     "Uyuni/Teoria/Concetti-Fondamentali-UYUNI.md",
     "Uyuni/Teoria/Supported-Clients Systems.md",
     "TO-DO_ALBERTO.md",

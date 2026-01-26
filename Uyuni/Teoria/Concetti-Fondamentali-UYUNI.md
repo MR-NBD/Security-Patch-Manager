@@ -1,10 +1,4 @@
-# Guida 1: Concetti Fondamentali di UYUNI
-
-## Prima di Tutto: Risposte alle Tue Domande
-
-### 🤔 UYUNI gestisce altri OS oltre a SUSE?
-
-**SÌ, assolutamente!** Questo è un malinteso comune. UYUNI supporta **molti sistemi operativi** come client:
+UYUNI supporta **molti sistemi operativi** come client:
 
 | OS | Supporto | Note |
 |----|----------|------|
@@ -18,11 +12,8 @@
 | **Amazon Linux** | ✅ Buono | 2, 2023 |
 | **Raspberry Pi OS** | ✅ Funziona | |
 | **openEuler** | ✅ Nuovo | 22.03 |
-
 **Il server UYUNI** gira su openSUSE, ma **può gestire client di qualsiasi OS supportato**.
-
-### 🐳 UYUNI gestisce Docker/Container?
-
+### UYUNI gestisce Docker/Container?
 **SÌ, ma in modo specifico.** UYUNI non è un orchestratore come Kubernetes, ma offre:
 
 | Funzionalità | Supporto | Descrizione |
