@@ -195,8 +195,11 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "fcae071421e98e82",
+  "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
+    "dueUntitled Diagram.drawio.png",
+    "Uyuni/Teoria/UYUNI.md",
+    "dueUntitled Diagram.drawio-1.png",
     "img/Untitled Diagram.drawio.png",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Teoria/Supported-Clients.md",
@@ -211,7 +214,6 @@
     "README.md",
     "TO-DO_ALBERTO.md",
     "Uyuni/Teoria/Client-Management-Guide.md",
-    "Uyuni/Teoria/UYUNI.md",
     "Uyuni/README.md",
     "Uyuni/Teoria/Supported-Clients Systems.md",
     "Uyuni/Deployment",
@@ -239,9 +241,6 @@
     "img/png3.png",
     "img/png2.png",
     "img/png5.png",
-    "img/png1.png",
-    "img/image.png",
-    "img/image-1 1.png",
-    "img/fwrule.png"
+    "img/png1.png"
   ]
 }

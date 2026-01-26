@@ -172,25 +172,7 @@ I **Channels** sono repository di pacchetti software organizzati gerarchicamente
 ### Content Lifecycle Management (CLM)
 CLM permette di gestire il ciclo di vita dei contenuti attraverso ambienti:
 
-```
-┌────────────────────────────────────────────────────────────────────┐
-│                    CLM WORKFLOW                                    │
-├────────────────────────────────────────────────────────────────────┤
-│                                                                    │
-│   SOURCES          FILTERS           ENVIRONMENTS                  │
-│                                                                    │
-│   ┌─────────┐     ┌─────────────┐    ┌─────┐  ┌─────┐  ┌──────┐    │
-│   │ Channel │────►│  Include/   │───►│ DEV │─►│ QA  │─►│ PROD │    │
-│   │ ubuntu  │     │  Exclude    │    └─────┘  └─────┘  └──────┘    │
-│   │ -2404   │     │             │                                  │
-│   └─────────┘     │ - by date   │       │         │         │      │
-│                   │ - by package│    BUILD    PROMOTE   PROMOTE    │
-│                   │ - by CVE    │                                  │
-│                   └─────────────┘    Snapshot   Promuove contenuto │
-│                                      immutabile tra ambienti       │
-│                                                                    │
-└────────────────────────────────────────────────────────────────────┘
-```
+![[dueUntitled Diagram.drawio-1.png]]
 
 **Vantaggi:**
 - **Snapshot immutabili**: ogni build crea uno stato congelato
