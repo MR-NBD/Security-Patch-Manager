@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Teoria/Supported-Clients.md",
+                "file": "Uyuni/Teoria/UYUNI.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Supported-Clients"
+              "title": "UYUNI"
             }
           }
         ]
@@ -197,10 +197,11 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
+    "Utenze/ASL0603.md",
+    "Uyuni/Teoria/Supported-Clients.md",
     "Uyuni/Initial-Setup/Dockerfile",
     "Uyuni/Initial-Setup/requirements.txt",
     "Uyuni/Teoria/UYUNI.md",
-    "Uyuni/Teoria/Supported-Clients.md",
     "img/treUntitled Diagram.drawio.png",
     "dueUntitled Diagram.drawio.png",
     "img/dueUntitled Diagram.drawio-1.png",
@@ -236,7 +237,6 @@
     "Uyuni/Initial-Setup/app-v2.5-IMPROVED.py.tmp.10447.1769116500597",
     "Uyuni/Initial-Setup/app-v2.5-IMPROVED.py.tmp.10447.1769109513372",
     "Uyuni/Initial-Setup/p3_patch_testing.py",
-    "Uyuni/Initial-Setup/p3_patch_testing.py.tmp.10447.1769109422678",
     "Uyuni/Infrastructure-Design/Security-Patch-Manager.png",
     "img/png6.png",
     "img/png4.png",

@@ -1,12 +1,3 @@
-## Indice
-1. [Panoramica](#1-panoramica)
-2. [Architettura Tecnica](#2-architettura-tecnica)
-3. [Modello di Sicurezza](#3-modello-di-sicurezza)
-4. [Concetti Fondamentali](#4-concetti-fondamentali)
-5. [Comunicazione Client-Server](#5-comunicazione-client-server)
-6. [Gestione Vulnerabilità](#6-gestione-vulnerabilità)
-7. [Posizionamento e Confronto](#7-posizionamento-e-confronto)
-## Panoramica
 ### Cos'è UYUNI
 UYUNI è una piattaforma open source per la **gestione centralizzata dell'infrastruttura Linux**, derivata da Spacewalk (il progetto upstream di Red Hat Satellite) e mantenuta da SUSE come versione community di SUSE Manager.
 
