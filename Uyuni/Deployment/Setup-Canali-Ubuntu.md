@@ -72,16 +72,16 @@ Se preferisci creare manualmente (come facevi con Products in Katello):
 #### 2.3.1 Crea Parent Channel (= Product)
 Web UI → **Software** → **Manage** → **Channels** → **Create Channel**
 
-| Campo | Valore |
-|-------|--------|
-| **Channel Name** | Ubuntu 22.04 LTS amd64 |
-| **Channel Label** | ubuntu-2204-lts-amd64 |
-| **Parent Channel** | None (questo È il parent) |
-| **Architecture** | AMD64 Debian |
-| **Channel Summary** | Ubuntu 22.04 LTS base channel |
-| **GPG Key URL** | https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C |
-| **GPG Key ID** | 871920D1991BC93C |
-| **GPG Key Fingerprint** | F6EC... (opzionale) |
+| Campo                   | Valore                                                                   |
+| ----------------------- | ------------------------------------------------------------------------ |
+| **Channel Name**        | Ubuntu 22.04 LTS amd64                                                   |
+| **Channel Label**       | ubuntu-2204-lts-amd64                                                    |
+| **Parent Channel**      | None (questo È il parent)                                                |
+| **Architecture**        | AMD64 Debian                                                             |
+| **Channel Summary**     | Ubuntu 22.04 LTS base channel                                            |
+| **GPG Key URL**         | https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C |
+| **GPG Key ID**          | 871920D1991BC93C                                                         |
+| **GPG Key Fingerprint** | F6EC... (opzionale)                                                      |
 
 Clicca **Create Channel**.
 #### 2.3.2 Crea Child Channels (= Repositories)
