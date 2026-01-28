@@ -155,7 +155,6 @@ zypper install -y \
   curl \
   jq
 ```
-
 > **PER PRODUZIONE**: Aggiungere `audit`, `fail2ban`, `rsync`, `htop`, `iotop` per monitoring e sicurezza.
 
 ---
