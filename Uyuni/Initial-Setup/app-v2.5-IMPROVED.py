@@ -811,14 +811,19 @@ def sync_nvd():
     # IMPROVEMENT: Prioritize CVEs with high severity errata first
     if prioritize_high_severity and not force:
         cur.execute("""
-            SELECT DISTINCT c.cve_id
-            FROM cves c
-            LEFT JOIN cve_details cd ON c.cve_id = cd.cve_id
-            JOIN errata_cves ec ON c.id = ec.cve_id
-            JOIN errata e ON ec.errata_id = e.id
-            WHERE cd.cve_id IS NULL
-              AND e.severity IN ('critical', 'high')
-            ORDER BY e.severity DESC, c.cve_id DESC
+            SELECT cve_id FROM (
+                SELECT DISTINCT c.cve_id,
+                       CASE WHEN e.severity = 'critical' THEN 1
+                            WHEN e.severity = 'high' THEN 2
+                            ELSE 3 END as sev_order
+                FROM cves c
+                LEFT JOIN cve_details cd ON c.cve_id = cd.cve_id
+                JOIN errata_cves ec ON c.id = ec.cve_id
+                JOIN errata e ON ec.errata_id = e.id
+                WHERE cd.cve_id IS NULL
+                  AND e.severity IN ('critical', 'high')
+            ) sub
+            ORDER BY sev_order, cve_id DESC
             LIMIT %s
         """, (batch_size,))
     elif force:
