@@ -30,6 +30,8 @@ Uyuni/
     ├── UYUNI Errata Manager - Setup & Deployment.md  # Quick reference
     ├── app-v2.5-IMPROVED.py              # API Flask v2.6
     ├── p3_patch_testing.py               # Modulo P3 Patch Testing
+    ├── Dockerfile                         # Container image definition
+    ├── requirements.txt                   # Python dependencies
     ├── sql/                               # Schema database
     └── scripts/                           # Script operativi
 ```
@@ -39,6 +41,10 @@ Uyuni/
 ### 1. Verifica Sistema
 
 ```bash
+# Health check container pubblico
+curl -s http://4.232.4.143:5000/api/health | jq
+
+# Health check container interno (da UYUNI server)
 curl -s http://10.172.5.5:5000/api/health | jq
 ```
 
@@ -46,11 +52,12 @@ curl -s http://10.172.5.5:5000/api/health | jq
 
 ```bash
 # FASE 1: Sync esterni (da PC/Azure Cloud Shell)
-curl -X POST http://4.232.4.32:5000/api/sync/usn
-curl -X POST http://4.232.4.32:5000/api/sync/dsa/full
+curl -X POST http://4.232.4.143:5000/api/sync/usn
+curl -X POST http://4.232.4.143:5000/api/sync/dsa/full
+curl -X POST http://4.232.4.143:5000/api/sync/oval
+curl -X POST http://4.232.4.143:5000/api/sync/nvd
 
-# FASE 2: Sync interni (da server UYUNI)
-curl -X POST http://10.172.5.5:5000/api/uyuni/sync-packages
+# FASE 2: Push a UYUNI (da server UYUNI o rete interna)
 curl -X POST http://10.172.5.5:5000/api/uyuni/push
 ```
 

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Utenze/ASL0603.md",
+                "file": "Uyuni/Deployment/Installazione-UYUNI-Server.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ASL0603"
+              "title": "Installazione-UYUNI-Server"
             }
           }
         ]
@@ -197,11 +197,13 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
+    "Uyuni/Deployment/DEPLOYMENT-GUIDE.md",
+    "Utenze/ASL0603.md",
+    "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
     "Uyuni/Initial-Setup/UYUNI Errata Manager - Setup & Deployment.md",
     "Uyuni/Teoria/UYUNI.md",
-    "Utenze/ASL0603.md",
     "Uyuni/Teoria/Supported-Clients.md",
     "Uyuni/Initial-Setup/Dockerfile",
     "Uyuni/Initial-Setup/requirements.txt",
@@ -209,11 +211,9 @@
     "dueUntitled Diagram.drawio.png",
     "img/dueUntitled Diagram.drawio-1.png",
     "img/Untitled Diagram.drawio.png",
-    "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/README.md.tmp.1594.1769422900063",
     "Uyuni/Teoria/Concetti-Fondamentali-UYUNI.md.tmp.1594.1769422463900",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
-    "Uyuni/Deployment/DEPLOYMENT-GUIDE.md",
     "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
     "README.md",
     "TO-DO_ALBERTO.md",
