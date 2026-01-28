@@ -466,18 +466,7 @@ Il sistema chiederà:
 - **Password CA key**: scegli una password sicura
 - **Password amministratore**: password per login Web UI
 - **Email**: email per notifiche sistema
-
-### 8.2 Monitoraggio Deployment
-In un altro terminale :
-#### Monitorare tutti i container
-```bash
-sudo podman logs -f uyuni-server
-```
-#### Oppure per il database
-```bash
-sudo podman logs -f uyuni-db
-```
-### 8.3 Verificare Container Attivi
+### 8.2 Verificare Container Attivi
 **UYUNI 2025.x**: L'architettura prevede **2 container separati**.
 Al termine del deployment:
 
