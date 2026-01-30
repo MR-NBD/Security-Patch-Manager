@@ -55,19 +55,6 @@ sdc (Data Disk 2 - 64GB) [LVM]
 > **BEST PRACTICE**: Spostare `/var/lib/containers` su `/manager_storage/containers` per evitare di riempire il disco OS. Vedi FASE 5.4. 
 
 ---
-## Indice
-
-- [FASE 1: Preparazione del Sistema Base](#fase-1-preparazione-del-sistema-base)
-- [FASE 2: Configurazione NTP con Chrony](#fase-2-configurazione-ntp-con-chrony)
-- [FASE 3: Configurazione Hostname e DNS](#fase-3-configurazione-hostname-e-dns)
-- [FASE 4: Configurazione Base Sicurezza](#fase-4-configurazione-base-sicurezza-test)
-- [FASE 5: Configurazione Storage Dedicato](#fase-5-configurazione-storage-dedicato)
-- [FASE 6: Configurazione Firewall](#fase-6-configurazione-firewall)
-- [FASE 7: Installazione Repository UYUNI](#fase-7-installazione-repository-uyuni)
-- [FASE 8: Deployment Container UYUNI](#fase-8-deployment-container-uyuni)
-- [FASE 9: Verifica dell'Installazione](#fase-9-verifica-dellinstallazione-test)
-- [Troubleshooting](#troubleshooting)
----
 ## DEPLOYMENT
 ### Configurazione VM Azure - Ambiente TEST
 
@@ -393,16 +380,6 @@ lvs
 ```
 ```bash
 vgs
-```
-##### Verificare volumi Podman
-```bash
-ls -la /var/lib/containers/storage/volumes/
-```
-Output atteso:
-
-```
-var-spacewalk -> /manager_storage
-var-pgsql -> /pgsql_storage
 ```
 
 ---
