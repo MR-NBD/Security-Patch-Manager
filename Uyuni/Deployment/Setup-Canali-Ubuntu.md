@@ -1,11 +1,12 @@
 # Setup Canali Ubuntu 24.04 LTS per UYUNI
 
-Guida completa per configurare i canali Ubuntu 24.04 LTS (Noble Numbat) su UYUNI Server, inclusa la gestione GPG, sincronizzazione repository, e registrazione client.
+Guida completa per configurare i canali Ubuntu 24.04 LTS (Noble Numbat) su UYUNI Server utilizzando i template pre-configurati di `spacewalk-common-channels`.
+
 ## Obiettivo
 
 Configurare UYUNI per gestire sistemi Ubuntu 24.04 LTS con:
 - Repository main, security, updates, universe
-- GPG key verification
+- UYUNI Client Tools (venv-salt-minion)
 - Activation keys per ambienti test/production
 - Integrazione con OpenSCAP per compliance
 
@@ -25,256 +26,196 @@ Configurare UYUNI per gestire sistemi Ubuntu 24.04 LTS con:
 ## Architettura Canali
 
 ```
-Ubuntu 24.04 LTS AMD64 Base for Uyuni (Parent)
-├── Ubuntu 24.04 LTS AMD64 Main
-├── Ubuntu 24.04 LTS AMD64 Main Security
-├── Ubuntu 24.04 LTS AMD64 Main Updates
-├── Ubuntu 24.04 LTS AMD64 Universe            ← Necessario per OpenSCAP
-├── Ubuntu 24.04 LTS AMD64 Universe Updates
-└── Uyuni Client Tools for Ubuntu 24.04 AMD64
+ubuntu-24.04-pool-amd64-uyuni (Parent - Base)           ← 0 pacchetti (contenitore)
+├── ubuntu-2404-amd64-main-uyuni                        ← ~6,000 pacchetti
+├── ubuntu-2404-amd64-main-security-uyuni               ← ~7,600 pacchetti + errata
+├── ubuntu-2404-amd64-main-updates-uyuni                ← ~9,000 pacchetti
+├── ubuntu-2404-amd64-universe-uyuni                    ← ~65,000 pacchetti
+├── ubuntu-2404-amd64-universe-security-uyuni           ← errata sicurezza
+├── ubuntu-2404-amd64-universe-updates-uyuni            ← ~7,400 pacchetti
+└── ubuntu-2404-amd64-uyuni-client                      ← Client Tools (venv-salt-minion)
 ```
 
-> **NOTA IMPORTANTE**: Il canale Universe contiene ~65.000 pacchetti e richiede ~50GB di spazio. Pianificare lo storage di conseguenza.
+> **NOTA**: Il canale Pool/Base è un contenitore gerarchico e non contiene pacchetti. I pacchetti sono nei child channels.
 
 ---
 
-## FASE 1: Import GPG Keys
+## FASE 1: Verifica Template Disponibili
 
-Ubuntu usa diverse GPG keys per firmare i pacchetti. Importarle prima di creare i canali.
-
-### 1.1 Scarica GPG Key Ubuntu (da container UYUNI)
+Entra nel container UYUNI e verifica i template disponibili:
 
 ```bash
 sudo podman exec -it uyuni-server bash
+
+# Lista tutti i template Ubuntu 24.04
+spacewalk-common-channels -l | grep ubuntu-2404
 ```
+
+Output atteso:
+```
+ ubuntu-2404-amd64-main-backports-uyuni: amd64-deb
+ ubuntu-2404-amd64-main-security-uyuni: amd64-deb
+ ubuntu-2404-amd64-main-updates-uyuni: amd64-deb
+ ubuntu-2404-amd64-main-uyuni: amd64-deb
+ ubuntu-2404-amd64-multiverse-backports-uyuni: amd64-deb
+ ubuntu-2404-amd64-multiverse-security-uyuni: amd64-deb
+ ubuntu-2404-amd64-multiverse-updates-uyuni: amd64-deb
+ ubuntu-2404-amd64-multiverse-uyuni: amd64-deb
+ ubuntu-2404-amd64-restricted-backports-uyuni: amd64-deb
+ ubuntu-2404-amd64-restricted-security-uyuni: amd64-deb
+ ubuntu-2404-amd64-restricted-updates-uyuni: amd64-deb
+ ubuntu-2404-amd64-restricted-uyuni: amd64-deb
+ ubuntu-2404-amd64-universe-backports-uyuni: amd64-deb
+ ubuntu-2404-amd64-universe-security-uyuni: amd64-deb
+ ubuntu-2404-amd64-universe-updates-uyuni: amd64-deb
+ ubuntu-2404-amd64-universe-uyuni: amd64-deb
+ ubuntu-2404-amd64-uyuni-client: amd64-deb
+ ubuntu-2404-amd64-uyuni-client-devel: amd64-deb
+ ubuntu-2404-pool-amd64-uyuni: amd64-deb
+```
+
+---
+
+## FASE 2: Creazione Canali con spacewalk-common-channels
+
+> **IMPORTANTE**: I canali devono essere creati in ordine gerarchico. Prima il Pool (base), poi i child channels.
+
+### 2.1 Crea Pool Channel (Base)
 
 ```bash
-# Scarica la chiave Ubuntu Archive 2018
-curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C" -o /tmp/ubuntu-archive-2018.asc
-
-# Visualizza per verifica
-cat /tmp/ubuntu-archive-2018.asc
+# Il pool è il parent channel - DEVE essere creato per primo
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-pool-amd64-uyuni
 ```
 
-### 1.2 Import via Web UI
-
-1. **Systems** → **Autoinstallation** → **GPG and SSL Keys**
-2. **Create Stored Key** / **Cert**
-
-| Campo           | Valore                                                                                                                |
-| --------------- | --------------------------------------------------------------------------------------------------------------------- |
-| **Description** | Ubuntu Archive Automatic Signing Key (2018)                                                                           |
-| **Type**        | GPG                                                                                                                   |
-| **Key Content** | Incolla il contenuto del file .asc (da `-----BEGIN PGP PUBLIC KEY BLOCK-----` a `-----END PGP PUBLIC KEY BLOCK-----`) |
-
-3. **Create Key**
-
-### 1.3 Informazioni GPG per i Canali
-
-Questi valori serviranno nella creazione dei canali:
-
-| Campo | Valore |
-|-------|--------|
-| GPG key URL | `https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C` |
-| GPG key ID | `991BC93C` |
-| GPG key Fingerprint | `F6EC B376 2474 EDA9 D21B 7022 8719 20D1 991B C93C` |
-
----
-
-## FASE 2: Creazione Base Channel
-
-### 2.1 Crea Parent Channel
-
-**Software** → **Manage** → **Channels** → **Create Channel**
-
-| Campo                   | Valore                                                                     |
-| ----------------------- | -------------------------------------------------------------------------- |
-| **Channel Name**        | `Ubuntu 24.04 LTS AMD64 Base for Uyuni`                                    |
-| **Channel Label**       | `ubuntu-2404-amd64-base-uyuni`                                             |
-| **Parent Channel**      | `-- None --`                                                               |
-| **Architecture**        | `AMD64 Debian`                                                             |
-| **Checksum Type**       | `SHA256`                                                                   |
-| **Channel Summary**     | `Ubuntu 24.04 LTS (Noble Numbat) base channel`                             |
-| **GPG key URL**         | `https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C` |
-| **GPG key ID**          | `991BC93C`                                                                 |
-| **GPG key Fingerprint** | `F6EC B376 2474 EDA9 D21B 7022 8719 20D1 991B C93C`                        |
-| **Enable GPG Check**    | ✅ Checked (per production)                                                 |
-
-> **Per test rapidi**: Disabilita GPG Check e lascia vuoti i campi GPG.
-
-Clicca **Create Channel**.
-
----
-
-## FASE 3: Creazione Child Channels
-
-Per ogni child channel, vai su **Software** → **Manage** → **Channels** → **Create Channel**
-
-### 3.1 Main Channel
-
-| Campo              | Valore                                  |
-| ------------------ | --------------------------------------- |
-| **Channel Name**   | `Ubuntu 24.04 LTS AMD64 Main`           |
-| **Channel Label**  | `ubuntu-2404-amd64-main-uyuni`          |
-| **Parent Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni` |
-| **Architecture**   | `AMD64 Debian`                          |
-| **Checksum Type**  | `SHA256`                                |
-| **Summary**        | `Ubuntu 24.04 main packages`            |
-
-### 3.2 Main Security Channel
-
-| Campo              | Valore                                  |
-| ------------------ | --------------------------------------- |
-| **Channel Name**   | `Ubuntu 24.04 LTS AMD64 Main Security`  |
-| **Channel Label**  | `ubuntu-2404-amd64-main-security-uyuni` |
-| **Parent Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni` |
-| **Architecture**   | `AMD64 Debian`                          |
-| **Summary**        | `Ubuntu 24.04 main security updates`    |
-
-### 3.3 Main Updates Channel
-
-| Campo              | Valore                                  |
-| ------------------ | --------------------------------------- |
-| **Channel Name**   | `Ubuntu 24.04 LTS AMD64 Main Updates`   |
-| **Channel Label**  | `ubuntu-2404-amd64-main-updates-uyuni`  |
-| **Parent Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni` |
-| **Architecture**   | `AMD64 Debian`                          |
-| **Summary**        | `Ubuntu 24.04 main updates`             |
-
-### 3.4 Universe Channel
-
-| Campo              | Valore                                       |
-| ------------------ | -------------------------------------------- |
-| **Channel Name**   | `Ubuntu 24.04 LTS AMD64 Universe`            |
-| **Channel Label**  | `ubuntu-2404-amd64-universe-uyuni`           |
-| **Parent Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni`      |
-| **Architecture**   | `AMD64 Debian`                               |
-| **Summary**        | `Ubuntu 24.04 universe packages (community)` |
-
-> Questo canale è necessario per installare OpenSCAP (`openscap-scanner`, `ssg-base`).
-
-### 3.5 Universe Updates Channel
-
-| Campo              | Valore                                     |
-| ------------------ | ------------------------------------------ |
-| **Channel Name**   | `Ubuntu 24.04 LTS AMD64 Universe Updates`  |
-| **Channel Label**  | `ubuntu-2404-amd64-universe-updates-uyuni` |
-| **Parent Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni`    |
-| **Architecture**   | `AMD64 Debian`                             |
-| **Summary**        | `Ubuntu 24.04 universe updates`            |
-
----
-
-## FASE 4: Creazione Repository
-
-**Software** → **Manage** → **Repositories** → **Create Repository**
-
-### 4.1 Repository Main
-
-| Campo                   | Valore                                                            |
-| ----------------------- | ----------------------------------------------------------------- |
-| **Repository Label**    | `repo-ubuntu-2404-main`                                           |
-| **Repository URL**      | `http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/` |
-| **Type**                | `deb`                                                             |
-| **Has Signed Metadata** | `No` (per test) o `Yes` (per production con GPG)                  |
-
-### 4.2 Repository Main Security
-
-| Campo                | Valore                                                                      |
-| -------------------- | --------------------------------------------------------------------------- |
-| **Repository Label** | `repo-ubuntu-2404-main-security`                                            |
-| **Repository URL**   | `http://security.ubuntu.com/ubuntu/dists/noble-security/main/binary-amd64/` |
-| **Type**             | `deb`                                                                       |
-
-### 4.3 Repository Main Updates
-
-| Campo                | Valore                                                                    |
-| -------------------- | ------------------------------------------------------------------------- |
-| **Repository Label** | `repo-ubuntu-2404-main-updates`                                           |
-| **Repository URL**   | `http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/binary-amd64/` |
-| **Type**             | `deb`                                                                     |
-
-### 4.4 Repository Universe
-
-| Campo                | Valore                                                                |
-| -------------------- | --------------------------------------------------------------------- |
-| **Repository Label** | `repo-ubuntu-2404-universe`                                           |
-| **Repository URL**   | `http://archive.ubuntu.com/ubuntu/dists/noble/universe/binary-amd64/` |
-| **Type**             | `deb`                                                                 |
-
-### 4.5 Repository Universe Updates
-
-| Campo                | Valore                                                                        |
-| -------------------- | ----------------------------------------------------------------------------- |
-| **Repository Label** | `repo-ubuntu-2404-universe-updates`                                           |
-| **Repository URL**   | `http://archive.ubuntu.com/ubuntu/dists/noble-updates/universe/binary-amd64/` |
-| **Type**             | `deb`                                                                         |
-
----
-
-## FASE 5: Associazione Repository ai Canali
-
-Per ogni canale child:
-
-1. **Software** → **Manage** → **Channels** → clicca sul canale
-2. Tab **Repositories** → **Link Repositories**
-3. Seleziona il repository corrispondente
-4. **Update Repositories**
-
-| Canale | Repository |
-|--------|------------|
-| Ubuntu 24.04 LTS AMD64 Main | repo-ubuntu-2404-main |
-| Ubuntu 24.04 LTS AMD64 Main Security | repo-ubuntu-2404-main-security |
-| Ubuntu 24.04 LTS AMD64 Main Updates | repo-ubuntu-2404-main-updates |
-| Ubuntu 24.04 LTS AMD64 Universe | repo-ubuntu-2404-universe |
-| Ubuntu 24.04 LTS AMD64 Universe Updates | repo-ubuntu-2404-universe-updates |
-
----
-
-## FASE 6: Sincronizzazione
-
-### 6.1 Avvia Sync Manuale
-
-Per ogni canale child:
-
-1. **Software** → **Manage** → **Channels** → seleziona canale
-2. Tab **Repositories** → **Sync**
-3. **Sync Now**
-
-### 6.2 Tempi Stimati di Sync
-
-| Canale | Pacchetti | Tempo Stimato |
-|--------|-----------|---------------|
-| Main | ~6.000 | 5-10 min |
-| Main Security | ~7.500 | 5-10 min |
-| Main Updates | ~9.000 | 10-15 min |
-| Universe | ~65.000 | 30-60 min |
-| Universe Updates | ~7.500 | 10-15 min |
-
-### 6.3 Monitoraggio Sync
-
-Da container UYUNI:
+### 2.2 Crea Main Channels
 
 ```bash
-sudo podman exec -it uyuni-server bash
-tail -f /var/log/rhn/reposync/*.log
+# Main (base packages)
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-uyuni
+
+# Main Security (aggiornamenti sicurezza)
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-security-uyuni
+
+# Main Updates (aggiornamenti generali)
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-updates-uyuni
 ```
 
-O da Web UI: **Admin** → **Task Schedules** → guarda task **Running**
+### 2.3 Crea Universe Channels (Opzionale ma consigliato)
 
-### 6.4 Sync Automatico (Production)
+```bash
+# Universe (pacchetti community - necessario per OpenSCAP)
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-universe-uyuni
 
-1. **Software** → **Manage** → **Channels** → seleziona canale
-2. Tab **Repositories** → **Sync**
-3. Configura **Schedule**:
-   - Daily alle 02:00 per security
-   - Weekly per universe
+# Universe Security
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-universe-security-uyuni
+
+# Universe Updates
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-universe-updates-uyuni
+```
+
+### 2.4 Crea UYUNI Client Channel (Obbligatorio per bootstrap)
+
+```bash
+# Client Tools - contiene venv-salt-minion per registrazione client
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-uyuni-client
+```
+
+> **IMPORTANTE**: Senza questo canale, il bootstrap dei client fallirà con errore: `ERROR: package 'venv-salt-minion' not found`
+
+### 2.5 Verifica Canali Creati
+
+```bash
+spacecmd -u admin -p <password> softwarechannel_list
+```
+
+Output atteso:
+```
+ubuntu-24.04-pool-amd64-uyuni
+ubuntu-2404-amd64-main-security-uyuni
+ubuntu-2404-amd64-main-updates-uyuni
+ubuntu-2404-amd64-main-uyuni
+ubuntu-2404-amd64-universe-security-uyuni
+ubuntu-2404-amd64-universe-updates-uyuni
+ubuntu-2404-amd64-universe-uyuni
+ubuntu-2404-amd64-uyuni-client
+```
 
 ---
 
-## FASE 7: Creazione Activation Keys
+## FASE 3: Sincronizzazione Repository
 
-### 7.1 Activation Key Test
+### 3.1 Avvia Sync Manuale
+
+```bash
+# Sync tutti i canali in sequenza
+spacewalk-repo-sync --channel ubuntu-2404-amd64-main-uyuni
+spacewalk-repo-sync --channel ubuntu-2404-amd64-main-security-uyuni
+spacewalk-repo-sync --channel ubuntu-2404-amd64-main-updates-uyuni
+spacewalk-repo-sync --channel ubuntu-2404-amd64-universe-uyuni
+spacewalk-repo-sync --channel ubuntu-2404-amd64-universe-security-uyuni
+spacewalk-repo-sync --channel ubuntu-2404-amd64-universe-updates-uyuni
+spacewalk-repo-sync --channel ubuntu-2404-amd64-uyuni-client
+```
+
+Oppure avvia in background:
+```bash
+spacewalk-repo-sync --channel ubuntu-2404-amd64-main-uyuni &
+spacewalk-repo-sync --channel ubuntu-2404-amd64-main-security-uyuni &
+spacewalk-repo-sync --channel ubuntu-2404-amd64-main-updates-uyuni &
+```
+
+### 3.2 Monitoraggio Sync
+
+```bash
+# Processi attivi
+ps aux | grep spacewalk-repo-sync
+
+# Log in tempo reale
+tail -f /var/log/rhn/reposync/ubuntu-2404-amd64-main-uyuni.log
+
+# Lista tutti i log
+ls -la /var/log/rhn/reposync/
+
+# Spazio disco (monitoraggio continuo)
+watch -n 5 'df -h /var/spacewalk'
+
+# Conteggio pacchetti sincronizzati
+spacecmd -u admin -p <password> softwarechannel_listallpackages ubuntu-2404-amd64-main-uyuni | wc -l
+```
+
+### 3.3 Tempi e Dimensioni Stimate
+
+| Canale | Pacchetti | Dimensione | Tempo Stimato |
+|--------|-----------|------------|---------------|
+| Pool (Base) | 0 | - | Immediato |
+| Main | ~6,000 | ~8-10 GB | 30-60 min |
+| Main Security | ~7,600 | ~2-3 GB | 15-30 min |
+| Main Updates | ~9,000 | ~3-5 GB | 20-40 min |
+| Universe | ~65,000 | ~80-100 GB | 4-8 ore |
+| Universe Security | ~500 | ~500 MB | 5-10 min |
+| Universe Updates | ~7,400 | ~2-3 GB | 15-30 min |
+| UYUNI Client | ~50 | ~100 MB | 2-5 min |
+
+**Totale stimato**: ~100-120 GB, 5-10 ore
+
+### 3.4 Risultato Sync (Esempio Reale)
+
+| Canale | Pacchetti | Errata |
+|--------|-----------|--------|
+| Pool (Base) | 0 | 0 |
+| Main | 6,099 | 0 |
+| Main Security | 7,638 | 318 |
+| Main Updates | 9,067 | 0 |
+| Universe | 64,755 | 0 |
+| Universe Updates | 7,384 | 73 |
+
+**Totale**: ~95,000 pacchetti, **391 errata** di sicurezza
+
+---
+
+## FASE 4: Creazione Activation Keys
+
+### 4.1 Activation Key Test
 
 **Systems** → **Activation Keys** → **Create Key**
 
@@ -283,41 +224,26 @@ O da Web UI: **Admin** → **Task Schedules** → guarda task **Running**
 | **Description** | Ubuntu 24.04 Test Systems |
 | **Key** | `1-ak-ubuntu2404-test` |
 | **Usage Limit** | (vuoto = illimitato) |
-| **Base Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni` |
-| **Add-On Entitlements** | (opzionale) |
-| **Universal Default** | No |
+| **Base Channel** | `ubuntu-24.04-pool-amd64-uyuni` |
 
 Dopo la creazione:
-1. Tab **Child Channels** → seleziona tutti i child channels
+1. Tab **Child Channels** → seleziona tutti i child channels incluso `ubuntu-2404-amd64-uyuni-client`
 2. Tab **Configuration** → Enable Configuration Management (opzionale)
 3. **Update Key**
 
-### 7.2 Activation Key Production
+### 4.2 Activation Key Production
 
 | Campo | Valore |
 |-------|--------|
 | **Description** | Ubuntu 24.04 Production Systems |
 | **Key** | `1-ak-ubuntu2404-prod` |
-| **Base Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni` |
-
-### 7.3 System Groups (Opzionale ma Consigliato)
-
-**Systems** → **System Groups** → **Create Group**
-
-| Nome | Descrizione |
-|------|-------------|
-| `test-servers` | Ubuntu 24.04 test/development systems |
-| `production-servers` | Ubuntu 24.04 production systems |
-
-Associa i gruppi alle Activation Keys:
-1. **Systems** → **Activation Keys** → seleziona key
-2. Tab **Groups** → **Join** → seleziona gruppo
+| **Base Channel** | `ubuntu-24.04-pool-amd64-uyuni` |
 
 ---
 
-## FASE 8: Registrazione Client
+## FASE 5: Registrazione Client
 
-### 8.1 Pre-requisiti sul Client
+### 5.1 Pre-requisiti sul Client
 
 ```bash
 # Sul client Ubuntu 24.04
@@ -334,7 +260,7 @@ nc -zv uyuni-server-test.uyuni.internal 4505
 nc -zv uyuni-server-test.uyuni.internal 4506
 ```
 
-### 8.2 Metodo 1: Bootstrap Script (Consigliato)
+### 5.2 Bootstrap Script (Consigliato)
 
 ```bash
 # Scarica e esegui bootstrap
@@ -345,28 +271,7 @@ chmod +x /tmp/bootstrap.sh
 /tmp/bootstrap.sh -a ak-ubuntu2404-test
 ```
 
-### 8.3 Metodo 2: Registrazione Manuale
-
-```bash
-# Installa salt-minion
-apt-get update
-apt-get install -y salt-minion
-
-# Configura master
-cat > /etc/salt/minion.d/susemanager.conf << 'EOF'
-master: uyuni-server-test.uyuni.internal
-EOF
-
-# Riavvia e abilita
-systemctl restart salt-minion
-systemctl enable salt-minion
-```
-
-Poi su UYUNI:
-1. **Salt** → **Keys** → trova la key pending → **Accept**
-2. **Systems** → **Bootstrapping** → completa registrazione con Activation Key
-
-### 8.4 Accetta Salt Key (se necessario)
+### 5.3 Accetta Salt Key
 
 Da container UYUNI:
 
@@ -379,175 +284,157 @@ salt-key -A          # Accetta tutte
 
 ---
 
-## FASE 9: Verifica e Test
+## FASE 6: Verifica e Test
 
-### 9.1 Verifica Sistema Registrato
+### 6.1 Verifica Sistema Registrato
 
 **Systems** → **All** → clicca sul sistema
 
 Verifica:
-- ✅ Status verde
-- ✅ Base Channel corretto
-- ✅ Child Channels assegnati
-- ✅ System Group (se configurato)
+- Status verde
+- Base Channel: `ubuntu-24.04-pool-amd64-uyuni`
+- Child Channels assegnati (incluso uyuni-client)
 
-### 9.2 Test Connettività Salt
-
-Da container UYUNI:
+### 6.2 Test Connettività Salt
 
 ```bash
 salt '<minion-id>' test.ping
 salt '<minion-id>' grains.item os osrelease
 ```
 
-### 9.3 Test Repository sul Client
-
-Sul client Ubuntu:
+### 6.3 Installazione OpenSCAP
 
 ```bash
-apt-get update
-apt-cache policy openscap-scanner
-```
-
-### 9.4 Installazione OpenSCAP (Test)
-
-Da Web UI:
-1. **Systems** → seleziona sistema
-2. **Software** → **Packages** → **Install**
-3. Cerca `openscap-scanner` e `ssg-base`
-4. **Install Selected Packages**
-
-O da client:
-
-```bash
+# Da client o via UYUNI
 apt-get install -y openscap-scanner ssg-base
 ```
 
 ---
 
-## Content Lifecycle Management (Opzionale)
+## Canali Opzionali
 
-> **ATTENZIONE**: In base ai test effettuati, CLM può avere problemi con canali molto grandi come Universe (~65k pacchetti). Si consiglia di:
-> - Usare CLM solo per main, main-security, main-updates
-> - Tenere Universe come canale diretto (non CLM)
+### Multiverse (software non-free)
 
-### Setup CLM Base (senza Universe)
+```bash
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-multiverse-uyuni
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-multiverse-security-uyuni
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-multiverse-updates-uyuni
+```
 
-1. **Content Lifecycle** → **Projects** → **Create Project**
-   - Name: `Ubuntu 24.04 Lifecycle`
-   - Label: `ubuntu-2404-lifecycle`
+### Restricted (driver proprietari)
 
-2. **Sources** → **Attach/Detach**:
-   - ☑️ ubuntu-2404-amd64-main-uyuni
-   - ☑️ ubuntu-2404-amd64-main-security-uyuni
-   - ☑️ ubuntu-2404-amd64-main-updates-uyuni
-   - ☐ **NON** includere universe (troppo grande)
+```bash
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-restricted-uyuni
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-restricted-security-uyuni
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-restricted-updates-uyuni
+```
 
-3. **Environments** → **Add**:
-   - `test` - Ambiente di test
-   - `production` - Ambiente di produzione
+### Backports
 
-4. **Build** → crea Version 1
-
-### Activation Keys con CLM
-
-Per usare CLM, le Activation Keys devono puntare ai canali CLM:
-
-| Key | Base Channel |
-|-----|--------------|
-| Test | `ubuntu-2404-lifecycle-test-ubuntu-2404-amd64-base-uyuni` |
-| Prod | `ubuntu-2404-lifecycle-production-ubuntu-2404-amd64-base-uyuni` |
-
-Poi aggiungere Universe come child channel diretto (non CLM).
+```bash
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-backports-uyuni
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-universe-backports-uyuni
+```
 
 ---
 
 ## Troubleshooting
 
-### Sync fallisce con "No space left on device"
+### "No channels matching your selection"
+
+Il canale Pool deve essere creato **prima** degli altri canali:
+```bash
+# PRIMA il pool
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-pool-amd64-uyuni
+
+# POI i child
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-uyuni
+```
+
+### "package 'venv-salt-minion' not found"
+
+Manca il canale UYUNI Client Tools:
+```bash
+spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-uyuni-client
+spacewalk-repo-sync --channel ubuntu-2404-amd64-uyuni-client
+```
+
+### "No space left on device"
 
 ```bash
 # Verifica spazio
 df -h /manager_storage
 
 # Se pieno, espandi disco da Azure Portal, poi:
-sudo pvresize /dev/sdb1
+sudo growpart /dev/sdc 1
+sudo pvresize /dev/sdc1
 sudo lvextend -l +100%FREE /dev/vg_uyuni_repo/lv_repo
 sudo xfs_growfs /manager_storage
 ```
 
-### Repository URL 404
-
-Verifica l'URL del repository:
-```bash
-curl -I http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/Packages.gz
-```
-
-Se 404, l'URL potrebbe essere cambiato. Verifica su archive.ubuntu.com.
-
-### GPG Key Error
-
-Per test, disabilita GPG check:
-1. **Software** → **Manage** → **Repositories** → seleziona repo
-2. **Has Signed Metadata** = No
-
-Per production, assicurati che la GPG key sia importata e associata al canale.
-
-### Client non si registra
+### Pulizia canali per ricominciare
 
 ```bash
-# Sul client
-systemctl status salt-minion
-journalctl -u salt-minion -f
+# Lista canali
+spacecmd -u admin -p <password> softwarechannel_list
 
-# Verifica configurazione
-cat /etc/salt/minion.d/susemanager.conf
+# Elimina un canale (prima i child, poi il parent)
+spacecmd -u admin -p <password> softwarechannel_delete ubuntu-2404-amd64-main-uyuni
 
-# Verifica connettività
-nc -zv <uyuni-server> 4505
-nc -zv <uyuni-server> 4506
+# Pulisci packages scaricati
+rm -rf /var/spacewalk/packages/*
+rm -rf /var/cache/rhn/reposync/*
 ```
 
-### Salt key non appare
+### Container UYUNI non risponde
 
 ```bash
-# Sul client, forza registrazione
-salt-call --local grains.items
-systemctl restart salt-minion
-
-# Sul server, verifica
-sudo podman exec uyuni-server salt-key -L
+# Fuori dal container
+sudo systemctl restart uyuni-server-pod
+sudo podman ps
 ```
 
-### Canale "Waiting for repositories data to be generated"
-
-Questo indica che i metadati non sono stati generati. Prova:
+### Verifica sync in corso
 
 ```bash
-sudo podman exec -it uyuni-server bash
-systemctl restart taskomatic
-```
+# Processi attivi
+ps aux | grep spacewalk-repo-sync
 
-Poi rifai il **Sync** del canale.
+# Log in tempo reale
+tail -f /var/log/rhn/reposync/*.log
+
+# Dalla Web UI
+Admin → Task Schedules → vedi job Running
+```
 
 ---
 
-## Riepilogo Canali e URL
+## Metodo Alternativo: Creazione Manuale (Web UI)
 
-| Canale | Repository URL |
-|--------|----------------|
-| Main | `http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/` |
-| Main Security | `http://security.ubuntu.com/ubuntu/dists/noble-security/main/binary-amd64/` |
-| Main Updates | `http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/binary-amd64/` |
-| Universe | `http://archive.ubuntu.com/ubuntu/dists/noble/universe/binary-amd64/` |
-| Universe Updates | `http://archive.ubuntu.com/ubuntu/dists/noble-updates/universe/binary-amd64/` |
+Se preferisci creare i canali manualmente via Web UI invece di usare `spacewalk-common-channels`, consulta la sezione "Creazione Canali Manuale" nell'Appendice.
+
+### Appendice: Import GPG Keys
+
+Ubuntu usa diverse GPG keys per firmare i pacchetti. Se necessario importarle manualmente:
+
+```bash
+# Scarica la chiave Ubuntu Archive 2018
+curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C" -o /tmp/ubuntu-archive-2018.asc
+```
+
+| Campo | Valore |
+|-------|--------|
+| GPG key URL | `https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C` |
+| GPG key ID | `991BC93C` |
+| GPG key Fingerprint | `F6EC B376 2474 EDA9 D21B 7022 8719 20D1 991B C93C` |
+
+> **NOTA**: Con `spacewalk-common-channels` le GPG keys sono gestite automaticamente.
 
 ---
 
 ## Riferimenti
 
 - [UYUNI - Registering Ubuntu Clients](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/clients-ubuntu.html)
-- [UYUNI - Content Lifecycle Management](https://www.uyuni-project.org/uyuni-docs/en/uyuni/administration/content-lifecycle-management.html)
-- [UYUNI - Activation Keys](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/activation-keys.html)
+- [UYUNI - spacewalk-common-channels](https://www.uyuni-project.org/uyuni-docs/en/uyuni/reference/spacecmd/softwarechannels.html)
 - [Ubuntu Releases](https://releases.ubuntu.com/)
 - [Ubuntu Archive Mirror](http://archive.ubuntu.com/ubuntu/)

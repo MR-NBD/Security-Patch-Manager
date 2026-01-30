@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Installazione-UYUNI-Server.md",
+                "file": "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installazione-UYUNI-Server"
+              "title": "Setup-Canali-Ubuntu"
             }
           },
           {
@@ -211,8 +211,9 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
-    "Utenze/ASL0603.md",
+    "Uyuni/Deployment/Setup-Canali-Ubuntu.md.tmp.4762.1769811585170",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
+    "Utenze/ASL0603.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md.tmp.1627.1769791561856",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md.tmp.1627.1769789559062",
