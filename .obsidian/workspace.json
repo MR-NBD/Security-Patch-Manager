@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
+                "file": "Uyuni/Deployment/Installazione-UYUNI-Server.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Setup-Canali-Ubuntu"
+              "title": "Installazione-UYUNI-Server"
             }
           }
         ]
@@ -197,6 +197,7 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Initial-Setup/requirements.txt.tmp.12928.1769612897927",
     "Uyuni/Initial-Setup/Dockerfile.tmp.12928.1769612893688",
@@ -216,7 +217,6 @@
     "img/Untitled Diagram.drawio.png",
     "Uyuni/README.md.tmp.1594.1769422900063",
     "Uyuni/Teoria/Concetti-Fondamentali-UYUNI.md.tmp.1594.1769422463900",
-    "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
     "README.md",
     "TO-DO_ALBERTO.md",
