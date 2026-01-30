@@ -10,11 +10,13 @@ L'accesso alla VM avviene **esclusivamente tramite Azure Bastion** (nessun IP pu
 
 | Componente       | Test                | Production               |
 | ---------------- | ------------------- | ------------------------ |
-| CPU              | 8 core              | 8+ core                  |
-| RAM              | 32 GB               | 32+ GB                   |
-| Disco OS         | Default (~30 GB)    | 100 GB SSD               |
-| Disco Repository | 128 GB Standard SSD | 500+ GB Premium SSD      |
-| Disco PostgreSQL | 32 GB Standard SSD  | 100+ GB Premium SSD NVMe |
+| CPU              | 4+ core             | 8+ core                  |
+| RAM              | 16 GB               | 32+ GB                   |
+| Disco OS         | **64 GB** SSD       | 128 GB SSD               |
+| Disco Repository | **256 GB** Standard SSD | 500+ GB Premium SSD  |
+| Disco PostgreSQL | 64 GB Standard SSD  | 100+ GB Premium SSD NVMe |
+
+> **IMPORTANTE**: Il disco OS da 30GB NON è sufficiente. I container UYUNI occupano ~25GB. Il disco repository da 128GB si riempie con i canali Ubuntu universe (~65k pacchetti). Pianificare spazio adeguato fin dall'inizio.
 ### Architettura Target
 #### UYUNI SERVER - Host Container (openSUSE Leap 15.6)
 ##### Componenti Container (UYUNI 2025.10):
@@ -37,20 +39,20 @@ L'accesso alla VM avviene **esclusivamente tramite Azure Bastion** (nessun IP pu
 - Role-Based Access Control (RBAC)
 ##### Layout Storage:
 ```
-sda (OS Disk - 30GB)                     
+sda (OS Disk - 64GB+)
  └─/                              (Root filesystem)
- └─/var/lib/containers/storage    (Container storage)
 
-sdb (Data Disk 1 - 128GB) [LVM]
+sdb (Data Disk 1 - 256GB+) [LVM]
  └─vg_uyuni_repo/lv_repo
-   └─/manager_storage             (Repository packages)
-     └─ symlink → /var/lib/containers/storage/volumes/var-spacewalk
+   └─/manager_storage             (Repository packages + Container storage)
+     └─/manager_storage/containers (symlink da /var/lib/containers)
 
-sdc (Data Disk 2 - 32GB) [LVM]                     
+sdc (Data Disk 2 - 64GB) [LVM]
  └─vg_uyuni_pgsql/lv_pgsql
    └─/pgsql_storage               (PostgreSQL data)
-     └─ symlink → /var/lib/containers/storage/volumes/var-pgsql
-``` 
+```
+
+> **BEST PRACTICE**: Spostare `/var/lib/containers` su `/manager_storage/containers` per evitare di riempire il disco OS. Vedi FASE 5.4. 
 
 ---
 ## Indice
@@ -82,8 +84,8 @@ sdc (Data Disk 2 - 32GB) [LVM]
 | **Size**           | Standard D8as v5 (8 vCPU, 32 GB RAM) |
 | **Username**       | azureuser                            |
 | **Authentication** | Password                             |
-| **OS Disk**        | Standard SSD LRS                     |
-| **Data Disks**     | 2 dischi (128GB + 32GB)              |
+| **OS Disk**        | 64GB Standard SSD LRS                |
+| **Data Disks**     | 2 dischi (256GB + 64GB)              |
 | **VNet**           | ASL0603-spoke10-spoke-italynorth     |
 | **Subnet**         | default (10.172.2.0/27)              |
 | **Public IP**      | None                                 |
@@ -130,7 +132,10 @@ cat /etc/os-release
 
 Output atteso:
 
-![[png2.png]]
+```
+NAME="openSUSE Leap"
+VERSION="15.6"
+```
 ### 1.2 Aggiornamento Sistema
 ```bash
 zypper refresh
@@ -205,7 +210,10 @@ timedatectl status
 
 Output atteso:
 
-![[png1.png]]
+```
+System clock synchronized: yes
+NTP service: active
+```
 
 Verificare che `System clock synchronized: yes` sia presente.
 
@@ -240,8 +248,10 @@ nano /etc/hosts
 
 Aggiungere la riga (sostituire con IP e dominio corretto):
 ```
-10.172.2.5    uyuni-server-test.uyuni.internal    uyuni-server-test
+<IP_PRIVATO>    uyuni-server-test.uyuni.internal    uyuni-server-test
 ```
+
+> **NOTA**: L'IP privato può cambiare dopo riavvii. Considerare l'uso di IP statico in Azure o Azure Private DNS Zone.
 ### 3.4 Verificare la Configurazione DNS
 
 #### Test risoluzione diretta
@@ -342,12 +352,36 @@ mount /dev/mapper/vg_uyuni_pgsql-lv_pgsql /pgsql_storage
 echo "/dev/mapper/vg_uyuni_pgsql-lv_pgsql /pgsql_storage xfs defaults,nofail 0 0" >> /etc/fstab
 ```
 L'opzione `nofail` in fstab è importante per evitare problemi di boot se un disco non è disponibile.
+
 #### Reload systemd
 ```bash
 systemctl daemon-reload
-
-ln -s /pgsql_storage /var/lib/containers/storage/volumes/var-pgsql/_data
 ```
+
+### 5.4 Spostare Container Storage su manager_storage (IMPORTANTE)
+Per evitare che il disco OS si riempia con le immagini container (~25GB), spostare lo storage Podman su manager_storage:
+
+```bash
+# Crea directory per containers
+mkdir -p /manager_storage/containers
+
+# Ferma eventuali container attivi
+systemctl stop podman.socket
+
+# Sposta dati esistenti (se presenti)
+mv /var/lib/containers/* /manager_storage/containers/ 2>/dev/null || true
+
+# Rimuovi directory originale
+rm -rf /var/lib/containers
+
+# Crea symlink
+ln -s /manager_storage/containers /var/lib/containers
+
+# Riavvia Podman
+systemctl start podman.socket
+```
+
+> **NOTA**: Eseguire questa operazione PRIMA di installare UYUNI. Se UYUNI è già installato, fermare i servizi con `systemctl stop uyuni-server uyuni-db` prima di procedere.
 ### 5.6 Verificare Configurazione Storage
 ##### Verificare mount points
 ```bash
@@ -366,7 +400,10 @@ ls -la /var/lib/containers/storage/volumes/
 ```
 Output atteso:
 
-![[png6.png]]
+```
+var-spacewalk -> /manager_storage
+var-pgsql -> /pgsql_storage
+```
 
 ---
 ## FASE 6: Configurazione Firewall
@@ -409,7 +446,9 @@ firewall-cmd --list-all
 ```
 Output atteso:
 
-![[png5.png]]
+```
+ports: 80/tcp 443/tcp 4505/tcp 4506/tcp 5432/tcp
+```
 
 > **PER PRODUCTION**: Aggiungere rich rules per limitare l'accesso a subnet specifiche invece di accettare da qualsiasi IP.
 
@@ -446,7 +485,9 @@ podman --version
 ```
 Output atteso:
 
-![[png4.png]]
+```
+podman version 4.x.x
+```
 
 ### 7.4 Abilitare Podman Socket
 ```bash
@@ -480,7 +521,11 @@ podman ps
 
 Output atteso (UYUNI 2025.10):
 
-![[png3.png]]
+```
+CONTAINER ID  IMAGE                                      STATUS         NAMES
+xxxx          registry.opensuse.org/uyuni/server         Up (healthy)   uyuni-server
+yyyy          registry.opensuse.org/uyuni/server-postgresql  Up (healthy)   uyuni-db
+```
 
 Devono essere presenti **entrambi i container** con status "healthy".
 ### 8.4 Per Produzione: Certificati Custom
@@ -571,13 +616,53 @@ mgrctl exec -- ping -c 1 $(hostname -f)
 
 ```bash
 # Verificare spazio
-df -h /manager_storage /pgsql_storage
+df -h /manager_storage /pgsql_storage /
 
 # Verificare volumi Podman
 podman system df
 
 # Pulizia cache repository (con cautela)
 mgrctl exec -- spacewalk-repo-sync --clean-cache
+```
+
+### Espansione Disco Azure (LVM)
+
+Se un disco si riempie, espanderlo da Azure Portal:
+
+1. **Ferma la VM** da Azure Portal
+2. **Disks** → seleziona il disco → **Size + performance** → aumenta dimensione
+3. **Avvia** la VM
+
+Poi estendi LVM (esempio per manager_storage):
+
+```bash
+# Identifica il disco (potrebbe cambiare lettera dopo reboot)
+lsblk
+
+# Estendi partizione (es. /dev/sdb1)
+sudo growpart /dev/sdb 1
+
+# Estendi volume fisico
+sudo pvresize /dev/sdb1
+
+# Estendi volume logico
+sudo lvextend -l +100%FREE /dev/vg_uyuni_repo/lv_repo
+
+# Estendi filesystem (XFS)
+sudo xfs_growfs /manager_storage
+
+# Oppure per ext4
+# sudo resize2fs /dev/vg_uyuni_repo/lv_repo
+```
+
+Per il disco OS (non LVM):
+
+```bash
+# Estendi partizione root (es. /dev/sdc4)
+sudo growpart /dev/sdc 4
+
+# Estendi filesystem
+sudo resize2fs /dev/sdc4
 ```
 
 ### Reset Password Admin
