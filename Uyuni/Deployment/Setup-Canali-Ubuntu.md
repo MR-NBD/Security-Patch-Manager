@@ -1,597 +1,553 @@
+# Setup Canali Ubuntu 24.04 LTS per UYUNI
+
+Guida completa per configurare i canali Ubuntu 24.04 LTS (Noble Numbat) su UYUNI Server, inclusa la gestione GPG, sincronizzazione repository, e registrazione client.
 ## Obiettivo
 
-Replicare su UYUNI lo stesso setup che avevi con Foreman/Katello:
-- ✅ Repository Ubuntu 22.04 LTS (= Product + Repositories)
-- ✅ GPG Keys configurate
-- ✅ Content Lifecycle Management (= Content Views)
-- ✅ Environments: DEV → PROD (= Lifecycle Environments)
-- ✅ 2 client Ubuntu registrati (uno test, uno production)
+Configurare UYUNI per gestire sistemi Ubuntu 24.04 LTS con:
+- Repository main, security, updates, universe
+- GPG key verification
+- Activation keys per ambienti test/production
+- Integrazione con OpenSCAP per compliance
+
+---
+
 ## Pre-requisiti
-- Accesso SSH al server UYUNI
-- 2 VM Ubuntu 22.04 (test e production)
-- Connettività di rete tra UYUNI e le VM
-## FASE 1: Accesso e Verifica Server UYUNI
-### 1.1 Connessione al Server
-Via Bastion
-### 1.2 Verifica Stato UYUNI
+
+| Requisito | Dettaglio |
+|-----------|-----------|
+| UYUNI Server | Installato e funzionante |
+| Spazio disco | Minimo **256GB** per repository (universe = ~65k pacchetti) |
+| Connettività | Accesso a archive.ubuntu.com e security.ubuntu.com |
+| Client | VM Ubuntu 24.04 LTS da registrare |
+
+---
+
+## Architettura Canali
+
+```
+Ubuntu 24.04 LTS AMD64 Base for Uyuni (Parent)
+├── Ubuntu 24.04 LTS AMD64 Main
+├── Ubuntu 24.04 LTS AMD64 Main Security
+├── Ubuntu 24.04 LTS AMD64 Main Updates
+├── Ubuntu 24.04 LTS AMD64 Universe            ← Necessario per OpenSCAP
+├── Ubuntu 24.04 LTS AMD64 Universe Updates
+└── Uyuni Client Tools for Ubuntu 24.04 AMD64
+```
+
+> **NOTA IMPORTANTE**: Il canale Universe contiene ~65.000 pacchetti e richiede ~50GB di spazio. Pianificare lo storage di conseguenza.
+
+---
+
+## FASE 1: Import GPG Keys
+
+Ubuntu usa diverse GPG keys per firmare i pacchetti. Importarle prima di creare i canali.
+
+### 1.1 Scarica GPG Key Ubuntu (da container UYUNI)
 
 ```bash
-mgradm status
-```
-Tutti i servizi devono essere "running".
-### 1.3 Accesso Web UI
-Apri browser e vai a: `https://<UYUNI-SERVER-FQDN>`
-- **Username**: admin
-- **Password**: quella impostata durante l'installazione
-## FASE 2: Creazione Canali Software Ubuntu 22.04
-
-### 2.1 Metodo Rapido: spacewalk-common-channels
-UYUNI include uno strumento che crea automaticamente i canali per distribuzioni comuni.
-
-```bash
-# Entra nel container UYUNI
-mgrctl term
-```
-
-```bash
-# Lista canali disponibili per Ubuntu
-spacewalk-common-channels -l | grep -i ubuntu
-```
-
-Output (esempio):
-```
-ubuntu-2004-amd64-main
-ubuntu-2004-amd64-security
-ubuntu-2004-amd64-updates
-ubuntu-2204-amd64-main
-ubuntu-2204-amd64-security
-ubuntu-2204-amd64-updates
-ubuntu-2404-amd64-main
-...
+sudo podman exec -it uyuni-server bash
 ```
 
 ```bash
-# Crea tutti i canali Ubuntu 22.04
-spacewalk-common-channels -u admin -p '<TUA_PASSWORD>' -a amd64 \
-  ubuntu-2204-amd64-main \
-  ubuntu-2204-amd64-security \
-  ubuntu-2204-amd64-updates
-```
-### 2.2 Verifica Canali Creati
-Nella Web UI:
-1. Vai a **Software** → **Manage** → **Channels**
-2. Dovresti vedere:
+# Scarica la chiave Ubuntu Archive 2018
+curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C" -o /tmp/ubuntu-archive-2018.asc
 
+# Visualizza per verifica
+cat /tmp/ubuntu-archive-2018.asc
 ```
-ubuntu-2204-amd64-main (Parent)
-├── ubuntu-2204-amd64-security (Child)
-└── ubuntu-2204-amd64-updates (Child)
-```
-### 2.3 Alternativa: Creazione Manuale Canali
-Se preferisci creare manualmente (come facevi con Products in Katello):
-#### 2.3.1 Crea Parent Channel (= Product)
-Web UI → **Software** → **Manage** → **Channels** → **Create Channel**
 
-| Campo                   | Valore                                                                   |
-| ----------------------- | ------------------------------------------------------------------------ |
-| **Channel Name**        | Ubuntu 22.04 LTS amd64                                                   |
-| **Channel Label**       | ubuntu-2204-lts-amd64                                                    |
-| **Parent Channel**      | None (questo È il parent)                                                |
-| **Architecture**        | AMD64 Debian                                                             |
-| **Channel Summary**     | Ubuntu 22.04 LTS base channel                                            |
-| **GPG Key URL**         | https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C |
-| **GPG Key ID**          | 871920D1991BC93C                                                         |
-| **GPG Key Fingerprint** | F6EC... (opzionale)                                                      |
+### 1.2 Import via Web UI
+
+1. **Systems** → **Autoinstallation** → **GPG and SSL Keys**
+2. **Create Stored Key** / **Cert**
+
+| Campo           | Valore                                                                                                                |
+| --------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Description** | Ubuntu Archive Automatic Signing Key (2018)                                                                           |
+| **Type**        | GPG                                                                                                                   |
+| **Key Content** | Incolla il contenuto del file .asc (da `-----BEGIN PGP PUBLIC KEY BLOCK-----` a `-----END PGP PUBLIC KEY BLOCK-----`) |
+
+3. **Create Key**
+
+### 1.3 Informazioni GPG per i Canali
+
+Questi valori serviranno nella creazione dei canali:
+
+| Campo | Valore |
+|-------|--------|
+| GPG key URL | `https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C` |
+| GPG key ID | `991BC93C` |
+| GPG key Fingerprint | `F6EC B376 2474 EDA9 D21B 7022 8719 20D1 991B C93C` |
+
+---
+
+## FASE 2: Creazione Base Channel
+
+### 2.1 Crea Parent Channel
+
+**Software** → **Manage** → **Channels** → **Create Channel**
+
+| Campo                   | Valore                                                                     |
+| ----------------------- | -------------------------------------------------------------------------- |
+| **Channel Name**        | `Ubuntu 24.04 LTS AMD64 Base for Uyuni`                                    |
+| **Channel Label**       | `ubuntu-2404-amd64-base-uyuni`                                             |
+| **Parent Channel**      | `-- None --`                                                               |
+| **Architecture**        | `AMD64 Debian`                                                             |
+| **Checksum Type**       | `SHA256`                                                                   |
+| **Channel Summary**     | `Ubuntu 24.04 LTS (Noble Numbat) base channel`                             |
+| **GPG key URL**         | `https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991BC93C` |
+| **GPG key ID**          | `991BC93C`                                                                 |
+| **GPG key Fingerprint** | `F6EC B376 2474 EDA9 D21B 7022 8719 20D1 991B C93C`                        |
+| **Enable GPG Check**    | ✅ Checked (per production)                                                 |
+
+> **Per test rapidi**: Disabilita GPG Check e lascia vuoti i campi GPG.
 
 Clicca **Create Channel**.
-#### 2.3.2 Crea Child Channels (= Repositories)
-Ripeti per ogni child channel:
-**Security Channel:**
 
-| Campo | Valore |
-|-------|--------|
-| **Channel Name** | Ubuntu 22.04 LTS Security |
-| **Channel Label** | ubuntu-2204-lts-amd64-security |
-| **Parent Channel** | Ubuntu 22.04 LTS amd64 |
-| **Architecture** | AMD64 Debian |
-**Updates Channel:**
+---
 
-| Campo | Valore |
-|-------|--------|
-| **Channel Name** | Ubuntu 22.04 LTS Updates |
-| **Channel Label** | ubuntu-2204-lts-amd64-updates |
-| **Parent Channel** | Ubuntu 22.04 LTS amd64 |
-| **Architecture** | AMD64 Debian |
-## FASE 3: Configurazione Repository URLs
-### 3.1 Associa Repository ai Canali
-Per ogni child channel, devi associare l'URL del repository Ubuntu.
-Web UI → **Software** → **Manage** → **Channels** → clicca su `ubuntu-2204-amd64-main`
-Tab **Repositories** → **Add/Remove**
-Se non esistono repository, creali:
-### 3.2 Crea Repository
-Web UI → **Software** → **Manage** → **Repositories** → **Create Repository**
-#### Repository Main:
+## FASE 3: Creazione Child Channels
 
-| Campo | Valore |
-|-------|--------|
-| **Repository Label** | ubuntu-2204-main-repo |
-| **Repository URL** | http://archive.ubuntu.com/ubuntu/dists/jammy/main/binary-amd64/ |
-| **Type** | deb |
-#### Repository Security:
+Per ogni child channel, vai su **Software** → **Manage** → **Channels** → **Create Channel**
+
+### 3.1 Main Channel
+
+| Campo              | Valore                                  |
+| ------------------ | --------------------------------------- |
+| **Channel Name**   | `Ubuntu 24.04 LTS AMD64 Main`           |
+| **Channel Label**  | `ubuntu-2404-amd64-main-uyuni`          |
+| **Parent Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni` |
+| **Architecture**   | `AMD64 Debian`                          |
+| **Checksum Type**  | `SHA256`                                |
+| **Summary**        | `Ubuntu 24.04 main packages`            |
+
+### 3.2 Main Security Channel
+
+| Campo              | Valore                                  |
+| ------------------ | --------------------------------------- |
+| **Channel Name**   | `Ubuntu 24.04 LTS AMD64 Main Security`  |
+| **Channel Label**  | `ubuntu-2404-amd64-main-security-uyuni` |
+| **Parent Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni` |
+| **Architecture**   | `AMD64 Debian`                          |
+| **Summary**        | `Ubuntu 24.04 main security updates`    |
+
+### 3.3 Main Updates Channel
+
+| Campo              | Valore                                  |
+| ------------------ | --------------------------------------- |
+| **Channel Name**   | `Ubuntu 24.04 LTS AMD64 Main Updates`   |
+| **Channel Label**  | `ubuntu-2404-amd64-main-updates-uyuni`  |
+| **Parent Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni` |
+| **Architecture**   | `AMD64 Debian`                          |
+| **Summary**        | `Ubuntu 24.04 main updates`             |
+
+### 3.4 Universe Channel
+
+| Campo              | Valore                                       |
+| ------------------ | -------------------------------------------- |
+| **Channel Name**   | `Ubuntu 24.04 LTS AMD64 Universe`            |
+| **Channel Label**  | `ubuntu-2404-amd64-universe-uyuni`           |
+| **Parent Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni`      |
+| **Architecture**   | `AMD64 Debian`                               |
+| **Summary**        | `Ubuntu 24.04 universe packages (community)` |
+
+> Questo canale è necessario per installare OpenSCAP (`openscap-scanner`, `ssg-base`).
+
+### 3.5 Universe Updates Channel
+
+| Campo              | Valore                                     |
+| ------------------ | ------------------------------------------ |
+| **Channel Name**   | `Ubuntu 24.04 LTS AMD64 Universe Updates`  |
+| **Channel Label**  | `ubuntu-2404-amd64-universe-updates-uyuni` |
+| **Parent Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni`    |
+| **Architecture**   | `AMD64 Debian`                             |
+| **Summary**        | `Ubuntu 24.04 universe updates`            |
+
+---
+
+## FASE 4: Creazione Repository
+
+**Software** → **Manage** → **Repositories** → **Create Repository**
+
+### 4.1 Repository Main
+
+| Campo                   | Valore                                                            |
+| ----------------------- | ----------------------------------------------------------------- |
+| **Repository Label**    | `repo-ubuntu-2404-main`                                           |
+| **Repository URL**      | `http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/` |
+| **Type**                | `deb`                                                             |
+| **Has Signed Metadata** | `No` (per test) o `Yes` (per production con GPG)                  |
+
+### 4.2 Repository Main Security
+
+| Campo                | Valore                                                                      |
+| -------------------- | --------------------------------------------------------------------------- |
+| **Repository Label** | `repo-ubuntu-2404-main-security`                                            |
+| **Repository URL**   | `http://security.ubuntu.com/ubuntu/dists/noble-security/main/binary-amd64/` |
+| **Type**             | `deb`                                                                       |
+
+### 4.3 Repository Main Updates
 
 | Campo                | Valore                                                                    |
 | -------------------- | ------------------------------------------------------------------------- |
-| **Repository Label** | ubuntu-2204-security-repo                                                 |
-| **Repository URL**   | http://security.ubuntu.com/ubuntu/dists/jammy-security/main/binary-amd64/ |
-| **Type**             | deb                                                                       |
-#### Repository Updates:
+| **Repository Label** | `repo-ubuntu-2404-main-updates`                                           |
+| **Repository URL**   | `http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/binary-amd64/` |
+| **Type**             | `deb`                                                                     |
 
-| Campo                | Valore                                                                  |
-| -------------------- | ----------------------------------------------------------------------- |
-| **Repository Label** | ubuntu-2204-updates-repo                                                |
-| **Repository URL**   | http://archive.ubuntu.com/ubuntu/dists/jammy-updates/main/binary-amd64/ |
-| **Type**             | deb                                                                     |
-### 3.3 Associa Repository ai Canali
-Per ogni canale:
-1. Vai al canale → **Repositories** tab
-2. Seleziona il repository corrispondente
-3. **Update Repositories**
-## FASE 4: Import GPG Keys
-### 4.1 Scarica GPG Key Ubuntu
+### 4.4 Repository Universe
+
+| Campo                | Valore                                                                |
+| -------------------- | --------------------------------------------------------------------- |
+| **Repository Label** | `repo-ubuntu-2404-universe`                                           |
+| **Repository URL**   | `http://archive.ubuntu.com/ubuntu/dists/noble/universe/binary-amd64/` |
+| **Type**             | `deb`                                                                 |
+
+### 4.5 Repository Universe Updates
+
+| Campo                | Valore                                                                        |
+| -------------------- | ----------------------------------------------------------------------------- |
+| **Repository Label** | `repo-ubuntu-2404-universe-updates`                                           |
+| **Repository URL**   | `http://archive.ubuntu.com/ubuntu/dists/noble-updates/universe/binary-amd64/` |
+| **Type**             | `deb`                                                                         |
+
+---
+
+## FASE 5: Associazione Repository ai Canali
+
+Per ogni canale child:
+
+1. **Software** → **Manage** → **Channels** → clicca sul canale
+2. Tab **Repositories** → **Link Repositories**
+3. Seleziona il repository corrispondente
+4. **Update Repositories**
+
+| Canale | Repository |
+|--------|------------|
+| Ubuntu 24.04 LTS AMD64 Main | repo-ubuntu-2404-main |
+| Ubuntu 24.04 LTS AMD64 Main Security | repo-ubuntu-2404-main-security |
+| Ubuntu 24.04 LTS AMD64 Main Updates | repo-ubuntu-2404-main-updates |
+| Ubuntu 24.04 LTS AMD64 Universe | repo-ubuntu-2404-universe |
+| Ubuntu 24.04 LTS AMD64 Universe Updates | repo-ubuntu-2404-universe-updates |
+
+---
+
+## FASE 6: Sincronizzazione
+
+### 6.1 Avvia Sync Manuale
+
+Per ogni canale child:
+
+1. **Software** → **Manage** → **Channels** → seleziona canale
+2. Tab **Repositories** → **Sync**
+3. **Sync Now**
+
+### 6.2 Tempi Stimati di Sync
+
+| Canale | Pacchetti | Tempo Stimato |
+|--------|-----------|---------------|
+| Main | ~6.000 | 5-10 min |
+| Main Security | ~7.500 | 5-10 min |
+| Main Updates | ~9.000 | 10-15 min |
+| Universe | ~65.000 | 30-60 min |
+| Universe Updates | ~7.500 | 10-15 min |
+
+### 6.3 Monitoraggio Sync
+
+Da container UYUNI:
+
 ```bash
-# Nel container UYUNI
-mgrctl term
-
-# Scarica la chiave Ubuntu Archive
-curl -fsSL https://keyserver.ubuntu.com/pks/lookup?op=get\&search=0x871920D1991BC93C -o /tmp/ubuntu-archive-key.asc
-
-# Oppure dalla keyserver
-gpg --keyserver keyserver.ubuntu.com --recv-keys 871920D1991BC93C
-gpg --export --armor 871920D1991BC93C > /tmp/ubuntu-archive-key.asc
-```
-### 4.2 Import via Web UI
-Web UI → **Software** → **Manage** → **GPG Keys** → **Create Stored Key**
-
-| Campo | Valore |
-|-------|--------|
-| **Description** | Ubuntu Archive Automatic Signing Key (2018) |
-| **Type** | GPG |
-| **Content** | (incolla il contenuto di ubuntu-archive-key.asc) |
-### 4.3 Associa GPG Key ai Canali
-Per ogni canale Ubuntu:
-1. Vai a **Software** → **Manage** → **Channels** → seleziona canale
-2. Tab **Details** → **Edit**
-3. Sezione GPG: seleziona la key importata
-4. **Update Channel**
-## FASE 5: Sincronizzazione Repository
-### 5.1 Sync Manuale (Prima Volta)
-Web UI → **Software** → **Manage** → **Channels** → seleziona `ubuntu-2204-amd64-main`
-Tab **Repositories** → **Sync**
-Seleziona tutti i repository → **Sync Now**
-
-> La prima sync può richiedere 30-60 minuti per canale.
-### 5.2 Verifica Sync Status
-Tab **Repositories** → **Sync** → **Sync Status**
-Oppure da CLI:
-
-```bash
-# Nel container
+sudo podman exec -it uyuni-server bash
 tail -f /var/log/rhn/reposync/*.log
 ```
-### 5.3 Configura Sync Automatico (Opzionale)
-Web UI → **Admin** → **Task Schedules** → **repo-sync-default**
-Configura frequenza (es. daily alle 02:00).
-### 5.4 Sync via CLI (Alternativa)
 
-```bash
-# Nel container UYUNI
-spacewalk-repo-sync -c ubuntu-2204-amd64-main
-spacewalk-repo-sync -c ubuntu-2204-amd64-security
-spacewalk-repo-sync -c ubuntu-2204-amd64-updates
-```
-## FASE 6: Content Lifecycle Management (CLM)
-**Questo è l'equivalente di Content Views + Lifecycle Environments in Katello!**
-### 6.1 Crea CLM Project (= Content View)
-Web UI → **Content Lifecycle** → **Projects** → **Create Project**
+O da Web UI: **Admin** → **Task Schedules** → guarda task **Running**
 
-| Campo           | Valore                                    |
-| --------------- | ----------------------------------------- |
-| **Name**        | Ubuntu 22.04 LTS Managed                  |
-| **Label**       | ubuntu-2204-clm                           |
-| **Description** | Content View equivalente per Ubuntu 22.04 |
-Clicca **Create**.
-### 6.2 Aggiungi Sources (Canali Sorgente)
-Nella pagina del progetto appena creato:
-**Sources** → **Attach/Detach Sources**
-Seleziona:
-- ☑️ ubuntu-2204-amd64-main
-- ☑️ ubuntu-2204-amd64-security  
-- ☑️ ubuntu-2204-amd64-updates
+### 6.4 Sync Automatico (Production)
 
-**Save**.
-### 6.3 Crea Environments (= Lifecycle Environments)
-Nella pagina del progetto:
-**Environments** → **Add Environment**
-Aggiungi in ordine:
+1. **Software** → **Manage** → **Channels** → seleziona canale
+2. Tab **Repositories** → **Sync**
+3. Configura **Schedule**:
+   - Daily alle 02:00 per security
+   - Weekly per universe
 
-| # | Environment Label | Description |
-|---|-------------------|-------------|
-| 1 | dev | Development/Test environment |
-| 2 | prod | Production environment |
-Il risultato sarà:
+---
 
-```
-Sources → [dev] → [prod]
-```
-### 6.4 Crea Filtri (Opzionale ma Raccomandato)
-I filtri ti permettono di controllare cosa passa in ogni environment.
-**Filters** → **Create Filter**
-#### Filtro 1: Escludi pacchetti sperimentali
-
-| Campo | Valore |
-|-------|--------|
-| **Filter Name** | exclude-experimental |
-| **Filter Type** | Package (Name) |
-| **Matcher** | contains |
-| **Rule** | DENY |
-| **Package Name** | -experimental |
-#### Filtro 2: Solo pacchetti entro una data (Point-in-Time)
-
-| Campo | Valore |
-|-------|--------|
-| **Filter Name** | freeze-date |
-| **Filter Type** | Package (Build Date) |
-| **Matcher** | before or equal |
-| **Rule** | ALLOW |
-| **Date** | [data del tuo ultimo test] |
-
-> **NOTA**: Per Ubuntu/Debian NON puoi filtrare per "Errata Type" perché non ci sono errata nativi. Usa filtri per data o nome pacchetto.
-### 6.5 Prima Build
-**Build** → **Build Project**
-
-| Campo | Valore |
-|-------|--------|
-| **Version Message** | Initial build - Ubuntu 22.04 base |
-Clicca **Build**.
-
-> Il build può richiedere 10-30 minuti.
-### 6.6 Verifica Build
-Dopo il completamento, nella sezione **Environments** vedrai:
-
-```
-Sources → [dev: Version 1] → [prod: -]
-```
-
-Il contenuto è ora disponibile in DEV.
-### 6.7 Promote a Production (quando pronto)
-Dopo aver testato in DEV:
-**Environments** → su `dev` clicca **Promote**
-Seleziona `prod` → **Promote**
-
-```
-Sources → [dev: Version 1] → [prod: Version 1]
-```
 ## FASE 7: Creazione Activation Keys
-### 7.1 Activation Key per DEV
-Web UI → **Systems** → **Activation Keys** → **Create Key**
+
+### 7.1 Activation Key Test
+
+**Systems** → **Activation Keys** → **Create Key**
 
 | Campo | Valore |
 |-------|--------|
-| **Description** | Ubuntu 22.04 Development |
-| **Key** | ak-ubuntu2204-dev |
+| **Description** | Ubuntu 24.04 Test Systems |
+| **Key** | `1-ak-ubuntu2404-test` |
 | **Usage Limit** | (vuoto = illimitato) |
-| **Base Channel** | ubuntu-2204-amd64-main-dev-ubuntu-2204-clm-1 |
+| **Base Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni` |
+| **Add-On Entitlements** | (opzionale) |
+| **Universal Default** | No |
 
-> **NOTA**: Il nome del canale CLM sarà qualcosa come `[channel]-[env]-[project]-[version]`
+Dopo la creazione:
+1. Tab **Child Channels** → seleziona tutti i child channels
+2. Tab **Configuration** → Enable Configuration Management (opzionale)
+3. **Update Key**
 
-Tab **Child Channels**: seleziona tutti i child channels DEV corrispondenti.
-Clicca **Create Activation Key**.
-### 7.2 Activation Key per PROD
-Ripeti con:
-
-| Campo | Valore |
-|-------|--------|
-| **Description** | Ubuntu 22.04 Production |
-| **Key** | ak-ubuntu2204-prod |
-| **Base Channel** | ubuntu-2204-amd64-main-prod-ubuntu-2204-clm-1 |
-Seleziona child channels PROD.
-### 7.3 Verifica Activation Keys
-
-```bash
-# Nel container
-spacecmd activationkey_list
-spacecmd activationkey_details ak-ubuntu2204-dev
-spacecmd activationkey_details ak-ubuntu2204-prod
-```
-## FASE 8: Creazione System Groups
-### 8.1 System Group per DEV
-Web UI → **Systems** → **System Groups** → **Create Group**
+### 7.2 Activation Key Production
 
 | Campo | Valore |
 |-------|--------|
-| **Name** | ubuntu-dev |
-| **Description** | Ubuntu development/test systems |
-### 8.2 System Group per PROD
+| **Description** | Ubuntu 24.04 Production Systems |
+| **Key** | `1-ak-ubuntu2404-prod` |
+| **Base Channel** | `Ubuntu 24.04 LTS AMD64 Base for Uyuni` |
 
-| Campo | Valore |
-|-------|--------|
-| **Name** | ubuntu-prod |
-| **Description** | Ubuntu production systems |
-### 8.3 Associa Groups alle Activation Keys
-Per ogni Activation Key:
+### 7.3 System Groups (Opzionale ma Consigliato)
 
-1. Vai a **Systems** → **Activation Keys** → seleziona la key
-2. Tab **Groups** → **Join**
-3. Seleziona il gruppo corrispondente (dev o prod)
-4. **Join Selected Groups**
-## FASE 9: Preparazione Client Ubuntu
-Prima di registrare i client, devi preparare il bootstrap.
-### 9.1 Genera Bootstrap Script
-Web UI → **Admin** → **Manager Configuration** → **Bootstrap Script**
-Oppure da CLI:
+**Systems** → **System Groups** → **Create Group**
 
-```bash
-# Nel container
-mgr-bootstrap
-```
+| Nome | Descrizione |
+|------|-------------|
+| `test-servers` | Ubuntu 24.04 test/development systems |
+| `production-servers` | Ubuntu 24.04 production systems |
 
-### 9.2 Verifica Bootstrap Repository
-Il bootstrap repository per Ubuntu dovrebbe essere già stato creato automaticamente.
-Verifica:
+Associa i gruppi alle Activation Keys:
+1. **Systems** → **Activation Keys** → seleziona key
+2. Tab **Groups** → **Join** → seleziona gruppo
+
+---
+
+## FASE 8: Registrazione Client
+
+### 8.1 Pre-requisiti sul Client
 
 ```bash
-# Nel container
-ls -la /srv/www/htdocs/pub/repositories/
-```
-Se manca, rigenera:
-
-```bash
-mgr-create-bootstrap-repo -c ubuntu-2204-amd64-main
-```
-## FASE 10: Registrazione Client Ubuntu - VM TEST (DEV)
-### 10.1 Connetti alla VM Ubuntu Test
-```bash
-ssh user@ubuntu-test-vm
+# Sul client Ubuntu 24.04
 sudo su -
-```
-### 10.2 Verifica Prerequisiti
-```bash
+
 # Verifica hostname
 hostname -f
 
-# Deve risolvere UYUNI server
-ping uyuni-server-test.yourcompany.local
+# Verifica connettività a UYUNI
+ping -c 2 uyuni-server-test.uyuni.internal
 
-# Verifica DNS
-nslookup uyuni-server-test.yourcompany.local
+# Verifica porte Salt
+nc -zv uyuni-server-test.uyuni.internal 4505
+nc -zv uyuni-server-test.uyuni.internal 4506
 ```
-### 10.3 Installa Salt Minion e Bootstrap
-```bash
-# Scarica ed esegui bootstrap script
-curl -Sks https://uyuni-server-test.yourcompany.local/pub/bootstrap/bootstrap.sh | bash
 
-# Oppure passo-passo:
-# 1. Scarica script
-curl -Sks https://uyuni-server-test.yourcompany.local/pub/bootstrap/bootstrap.sh -o /tmp/bootstrap.sh
+### 8.2 Metodo 1: Bootstrap Script (Consigliato)
+
+```bash
+# Scarica e esegui bootstrap
+curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap.sh -o /tmp/bootstrap.sh
 chmod +x /tmp/bootstrap.sh
 
-# 2. Esegui con activation key
-/tmp/bootstrap.sh -a ak-ubuntu2204-dev
+# Esegui con activation key (senza il prefisso "1-")
+/tmp/bootstrap.sh -a ak-ubuntu2404-test
 ```
-### 10.4 Alternativa: Registrazione Manuale con Salt
+
+### 8.3 Metodo 2: Registrazione Manuale
+
 ```bash
 # Installa salt-minion
 apt-get update
 apt-get install -y salt-minion
 
 # Configura master
-cat > /etc/salt/minion.d/susemanager.conf << EOF
-master: uyuni-server-test.yourcompany.local
+cat > /etc/salt/minion.d/susemanager.conf << 'EOF'
+master: uyuni-server-test.uyuni.internal
 EOF
 
-# Riavvia
+# Riavvia e abilita
 systemctl restart salt-minion
 systemctl enable salt-minion
 ```
-### 10.5 Accetta Salt Key sul Server
-Web UI → **Salt** → **Keys**
-Troverai la key del nuovo minion in "Pending". Clicca **Accept**.
-Oppure da CLI nel container UYUNI:
+
+Poi su UYUNI:
+1. **Salt** → **Keys** → trova la key pending → **Accept**
+2. **Systems** → **Bootstrapping** → completa registrazione con Activation Key
+
+### 8.4 Accetta Salt Key (se necessario)
+
+Da container UYUNI:
 
 ```bash
-salt-key -L
-salt-key -A  # Accetta tutte le pending
-```
-### 10.6 Completa Registrazione con Activation Key
-Dopo l'accept della key, se non hai usato il bootstrap con activation key:
-
-Web UI → **Systems** → **Bootstrapping**
-
-| Campo | Valore |
-|-------|--------|
-| **Host** | ubuntu-test-vm.yourcompany.local |
-| **Activation Key** | ak-ubuntu2204-dev |
-| **SSH Port** | 22 |
-| **User** | root (o user con sudo) |
-| **Authentication** | Password o SSH Key |
-
-**Bootstrap**.
-### 10.7 Verifica Registrazione
-Web UI → **Systems** → **All**
-
-Dovresti vedere `ubuntu-test-vm` con:
-- Status: ✅ verde
-- Base Channel: ubuntu-2204-...-dev-...
-- System Group: ubuntu-dev
-## FASE 11: Registrazione Client Ubuntu - VM PROD
-
-### 11.1 Ripeti gli stessi step sulla VM Production
-
-```bash
-ssh user@ubuntu-prod-vm
-sudo su -
-
-# Bootstrap con activation key PROD
-curl -Sks https://uyuni-server-test.yourcompany.local/pub/bootstrap/bootstrap.sh -o /tmp/bootstrap.sh
-chmod +x /tmp/bootstrap.sh
-/tmp/bootstrap.sh -a ak-ubuntu2204-prod
-```
-### 11.2 Accetta Key e Verifica
-1. Web UI → **Salt** → **Keys** → Accept
-2. Web UI → **Systems** → **All** → verifica `ubuntu-prod-vm`
-   - Base Channel: ...-prod-...
-   - System Group: ubuntu-prod
-
-## FASE 12: Verifica Setup Completo
-
-### 12.1 Checklist Web UI
-
-- **Software** → **Channels**: canali visibili
-- **Content Lifecycle** → **Projects**: con environments
-- **Systems** → **Activation Keys**: 2 keys (dev, prod)
-- **Systems** → **System Groups**: 2 gruppi con sistemi assegnati
-- **Systems** → **All**: 2 sistemi registrati
-### 12.2 Verifica da CLI
-```bash
-# Nel container UYUNI
-mgrctl term
-
-# Lista canali
-spacecmd softwarechannel_list
-
-# Lista sistemi
-spacecmd system_list
-
-# Dettagli sistema
-spacecmd system_details ubuntu-test-vm.yourcompany.local
-
-# Lista pacchetti installabili
-spacecmd system_listupgrades ubuntu-test-vm.yourcompany.local
-```
-### 12.3 Test Connettività Salt
-```bash
-# Nel container UYUNI
-salt '*ubuntu*' test.ping
-salt '*ubuntu*' grains.item os osrelease
-
-# Output atteso:
-# ubuntu-test-vm.yourcompany.local:
-#     True
-# ubuntu-prod-vm.yourcompany.local:
-#     True
-```
-### 12.4 Verifica Canali sui Client
-Sul client Ubuntu:
-```bash
-# Verifica repo configurati
-cat /etc/apt/sources.list.d/susemanager*.list
-
-# Test update
-apt-get update
-```
-## FASE 13: Primo Test di Patch (Preview)
-Prima di passare alla guida completa sul patch management, facciamo un test veloce.
-### 13.1 Visualizza Pacchetti Aggiornabili
-Web UI → **Systems** → seleziona `ubuntu-test-vm` → **Software** → **Packages** → **Upgrade**
-Vedrai lista di pacchetti con aggiornamenti disponibili.
-### 13.2 Visualizza CVE (se disponibili)
-Web UI → **Audit** → **CVE Audit**
-Cerca per sistema o CVE ID.
-### 13.3 Test Aggiornamento Singolo Pacchetto
-1. Seleziona un pacchetto non critico (es. `vim`)
-2. Clicca **Upgrade Packages**
-3. Schedule: **As soon as possible**
-4. Confirm
-### 13.4 Verifica Esecuzione
-Web UI → **Schedule** → **Pending Actions** o **Completed Actions**
-
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                       UYUNI Server                               │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │              Software Channels                           │   │
-│  │  ubuntu-2204-amd64-main (Parent)                        │   │
-│  │    ├── ubuntu-2204-amd64-security                       │   │
-│  │    └── ubuntu-2204-amd64-updates                        │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                           │                                      │
-│                           ▼                                      │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │          CLM Project: ubuntu-2204-clm                    │   │
-│  │                                                          │   │
-│  │  Sources ──► [DEV] ──► [PROD]                           │   │
-│  │              │          │                                │   │
-│  │              ▼          ▼                                │   │
-│  │         Channels    Channels                             │   │
-│  │         cloned      cloned                               │   │
-│  │         for DEV     for PROD                             │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                  │
-│  ┌────────────────────┐    ┌────────────────────┐              │
-│  │ Activation Key     │    │ Activation Key     │              │
-│  │ ak-ubuntu2204-dev  │    │ ak-ubuntu2204-prod │              │
-│  │ → DEV channels     │    │ → PROD channels    │              │
-│  │ → Group: ubuntu-dev│    │ → Group: ubuntu-prod│             │
-│  └────────────────────┘    └────────────────────┘              │
-│                                                                  │
-└─────────────────────────────────────────────────────────────────┘
-           │                              │
-           │ Salt (4505/4506)             │ Salt (4505/4506)
-           ▼                              ▼
-    ┌─────────────┐               ┌─────────────┐
-    │ ubuntu-test │               │ ubuntu-prod │
-    │ (DEV)       │               │ (PROD)      │
-    │ Group:      │               │ Group:      │
-    │ ubuntu-dev  │               │ ubuntu-prod │
-    └─────────────┘               └─────────────┘
+sudo podman exec -it uyuni-server bash
+salt-key -L          # Lista keys
+salt-key -a <minion-id>  # Accetta specifica
+salt-key -A          # Accetta tutte
 ```
 
 ---
-## Troubleshooting Comune
-### Canale non sincronizza
+
+## FASE 9: Verifica e Test
+
+### 9.1 Verifica Sistema Registrato
+
+**Systems** → **All** → clicca sul sistema
+
+Verifica:
+- ✅ Status verde
+- ✅ Base Channel corretto
+- ✅ Child Channels assegnati
+- ✅ System Group (se configurato)
+
+### 9.2 Test Connettività Salt
+
+Da container UYUNI:
 
 ```bash
-# Nel container, verifica log
-tail -f /var/log/rhn/reposync/ubuntu-2204*.log
-
-# Riprova sync
-spacewalk-repo-sync -c ubuntu-2204-amd64-main --fail
+salt '<minion-id>' test.ping
+salt '<minion-id>' grains.item os osrelease
 ```
+
+### 9.3 Test Repository sul Client
+
+Sul client Ubuntu:
+
+```bash
+apt-get update
+apt-cache policy openscap-scanner
+```
+
+### 9.4 Installazione OpenSCAP (Test)
+
+Da Web UI:
+1. **Systems** → seleziona sistema
+2. **Software** → **Packages** → **Install**
+3. Cerca `openscap-scanner` e `ssg-base`
+4. **Install Selected Packages**
+
+O da client:
+
+```bash
+apt-get install -y openscap-scanner ssg-base
+```
+
+---
+
+## Content Lifecycle Management (Opzionale)
+
+> **ATTENZIONE**: In base ai test effettuati, CLM può avere problemi con canali molto grandi come Universe (~65k pacchetti). Si consiglia di:
+> - Usare CLM solo per main, main-security, main-updates
+> - Tenere Universe come canale diretto (non CLM)
+
+### Setup CLM Base (senza Universe)
+
+1. **Content Lifecycle** → **Projects** → **Create Project**
+   - Name: `Ubuntu 24.04 Lifecycle`
+   - Label: `ubuntu-2404-lifecycle`
+
+2. **Sources** → **Attach/Detach**:
+   - ☑️ ubuntu-2404-amd64-main-uyuni
+   - ☑️ ubuntu-2404-amd64-main-security-uyuni
+   - ☑️ ubuntu-2404-amd64-main-updates-uyuni
+   - ☐ **NON** includere universe (troppo grande)
+
+3. **Environments** → **Add**:
+   - `test` - Ambiente di test
+   - `production` - Ambiente di produzione
+
+4. **Build** → crea Version 1
+
+### Activation Keys con CLM
+
+Per usare CLM, le Activation Keys devono puntare ai canali CLM:
+
+| Key | Base Channel |
+|-----|--------------|
+| Test | `ubuntu-2404-lifecycle-test-ubuntu-2404-amd64-base-uyuni` |
+| Prod | `ubuntu-2404-lifecycle-production-ubuntu-2404-amd64-base-uyuni` |
+
+Poi aggiungere Universe come child channel diretto (non CLM).
+
+---
+
+## Troubleshooting
+
+### Sync fallisce con "No space left on device"
+
+```bash
+# Verifica spazio
+df -h /manager_storage
+
+# Se pieno, espandi disco da Azure Portal, poi:
+sudo pvresize /dev/sdb1
+sudo lvextend -l +100%FREE /dev/vg_uyuni_repo/lv_repo
+sudo xfs_growfs /manager_storage
+```
+
+### Repository URL 404
+
+Verifica l'URL del repository:
+```bash
+curl -I http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/Packages.gz
+```
+
+Se 404, l'URL potrebbe essere cambiato. Verifica su archive.ubuntu.com.
+
+### GPG Key Error
+
+Per test, disabilita GPG check:
+1. **Software** → **Manage** → **Repositories** → seleziona repo
+2. **Has Signed Metadata** = No
+
+Per production, assicurati che la GPG key sia importata e associata al canale.
+
 ### Client non si registra
+
 ```bash
 # Sul client
 systemctl status salt-minion
 journalctl -u salt-minion -f
 
-# Verifica connettività
-nc -zv uyuni-server 4505
-nc -zv uyuni-server 4506
-```
-### GPG Key error
-```bash
-# Nel container
-spacewalk-repo-sync -c ubuntu-2204-amd64-main --no-gpg-check
-# (solo per debug, poi sistema la key)
-```
-### CLM Build fallisce
-- Verifica che i canali sorgente abbiano pacchetti sincronizzati
-- Controlla log: **Admin** → **Task Engine** → **History**
-### Salt key non appare
-```bash
-# Sul client, verifica
+# Verifica configurazione
 cat /etc/salt/minion.d/susemanager.conf
+
+# Verifica connettività
+nc -zv <uyuni-server> 4505
+nc -zv <uyuni-server> 4506
+```
+
+### Salt key non appare
+
+```bash
+# Sul client, forza registrazione
+salt-call --local grains.items
 systemctl restart salt-minion
 
-# Sul server
-salt-key -L
+# Sul server, verifica
+sudo podman exec uyuni-server salt-key -L
 ```
 
+### Canale "Waiting for repositories data to be generated"
+
+Questo indica che i metadati non sono stati generati. Prova:
+
+```bash
+sudo podman exec -it uyuni-server bash
+systemctl restart taskomatic
+```
+
+Poi rifai il **Sync** del canale.
+
 ---
+
+## Riepilogo Canali e URL
+
+| Canale | Repository URL |
+|--------|----------------|
+| Main | `http://archive.ubuntu.com/ubuntu/dists/noble/main/binary-amd64/` |
+| Main Security | `http://security.ubuntu.com/ubuntu/dists/noble-security/main/binary-amd64/` |
+| Main Updates | `http://archive.ubuntu.com/ubuntu/dists/noble-updates/main/binary-amd64/` |
+| Universe | `http://archive.ubuntu.com/ubuntu/dists/noble/universe/binary-amd64/` |
+| Universe Updates | `http://archive.ubuntu.com/ubuntu/dists/noble-updates/universe/binary-amd64/` |
+
+---
+
 ## Riferimenti
 
 - [UYUNI - Registering Ubuntu Clients](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/clients-ubuntu.html)
 - [UYUNI - Content Lifecycle Management](https://www.uyuni-project.org/uyuni-docs/en/uyuni/administration/content-lifecycle-management.html)
 - [UYUNI - Activation Keys](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/activation-keys.html)
+- [Ubuntu Releases](https://releases.ubuntu.com/)
+- [Ubuntu Archive Mirror](http://archive.ubuntu.com/ubuntu/)
