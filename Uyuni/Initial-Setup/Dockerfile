@@ -13,8 +13,12 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY app.py ./app.py
+# NOTA: app-v2.5-IMPROVED.py viene copiato come app.py
+COPY app-v2.5-IMPROVED.py ./app.py
 COPY p3_patch_testing.py ./p3_patch_testing.py
+
+# Create log directory
+RUN mkdir -p /var/log && touch /var/log/errata-manager.log
 
 # Environment variables (defaults, override at runtime)
 ENV FLASK_ENV=production

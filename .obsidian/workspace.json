@@ -35,7 +35,8 @@
               "title": "ASL0603"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -209,22 +210,22 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "62ce1b5725d47bea",
+  "active": "34337f6bcac16a09",
   "lastOpenFiles": [
+    "Uyuni/README.md.tmp.4762.1769816085253",
+    "Uyuni/README.md.tmp.4762.1769816071769",
+    "Uyuni/README.md.tmp.4762.1769816029355",
+    "Uyuni/README.md.tmp.4762.1769816006376",
+    "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md.tmp.4762.1769811585170",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Utenze/ASL0603.md",
-    "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md.tmp.1627.1769791561856",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md.tmp.1627.1769789559062",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md.tmp.1627.1769789497877",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md.tmp.1627.1769789470537",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md.tmp.1627.1769789455981",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md.tmp.1627.1769789431826",
-    "Uyuni/Deployment/Installazione-UYUNI-Server.md.tmp.1627.1769789133361",
-    "Uyuni/Deployment/Installazione-UYUNI-Server.md.tmp.1627.1769789085397",
-    "Uyuni/Deployment/Installazione-UYUNI-Server.md.tmp.1627.1769789045355",
-    "Uyuni/Initial-Setup/requirements.txt.tmp.12928.1769612897927",
     "Uyuni/Deployment/DEPLOYMENT-GUIDE.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
