@@ -37,11 +37,14 @@ UYUNI (fork open source di SUSE Manager) non supporta nativamente gli avvisi di 
 
 ### Architettura
 
+> **NOTA**: Le Logic Apps (Consumption) non possono raggiungere IP privati. I sync avvengono via Logic Apps sul container pubblico, mentre i push a UYUNI sono gestiti da cron job sul server UYUNI.
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      AZURE LOGIC APPS                           │
 │  logic-usn-sync (6h) │ logic-dsa-sync (daily 03:00)            │
 │  logic-oval-sync (weekly Sun 02:00) │ logic-nvd-sync (daily 04:00) │
+│                    (Solo SYNC - no push)                        │
 └─────────────────────────────┬───────────────────────────────────┘
                               │
 Internet                      │    VNET PSN (10.172.0.0/16)
@@ -53,15 +56,21 @@ Internet                      │    VNET PSN (10.172.0.0/16)
 │ italynorth.azure    │ Database │ (errata-aci-subnet) │
 │ container.io:5000   │ Condiviso│                     │
 │                     │          │ - Push UYUNI        │
-│ - Sync USN          │          │ - P3 Testing        │
-│ - Sync DSA          │          └──────────┬──────────┘
-│ - Sync OVAL         │                     │
-│ - Sync NVD          │                     ▼
-└─────────────────────┘          ┌─────────────────────┐
-                                 │ Server UYUNI        │
-                                 │ 10.172.2.17         │
-                                 │ (podman container)  │
-                                 └─────────────────────┘
+│ - Sync USN          │          │ - Sync Packages     │
+│ - Sync DSA          │          │ - P3 Testing        │
+│ - Sync OVAL         │          └──────────┬──────────┘
+│ - Sync NVD          │                     │
+└─────────────────────┘                     │ Cron Jobs
+                                            ▼
+                              ┌─────────────────────────┐
+                              │ Server UYUNI            │
+                              │ 10.172.2.17             │
+                              │ (podman container)      │
+                              │                         │
+                              │ Cron:                   │
+                              │ - errata-push.sh (6h)   │
+                              │ - sync-channels.sh (1d) │
+                              └─────────────────────────┘
 ```
 
 ---
@@ -262,11 +271,9 @@ echo "DNS Record: api.spm.internal -> $INTERNAL_IP"
 
 ### FASE 7: Crea Logic Apps
 
-```bash
-# Ottieni IP interno per le Logic Apps
-INTERNAL_IP=$(az container show --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal --query 'ipAddress.ip' -o tsv)
-echo "Usando IP interno: $INTERNAL_IP"
+> **IMPORTANTE**: Le Logic Apps (Consumption tier) non possono raggiungere IP privati. I push a UYUNI sono gestiti da cron job sul server UYUNI (vedi FASE 8).
 
+```bash
 # Elimina Logic Apps esistenti
 az logic workflow delete --resource-group test_group --name logic-usn-sync --yes 2>/dev/null
 az logic workflow delete --resource-group test_group --name logic-dsa-sync --yes 2>/dev/null
@@ -277,7 +284,7 @@ echo "Logic Apps eliminate"
 ```
 
 ```bash
-# logic-usn-sync (ogni 6 ore)
+# logic-usn-sync (ogni 6 ore) - Solo sync, no push
 az logic workflow create \
   --resource-group test_group \
   --name logic-usn-sync \
@@ -289,10 +296,7 @@ az logic workflow create \
       "triggers": {
         "Recurrence": {
           "type": "Recurrence",
-          "recurrence": {
-            "frequency": "Hour",
-            "interval": 6
-          }
+          "recurrence": {"frequency": "Hour", "interval": 6}
         }
       },
       "actions": {
@@ -303,16 +307,6 @@ az logic workflow create \
             "uri": "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/usn"
           },
           "runAfter": {}
-        },
-        "Push_to_UYUNI": {
-          "type": "Http",
-          "inputs": {
-            "method": "POST",
-            "uri": "http://10.172.5.4:5000/api/uyuni/push"
-          },
-          "runAfter": {
-            "Sync_USN": ["Succeeded"]
-          }
         }
       }
     }
@@ -322,7 +316,7 @@ echo "logic-usn-sync creata"
 ```
 
 ```bash
-# logic-dsa-sync (ogni giorno alle 03:00)
+# logic-dsa-sync (ogni giorno alle 03:00) - Solo sync con timeout 30min
 az logic workflow create \
   --resource-group test_group \
   --name logic-dsa-sync \
@@ -337,10 +331,7 @@ az logic workflow create \
           "recurrence": {
             "frequency": "Day",
             "interval": 1,
-            "schedule": {
-              "hours": ["3"],
-              "minutes": [0]
-            },
+            "schedule": {"hours": ["3"], "minutes": [0]},
             "timeZone": "Central Europe Standard Time"
           }
         }
@@ -352,17 +343,8 @@ az logic workflow create \
             "method": "POST",
             "uri": "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/dsa/full"
           },
+          "limit": {"timeout": "PT30M"},
           "runAfter": {}
-        },
-        "Push_to_UYUNI": {
-          "type": "Http",
-          "inputs": {
-            "method": "POST",
-            "uri": "http://10.172.5.4:5000/api/uyuni/push"
-          },
-          "runAfter": {
-            "Sync_DSA": ["Succeeded"]
-          }
         }
       }
     }
@@ -372,7 +354,7 @@ echo "logic-dsa-sync creata"
 ```
 
 ```bash
-# logic-oval-sync (ogni domenica alle 02:00)
+# logic-oval-sync (ogni domenica alle 02:00) - Ubuntu + Debian separati per evitare OOM
 az logic workflow create \
   --resource-group test_group \
   --name logic-oval-sync \
@@ -387,23 +369,29 @@ az logic workflow create \
           "recurrence": {
             "frequency": "Week",
             "interval": 1,
-            "schedule": {
-              "weekDays": ["Sunday"],
-              "hours": ["2"],
-              "minutes": [0]
-            },
+            "schedule": {"weekDays": ["Sunday"], "hours": ["2"], "minutes": [0]},
             "timeZone": "Central Europe Standard Time"
           }
         }
       },
       "actions": {
-        "Sync_OVAL": {
+        "Sync_OVAL_Ubuntu": {
           "type": "Http",
           "inputs": {
             "method": "POST",
-            "uri": "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/oval"
+            "uri": "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/oval?platform=ubuntu"
           },
+          "limit": {"timeout": "PT25M"},
           "runAfter": {}
+        },
+        "Sync_OVAL_Debian": {
+          "type": "Http",
+          "inputs": {
+            "method": "POST",
+            "uri": "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/oval?platform=debian"
+          },
+          "limit": {"timeout": "PT35M"},
+          "runAfter": {"Sync_OVAL_Ubuntu": ["Succeeded"]}
         }
       }
     }
@@ -413,7 +401,7 @@ echo "logic-oval-sync creata"
 ```
 
 ```bash
-# logic-nvd-sync (ogni giorno alle 04:00)
+# logic-nvd-sync (ogni giorno alle 04:00) - batch 200, force=true
 az logic workflow create \
   --resource-group test_group \
   --name logic-nvd-sync \
@@ -428,10 +416,7 @@ az logic workflow create \
           "recurrence": {
             "frequency": "Day",
             "interval": 1,
-            "schedule": {
-              "hours": ["4"],
-              "minutes": [0]
-            },
+            "schedule": {"hours": ["4"], "minutes": [0]},
             "timeZone": "Central Europe Standard Time"
           }
         }
@@ -441,8 +426,9 @@ az logic workflow create \
           "type": "Http",
           "inputs": {
             "method": "POST",
-            "uri": "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/nvd"
+            "uri": "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/nvd?batch_size=200&force=true"
           },
+          "limit": {"timeout": "PT30M"},
           "runAfter": {}
         }
       }
@@ -457,14 +443,100 @@ echo "logic-nvd-sync creata"
 az logic workflow list --resource-group test_group --output table
 ```
 
-### FASE 8: Test
+### FASE 8: Configura Cron Jobs sul Server UYUNI
+
+I push a UYUNI e il sync dei canali sono gestiti da cron job sul server UYUNI.
+
+```bash
+# Connettiti al server UYUNI
+ssh azureuser@uyuni-server-test
+
+# Entra nel container UYUNI
+sudo podman exec -it uyuni-server bash
+```
+
+**Script Push Errata** (esegue push a batch fino a esaurimento):
+
+```bash
+cat > /root/errata-push.sh << 'EOF'
+#!/bin/bash
+LOG="/var/log/errata-push.log"
+API="http://10.172.5.4:5000"
+
+echo "$(date) - Starting errata push" >> $LOG
+
+while true; do
+    response=$(curl -s -X POST "$API/api/uyuni/push?limit=50" 2>/dev/null)
+    pushed=$(echo "$response" | jq -r '.pushed // 0')
+
+    echo "$(date) - Pushed: $pushed" >> $LOG
+
+    if [ "$pushed" -eq 0 ]; then
+        break
+    fi
+
+    sleep 2
+done
+
+echo "$(date) - Push completed" >> $LOG
+EOF
+chmod +x /root/errata-push.sh
+```
+
+**Script Sync Canali** (sincronizza repository Ubuntu upstream):
+
+```bash
+cat > /root/sync-channels.sh << 'EOF'
+#!/bin/bash
+LOG="/var/log/channel-sync.log"
+echo "$(date) - Starting channel sync" >> $LOG
+
+# Sync security channels (priorità)
+spacewalk-repo-sync --channel ubuntu-2404-amd64-main-security-uyuni >> $LOG 2>&1
+spacewalk-repo-sync --channel ubuntu-2404-amd64-universe-security-uyuni >> $LOG 2>&1
+
+# Sync updates
+spacewalk-repo-sync --channel ubuntu-2404-amd64-main-updates-uyuni >> $LOG 2>&1
+spacewalk-repo-sync --channel ubuntu-2404-amd64-universe-updates-uyuni >> $LOG 2>&1
+
+# Sync client tools (solo lunedì)
+if [ "$(date +%u)" = "1" ]; then
+    spacewalk-repo-sync --channel ubuntu-2404-amd64-uyuni-client >> $LOG 2>&1
+fi
+
+echo "$(date) - Channel sync completed" >> $LOG
+EOF
+chmod +x /root/sync-channels.sh
+```
+
+**Configura Cron Jobs**:
+
+```bash
+# Push errata ogni 6 ore (offset 30min dai sync Logic Apps)
+echo "30 0,6,12,18 * * * root /root/errata-push.sh" > /etc/cron.d/errata-push
+
+# Sync canali ogni notte alle 01:00
+echo "0 1 * * * root /root/sync-channels.sh" > /etc/cron.d/uyuni-channel-sync
+
+# Verifica
+cat /etc/cron.d/errata-push
+cat /etc/cron.d/uyuni-channel-sync
+```
+
+### FASE 9: Test
 
 ```bash
 # Test container pubblico
 curl -s http://errata-api-spm.italynorth.azurecontainer.io:5000/api/health | jq
 
-# Test container interno (da VM nella VNET o UYUNI server)
+# Test container interno (da UYUNI server)
 curl -s http://10.172.5.4:5000/api/health | jq
+
+# Test push manuale (da UYUNI server)
+curl -s -X POST "http://10.172.5.4:5000/api/uyuni/push?limit=10" | jq
+
+# Statistiche
+curl -s http://errata-api-spm.italynorth.azurecontainer.io:5000/api/stats/overview | jq
 
 # Verifica URL nelle Logic Apps
 for app in logic-usn-sync logic-dsa-sync logic-oval-sync logic-nvd-sync; do
@@ -572,14 +644,25 @@ az network private-dns record-set a add-record --resource-group ASL0603-spoke10-
 
 ---
 
-## Schedule Logic Apps
+## Automazione Completa
 
-| Logic App | Frequenza | Azioni |
-|-----------|-----------|--------|
-| logic-usn-sync | Ogni 6 ore | Sync USN → Push UYUNI |
-| logic-dsa-sync | Daily 03:00 | Sync DSA → Push UYUNI |
-| logic-oval-sync | Weekly Sun 02:00 | Sync OVAL |
-| logic-nvd-sync | Daily 04:00 | Sync NVD |
+### Logic Apps (Azure) - Solo Sync
+
+| Logic App | Frequenza | Azione | Timeout |
+|-----------|-----------|--------|---------|
+| logic-usn-sync | Ogni 6 ore | Sync USN | default |
+| logic-dsa-sync | Daily 03:00 | Sync DSA full | 30 min |
+| logic-oval-sync | Weekly Sun 02:00 | Sync OVAL Ubuntu + Debian | 25+35 min |
+| logic-nvd-sync | Daily 04:00 | Sync NVD (batch 200, force) | 30 min |
+
+### Cron Jobs (Server UYUNI) - Push e Canali
+
+| Cron Job | Frequenza | Azione |
+|----------|-----------|--------|
+| errata-push.sh | Ogni 6 ore (00:30, 06:30...) | Push errata a UYUNI |
+| sync-channels.sh | Daily 01:00 | Sync repository Ubuntu upstream |
+
+> **Nota**: I push sono sfasati di 30 minuti rispetto ai sync per garantire che i nuovi errata siano già nel database.
 
 ---
 
@@ -619,6 +702,20 @@ az container show --resource-group ASL0603-spoke10-rg-spoke-italynorth --name ac
 
 ---
 
+## Statistiche (2026-01-31)
+
+| Metrica | Valore |
+|---------|--------|
+| Errata totali | 116.261 (USN: 583, DSA: 115.678) |
+| Errata pending | 116.078 |
+| CVE tracciati | 47.845 |
+| CVE con CVSS (NVD) | 228+ |
+| OVAL definitions | 50.862 (Ubuntu: 5.359, Debian: 45.503) |
+| Pacchetti in cache | 140.937 |
+| Canali Ubuntu | 17 (main, universe, security, updates, CLM) |
+
+---
+
 ## Versione
 
 - **API**: v2.6 (app-v2.5-IMPROVED.py)
@@ -626,3 +723,23 @@ az container show --resource-group ASL0603-spoke10-rg-spoke-italynorth --name ac
 - **Gunicorn Timeout**: 1800s (30 min)
 - **Ambiente**: PSN (Polo Strategico Nazionale)
 - **Ultimo aggiornamento**: 2026-01-31
+
+---
+
+## Note Tecniche
+
+### Limitazioni Logic Apps Consumption
+Le Logic Apps (Consumption tier) non possono raggiungere IP privati nella VNET. Per questo motivo:
+- I sync avvengono tramite Logic Apps → Container Pubblico
+- I push avvengono tramite Cron Job sul Server UYUNI → Container Interno
+
+### OVAL Memory Usage
+Il sync OVAL con `platform=all` può causare OOM sul container (4GB RAM). Per evitarlo:
+- Ubuntu e Debian sono sincronizzati separatamente
+- Il sync Debian (40K+ definitions) richiede ~35 minuti
+
+### NVD Rate Limiting
+L'API NVD ha rate limiting:
+- Con API Key: 0.6s tra richieste (50 CVE/min)
+- Senza API Key: 6s tra richieste (10 CVE/min)
+- 47K CVE richiedono ~16 ore con API Key per sync completo
