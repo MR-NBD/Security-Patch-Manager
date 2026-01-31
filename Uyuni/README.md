@@ -743,3 +743,82 @@ L'API NVD ha rate limiting:
 - Con API Key: 0.6s tra richieste (50 CVE/min)
 - Senza API Key: 6s tra richieste (10 CVE/min)
 - 47K CVE richiedono ~16 ore con API Key per sync completo
+
+---
+
+## Service Remediation Automatico (N8N)
+
+Sistema per gestire automaticamente i disservizi delle VM 24/7.
+
+### Architettura
+
+```
+[Alert Email/Webhook] → [N8N Parser] → [VM Resolver] → [Salt Executor] → [Report Email]
+                                            ↓
+                                    [UYUNI Server]
+                                    [Salt Master]
+                                            ↓
+                                    [VM Minions]
+```
+
+### Componenti
+
+| Componente | Ubicazione | Funzione |
+|------------|------------|----------|
+| N8N | Container Podman | Orchestrazione workflow |
+| Salt Master | Container UYUNI | Esecuzione comandi remoti |
+| Salt Minion | VM gestite | Agent per remediation |
+
+### Quick Start
+
+```bash
+# 1. Deploy N8N (sul server UYUNI o VM dedicata)
+bash Automation/scripts/deploy-n8n.sh
+
+# 2. Setup servizio test su VM Ubuntu
+bash Automation/scripts/setup-test-service.sh
+
+# 3. Importa workflow in N8N
+# Vai a http://<n8n-host>:5678
+# Settings > Import Workflow > Automation/n8n-workflows/service-remediation-workflow.json
+
+# 4. Configura credenziali in N8N:
+#    - SSH Key per UYUNI Server
+#    - SMTP per invio email
+
+# 5. Test end-to-end
+bash Automation/scripts/test-remediation-e2e.sh --full
+```
+
+### Workflow N8N
+
+1. **Trigger**: Webhook riceve alert (Prometheus, Zabbix, email)
+2. **Parser**: Estrae vmName, service, organization dal payload
+3. **Salt Commands**: Genera comandi `salt '<minion>' service.restart <service>`
+4. **Execute**: SSH al container UYUNI, esegue Salt
+5. **Report**: Genera HTML report con esito
+6. **Email**: Invia notifica al team
+
+### Test Manuale Remediation
+
+```bash
+# Simula crash del servizio
+ssh root@<vm-ubuntu> /opt/spm-simulate-crash.sh
+
+# Invia alert al webhook
+curl -X POST http://n8n-host:5678/webhook/service-alert \
+  -H "Content-Type: application/json" \
+  -d '{"vmName":"vm-test-ubuntu","service":"spm-test-service","severity":"critical"}'
+
+# Verifica stato
+ssh root@<uyuni-server> "podman exec uyuni-server salt 'vm-test-ubuntu' service.status spm-test-service"
+```
+
+### Documentazione Completa
+
+Vedi `Automation/N8N-SERVICE-REMEDIATION.md` per:
+- Configurazione dettagliata N8N
+- Parser per vari formati alert (Prometheus, Zabbix, custom)
+- Integrazione UYUNI API XMLRPC
+- Salt States per remediation
+- Troubleshooting
