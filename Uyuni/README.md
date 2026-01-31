@@ -6,95 +6,36 @@ Gestione centralizzata delle patch di sicurezza per Ubuntu/Debian tramite UYUNI 
 
 UYUNI (fork open source di SUSE Manager) non supporta nativamente gli avvisi di sicurezza per distribuzioni non-SUSE. Questo progetto colma questa lacuna sincronizzando automaticamente USN (Ubuntu) e DSA (Debian) verso UYUNI.
 
-## Struttura del Progetto
+---
 
-```
-Uyuni/
-├── README.md                              # Questo file
-│
-├── Teoria/                                # Documenti teorici
-│   ├── Concetti-Fondamentali-UYUNI.md    # Architettura, sicurezza, concetti tecnici
-│   └── Supported-Clients.md               # OS e features supportati
-│
-├── Infrastructure-Design/                 # Design architetturale
-│   ├── Azure Security-First Architecture (Conforme PSN).md
-│   └── P3-PATCH-TESTING-DESIGN.md        # Design modulo Patch Testing
-│
-├── Deployment/                            # Guide operative
-│   ├── DEPLOYMENT-GUIDE.md               # Guida deployment API
-│   ├── Installazione-UYUNI-Server.md     # Setup UYUNI su Azure
-│   ├── Setup-Canali-Ubuntu.md            # Configurazione canali Ubuntu 22.04
-│   └── Configurazione-Ubuntu-24.04.md    # Setup completo Ubuntu 24.04
-│
-└── Initial-Setup/                         # Codice sorgente
-    ├── UYUNI Errata Manager - Setup & Deployment.md  # Quick reference
-    ├── app-v2.5-IMPROVED.py              # API Flask v2.6
-    ├── p3_patch_testing.py               # Modulo P3 Patch Testing
-    ├── Dockerfile                         # Container image definition
-    ├── requirements.txt                   # Python dependencies
-    ├── sql/                               # Schema database
-    └── scripts/                           # Script operativi
-```
+## Infrastruttura Attuale (2026-01-31)
 
-## Quick Start
+### Componenti Azure
 
-### 1. Verifica Sistema
+| Componente | Resource Group | Nome | Endpoint |
+|------------|----------------|------|----------|
+| Container Pubblico | test_group | aci-errata-api | `errata-api-spm.italynorth.azurecontainer.io:5000` |
+| Container Interno | ASL0603-spoke10-rg-spoke-italynorth | aci-errata-api-internal | `10.172.5.4:5000` |
+| UYUNI Server | - | uyuni-server-test | `10.172.2.17` |
+| ACR | test_group | acaborerrata.azurecr.io | - |
+| PostgreSQL | test_group | pg-errata-test | `pg-errata-test.postgres.database.azure.com` |
+| Logic Apps | test_group | logic-usn-sync, logic-dsa-sync, logic-oval-sync, logic-nvd-sync | - |
+| Private DNS Zone | ASL0603-spoke10-rg-spoke-italynorth | spm.internal | `api.spm.internal` |
+| VNET | ASL0603-spoke10-rg-spoke-italynorth | ASL0603-spoke10-spoke-italynorth | `10.172.0.0/16` |
+| Subnet ACI | - | errata-aci-subnet | `10.172.5.0/28` |
 
-```bash
-# Health check container pubblico (con DNS)
-curl -s http://errata-api-spm.italynorth.azurecontainer.io:5000/api/health | jq
+### Credenziali
 
-# Health check container interno (da UYUNI server, con Private DNS)
-curl -s http://api.spm.internal:5000/api/health | jq
-
-# Oppure con IP diretto
-curl -s http://4.232.4.68:5000/api/health | jq        # Pubblico
-curl -s http://10.172.5.4:5000/api/health | jq        # Interno
-```
-
-### 2. Sync Completo
-
-```bash
-# FASE 1: Sync esterni (da PC/Azure Cloud Shell) - usando DNS
-curl -X POST http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/usn
-curl -X POST http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/dsa/full
-curl -X POST http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/oval
-curl -X POST http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/nvd
-
-# FASE 2: Push a UYUNI (da server UYUNI o rete interna) - usando Private DNS
-curl -X POST http://api.spm.internal:5000/api/uyuni/push
-```
-
-### 3. Verifica in UYUNI
-
-- **Patches**: Web UI > Patches > Patch List
-- **CVE Audit**: Web UI > Audit > CVE Audit
-
-## Documentazione
-
-### Teoria e Concetti
-
-| Documento | Contenuto |
-|-----------|-----------|
-| [Concetti Fondamentali UYUNI](UYUNI.md) | Architettura, sicurezza, comunicazione Salt, gestione vulnerabilità |
-| [Supported Clients](Teoria/Supported-Clients.md) | Tabella OS e features supportati |
+| Servizio | Valore |
+|----------|--------|
+| ACR Password | `ga8BfwRu/awVcxCNhEY259j2hSZxXWnPmHOTVasYWY+ACRBM8B4W` |
+| DB User | `errataadmin` |
+| DB Password | `ErrataSecure2024` |
+| UYUNI User | `admin` |
+| UYUNI Password | `password` |
+| NVD API Key | `49b6e254-d81d-4b61-abac-2dbe04471e38` |
 
 ### Architettura
-
-| Documento | Contenuto |
-|-----------|-----------|
-| [Azure PSN Architecture](Infrastructure-Design/Azure%20Security-First%20Architecture%20(Conforme%20PSN).md) | Infrastruttura Azure conforme PSN |
-| [P3 Patch Testing](Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md) | Design modulo test patch automatizzato |
-
-### Deployment e Operazioni
-
-| Documento | Contenuto |
-|-----------|-----------|
-| [Deployment Guide](Deployment/DEPLOYMENT-GUIDE.md) | Deploy container API Flask |
-| [Installazione UYUNI](Deployment/Installazione-UYUNI-Server.md) | Setup UYUNI Server su Azure |
-| [Setup Ubuntu 24.04](Deployment/Configurazione-Ubuntu-24.04.md) | Configurazione completa canali Ubuntu |
-
-## Architettura
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -108,10 +49,9 @@ Internet                      │    VNET PSN (10.172.0.0/16)
     ▼                         ▼           ▼
 ┌─────────────────────┐          ┌─────────────────────┐
 │ Container Pubblico  │          │ Container Interno   │
-│ errata-api-spm.     │──────────│ api.spm.internal    │
-│ italynorth.azure    │ Database │ 10.172.5.4:5000     │
-│ container.io:5000   │ Condiviso│ (errata-aci-subnet) │
-│ IP: 4.232.4.68      │          │                     │
+│ errata-api-spm.     │──────────│ 10.172.5.4:5000     │
+│ italynorth.azure    │ Database │ (errata-aci-subnet) │
+│ container.io:5000   │ Condiviso│                     │
 │                     │          │ - Push UYUNI        │
 │ - Sync USN          │          │ - P3 Testing        │
 │ - Sync DSA          │          └──────────┬──────────┘
@@ -124,164 +64,85 @@ Internet                      │    VNET PSN (10.172.0.0/16)
                                  └─────────────────────┘
 ```
 
-## Componenti Azure
+---
 
-| Componente | Resource Group | Dettagli |
-|------------|----------------|----------|
-| Container Pubblico | test_group | aci-errata-api, DNS: errata-api-spm.italynorth.azurecontainer.io, IP: 4.232.4.68 |
-| Container Interno | ASL0603-spoke10-rg-spoke-italynorth | aci-errata-api-internal, DNS: api.spm.internal, IP: 10.172.5.4 |
-| UYUNI Server | - | uyuni-server-test, IP: 10.172.2.17 |
-| ACR | test_group | acaborerrata.azurecr.io |
-| PostgreSQL | test_group | pg-errata-test.postgres.database.azure.com |
-| Logic Apps | test_group | logic-usn-sync, logic-dsa-sync, logic-oval-sync, logic-nvd-sync |
-| NSG | ASL0603-spoke10-rg-spoke-italynorth | nsg-errata-aci (allow port 5000 from VNET) |
-| Private DNS Zone | ASL0603-spoke10-rg-spoke-italynorth | spm.internal |
+## DEPLOYMENT COMPLETO DA ZERO
 
-## API Endpoints
-
-| Endpoint | Metodo | Descrizione |
-|----------|--------|-------------|
-| `/api/health` | GET | Health check |
-| `/api/health/detailed` | GET | Health check dettagliato |
-| `/api/sync/usn` | POST | Sync Ubuntu USN |
-| `/api/sync/dsa/full` | POST | Sync Debian DSA |
-| `/api/sync/oval` | POST | Sync OVAL definitions |
-| `/api/sync/nvd` | POST | Sync NVD CVE details |
-| `/api/uyuni/status` | GET | Stato connessione UYUNI |
-| `/api/uyuni/push` | POST | Push errata a UYUNI |
-| `/api/patch-test/start` | POST | Avvia test patch (P3) |
-| `/api/stats/overview` | GET | Statistiche generali |
-
-## Statistiche Attuali (2026-01-28)
-
-| Metrica | Valore |
-|---------|--------|
-| CVE totali | 47,620 |
-| Errata totali | 115,185 |
-| Errata USN | 573 |
-| Errata DSA | 114,612 |
-| OVAL definitions | 86,827 |
-
-## Fonti Dati
-
-| Fonte | Descrizione | Frequenza |
-|-------|-------------|-----------|
-| Ubuntu USN | Advisory sicurezza Ubuntu | Ogni 6 ore |
-| Debian DSA | Advisory sicurezza Debian | Giornaliero |
-| OVAL | Definizioni per CVE audit | Settimanale |
-| NVD | CVE enrichment (CVSS scores) | Giornaliero |
-
-## Configurazione Container
-
-### Container Pubblico (aci-errata-api) - CON DNS LABEL
+### FASE 1: Preparazione File (Azure Cloud Shell)
 
 ```bash
-# Variabili
-ACR_PASSWORD="ga8BfwRu/awVcxCNhEY259j2hSZxXWnPmHOTVasYWY+ACRBM8B4W"
+# Crea la cartella
+mkdir -p ~/errata-api && cd ~/errata-api
 
-az container create \
-  --resource-group test_group \
-  --name aci-errata-api \
-  --image acaborerrata.azurecr.io/errata-api:v2.9 \
-  --registry-login-server acaborerrata.azurecr.io \
-  --registry-username acaborerrata \
-  --registry-password "$ACR_PASSWORD" \
-  --dns-name-label errata-api-spm \
-  --os-type Linux \
-  --cpu 1 \
-  --memory 4 \
-  --ports 5000 \
-  --ip-address Public \
-  --environment-variables \
-    FLASK_ENV=production \
-    DATABASE_URL='postgresql://errataadmin:ErrataSecure2024@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require' \
-  --restart-policy Always \
-  --location italynorth
+# Crea requirements.txt
+cat > requirements.txt << 'EOF'
+flask==3.0.0
+flask-cors==4.0.0
+psycopg2-binary==2.9.9
+requests==2.31.0
+python-dateutil==2.8.2
+lxml==5.1.0
+gunicorn==21.2.0
+packaging==23.2
+EOF
+
+# Crea Dockerfile (timeout 1800s per NVD/OVAL)
+cat > Dockerfile << 'EOF'
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app.py ./app.py
+COPY p3_patch_testing.py ./p3_patch_testing.py
+
+# Create log directory
+RUN mkdir -p /var/log && touch /var/log/errata-manager.log
+
+ENV FLASK_ENV=production
+
+EXPOSE 5000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/api/health || exit 1
+
+# Timeout 1800s (30 min) per sync NVD/OVAL lunghi
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "1800", "--graceful-timeout", "1800", "app:app"]
+EOF
+
+echo "File creati in ~/errata-api"
+ls -la
 ```
 
-**DNS risultante**: `errata-api-spm.italynorth.azurecontainer.io:5000`
+### FASE 2: Upload File Python
 
-### Container Interno (aci-errata-api-internal)
+Carica tramite icona **Upload** di Cloud Shell:
+1. `Uyuni/Initial-Setup/app-v2.5-IMPROVED.py`
+2. `Uyuni/Initial-Setup/p3_patch_testing.py`
+
+Dopo l'upload:
 
 ```bash
-az container create \
-  --resource-group ASL0603-spoke10-rg-spoke-italynorth \
-  --name aci-errata-api-internal \
-  --image acaborerrata.azurecr.io/errata-api:v2.9 \
-  --registry-login-server acaborerrata.azurecr.io \
-  --registry-username acaborerrata \
-  --registry-password "$ACR_PASSWORD" \
-  --os-type Linux \
-  --cpu 1 \
-  --memory 4 \
-  --ports 5000 \
-  --ip-address Private \
-  --vnet ASL0603-spoke10-spoke-italynorth \
-  --subnet errata-aci-subnet \
-  --environment-variables \
-    FLASK_ENV=production \
-    DATABASE_URL='postgresql://errataadmin:ErrataSecure2024@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require' \
-    UYUNI_URL='https://10.172.2.17' \
-    UYUNI_USER='admin' \
-    UYUNI_PASSWORD='password' \
-  --restart-policy Always \
-  --location italynorth
+mv ~/app-v2.5-IMPROVED.py ~/errata-api/app.py
+mv ~/p3_patch_testing.py ~/errata-api/
+
+# Verifica
+ls -la ~/errata-api
 ```
 
-### Setup Private DNS Zone per Container Interno
+### FASE 3: Build Immagine Container
 
 ```bash
-# Crea Private DNS Zone
-az network private-dns zone create \
-  --resource-group ASL0603-spoke10-rg-spoke-italynorth \
-  --name spm.internal
+cd ~/errata-api
 
-# Link alla VNET
-az network private-dns link vnet create \
-  --resource-group ASL0603-spoke10-rg-spoke-italynorth \
-  --zone-name spm.internal \
-  --name link-vnet-spm \
-  --virtual-network ASL0603-spoke10-spoke-italynorth \
-  --registration-enabled false
-
-# Crea record A (dopo aver ottenuto l'IP del container)
-INTERNAL_IP=$(az container show --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal --query 'ipAddress.ip' -o tsv)
-az network private-dns record-set a add-record \
-  --resource-group ASL0603-spoke10-rg-spoke-italynorth \
-  --zone-name spm.internal \
-  --record-set-name api \
-  --ipv4-address $INTERNAL_IP
-```
-
-**DNS interno risultante**: `api.spm.internal:5000`
-
-## Network Configuration
-
-### Route Table (ASL0603-spoke10-spoke-routetable)
-
-| Route | Prefisso | Next Hop |
-|-------|----------|----------|
-| internal-vnet-traffic | 10.172.0.0/16 | VnetLocal |
-| database-route | 172.213.219.93/32 | Internet |
-| udr-default-to-hub-nva | 0.0.0.0/0 | 198.18.48.68 |
-
-### NSG Rules (nsg-errata-aci)
-
-| Rule | Priority | Source | Dest Port | Action |
-|------|----------|--------|-----------|--------|
-| allow-vnet-5000 | 100 | 10.172.0.0/16 | 5000 | Allow |
-
-## Build e Deploy Container Image
-
-### Build nuova immagine
-
-```bash
-cd Uyuni/Initial-Setup
-
-# Login ACR
-az acr login --name acaborerrata
-
-# Build e push
+# Build su ACR
 az acr build \
   --registry acaborerrata \
   --image errata-api:v2.9 \
@@ -291,17 +152,477 @@ az acr build \
 az acr repository show-tags --name acaborerrata --repository errata-api --output table
 ```
 
-### Configurazione Gunicorn (nel Dockerfile)
+### FASE 4: Deploy Container Pubblico (con DNS)
 
-| Parametro | Valore | Motivo |
-|-----------|--------|--------|
-| workers | 2 | Parallelismo |
-| timeout | 1800s | Sync NVD/OVAL lunghi (30 min) |
-| graceful-timeout | 1800s | Shutdown graceful |
+```bash
+# Elimina se esiste
+az container delete --resource-group test_group --name aci-errata-api --yes 2>/dev/null
+
+# Attendi
+sleep 15
+
+# Crea container pubblico con DNS label
+az container create \
+  --resource-group test_group \
+  --name aci-errata-api \
+  --image acaborerrata.azurecr.io/errata-api:v2.9 \
+  --registry-login-server acaborerrata.azurecr.io \
+  --registry-username acaborerrata \
+  --registry-password 'ga8BfwRu/awVcxCNhEY259j2hSZxXWnPmHOTVasYWY+ACRBM8B4W' \
+  --dns-name-label errata-api-spm \
+  --ports 5000 \
+  --cpu 1 \
+  --memory 4 \
+  --os-type Linux \
+  --location italynorth \
+  --environment-variables \
+    FLASK_ENV=production \
+    DATABASE_URL='postgresql://errataadmin:ErrataSecure2024@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require' \
+    NVD_API_KEY='49b6e254-d81d-4b61-abac-2dbe04471e38' \
+  --restart-policy Always
+
+# Verifica
+az container show --resource-group test_group --name aci-errata-api \
+  --query '{FQDN:ipAddress.fqdn, IP:ipAddress.ip, State:instanceView.state}' -o table
+```
+
+**DNS risultante**: `errata-api-spm.italynorth.azurecontainer.io:5000`
+
+### FASE 5: Deploy Container Interno
+
+```bash
+# Elimina se esiste
+az container delete --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal --yes 2>/dev/null
+
+# Attendi
+sleep 15
+
+# Crea container interno
+az container create \
+  --resource-group ASL0603-spoke10-rg-spoke-italynorth \
+  --name aci-errata-api-internal \
+  --image acaborerrata.azurecr.io/errata-api:v2.9 \
+  --registry-login-server acaborerrata.azurecr.io \
+  --registry-username acaborerrata \
+  --registry-password 'ga8BfwRu/awVcxCNhEY259j2hSZxXWnPmHOTVasYWY+ACRBM8B4W' \
+  --ports 5000 \
+  --cpu 1 \
+  --memory 4 \
+  --os-type Linux \
+  --location italynorth \
+  --ip-address Private \
+  --vnet ASL0603-spoke10-spoke-italynorth \
+  --subnet errata-aci-subnet \
+  --environment-variables \
+    FLASK_ENV=production \
+    DATABASE_URL='postgresql://errataadmin:ErrataSecure2024@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require' \
+    UYUNI_URL='https://10.172.2.17' \
+    UYUNI_USER='admin' \
+    UYUNI_PASSWORD='password' \
+  --restart-policy Always
+
+# Verifica e salva IP
+INTERNAL_IP=$(az container show --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal --query 'ipAddress.ip' -o tsv)
+echo "Container Interno IP: $INTERNAL_IP"
+```
+
+### FASE 6: Setup Private DNS Zone
+
+```bash
+# Crea Private DNS Zone (ignora errore se esiste)
+az network private-dns zone create \
+  --resource-group ASL0603-spoke10-rg-spoke-italynorth \
+  --name spm.internal 2>/dev/null || echo "DNS Zone già esistente"
+
+# Link alla VNET (ignora errore se esiste)
+az network private-dns link vnet create \
+  --resource-group ASL0603-spoke10-rg-spoke-italynorth \
+  --zone-name spm.internal \
+  --name link-vnet-spm \
+  --virtual-network ASL0603-spoke10-spoke-italynorth \
+  --registration-enabled false 2>/dev/null || echo "Link già esistente"
+
+# Ottieni IP container interno
+INTERNAL_IP=$(az container show --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal --query 'ipAddress.ip' -o tsv)
+
+# Elimina record esistente e ricrea
+az network private-dns record-set a delete \
+  --resource-group ASL0603-spoke10-rg-spoke-italynorth \
+  --zone-name spm.internal \
+  --name api --yes 2>/dev/null
+
+az network private-dns record-set a add-record \
+  --resource-group ASL0603-spoke10-rg-spoke-italynorth \
+  --zone-name spm.internal \
+  --record-set-name api \
+  --ipv4-address $INTERNAL_IP
+
+echo "DNS Record: api.spm.internal -> $INTERNAL_IP"
+```
+
+### FASE 7: Crea Logic Apps
+
+```bash
+# Ottieni IP interno per le Logic Apps
+INTERNAL_IP=$(az container show --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal --query 'ipAddress.ip' -o tsv)
+echo "Usando IP interno: $INTERNAL_IP"
+
+# Elimina Logic Apps esistenti
+az logic workflow delete --resource-group test_group --name logic-usn-sync --yes 2>/dev/null
+az logic workflow delete --resource-group test_group --name logic-dsa-sync --yes 2>/dev/null
+az logic workflow delete --resource-group test_group --name logic-oval-sync --yes 2>/dev/null
+az logic workflow delete --resource-group test_group --name logic-nvd-sync --yes 2>/dev/null
+
+echo "Logic Apps eliminate"
+```
+
+```bash
+# logic-usn-sync (ogni 6 ore)
+az logic workflow create \
+  --resource-group test_group \
+  --name logic-usn-sync \
+  --location italynorth \
+  --definition '{
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Hour",
+            "interval": 6
+          }
+        }
+      },
+      "actions": {
+        "Sync_USN": {
+          "type": "Http",
+          "inputs": {
+            "method": "POST",
+            "uri": "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/usn"
+          },
+          "runAfter": {}
+        },
+        "Push_to_UYUNI": {
+          "type": "Http",
+          "inputs": {
+            "method": "POST",
+            "uri": "http://10.172.5.4:5000/api/uyuni/push"
+          },
+          "runAfter": {
+            "Sync_USN": ["Succeeded"]
+          }
+        }
+      }
+    }
+  }'
+
+echo "logic-usn-sync creata"
+```
+
+```bash
+# logic-dsa-sync (ogni giorno alle 03:00)
+az logic workflow create \
+  --resource-group test_group \
+  --name logic-dsa-sync \
+  --location italynorth \
+  --definition '{
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "schedule": {
+              "hours": ["3"],
+              "minutes": [0]
+            },
+            "timeZone": "Central Europe Standard Time"
+          }
+        }
+      },
+      "actions": {
+        "Sync_DSA": {
+          "type": "Http",
+          "inputs": {
+            "method": "POST",
+            "uri": "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/dsa/full"
+          },
+          "runAfter": {}
+        },
+        "Push_to_UYUNI": {
+          "type": "Http",
+          "inputs": {
+            "method": "POST",
+            "uri": "http://10.172.5.4:5000/api/uyuni/push"
+          },
+          "runAfter": {
+            "Sync_DSA": ["Succeeded"]
+          }
+        }
+      }
+    }
+  }'
+
+echo "logic-dsa-sync creata"
+```
+
+```bash
+# logic-oval-sync (ogni domenica alle 02:00)
+az logic workflow create \
+  --resource-group test_group \
+  --name logic-oval-sync \
+  --location italynorth \
+  --definition '{
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Week",
+            "interval": 1,
+            "schedule": {
+              "weekDays": ["Sunday"],
+              "hours": ["2"],
+              "minutes": [0]
+            },
+            "timeZone": "Central Europe Standard Time"
+          }
+        }
+      },
+      "actions": {
+        "Sync_OVAL": {
+          "type": "Http",
+          "inputs": {
+            "method": "POST",
+            "uri": "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/oval"
+          },
+          "runAfter": {}
+        }
+      }
+    }
+  }'
+
+echo "logic-oval-sync creata"
+```
+
+```bash
+# logic-nvd-sync (ogni giorno alle 04:00)
+az logic workflow create \
+  --resource-group test_group \
+  --name logic-nvd-sync \
+  --location italynorth \
+  --definition '{
+    "definition": {
+      "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+      "contentVersion": "1.0.0.0",
+      "triggers": {
+        "Recurrence": {
+          "type": "Recurrence",
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "schedule": {
+              "hours": ["4"],
+              "minutes": [0]
+            },
+            "timeZone": "Central Europe Standard Time"
+          }
+        }
+      },
+      "actions": {
+        "Sync_NVD": {
+          "type": "Http",
+          "inputs": {
+            "method": "POST",
+            "uri": "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/nvd"
+          },
+          "runAfter": {}
+        }
+      }
+    }
+  }'
+
+echo "logic-nvd-sync creata"
+```
+
+```bash
+# Verifica Logic Apps
+az logic workflow list --resource-group test_group --output table
+```
+
+### FASE 8: Test
+
+```bash
+# Test container pubblico
+curl -s http://errata-api-spm.italynorth.azurecontainer.io:5000/api/health | jq
+
+# Test container interno (da VM nella VNET o UYUNI server)
+curl -s http://10.172.5.4:5000/api/health | jq
+
+# Verifica URL nelle Logic Apps
+for app in logic-usn-sync logic-dsa-sync logic-oval-sync logic-nvd-sync; do
+  echo "=== $app ==="
+  az logic workflow show --resource-group test_group --name $app --query 'definition.actions' -o json 2>/dev/null | grep -o '"uri": "[^"]*"'
+done
+```
+
+---
+
+## OPERAZIONI QUOTIDIANE
+
+### Sync Manuale
+
+```bash
+# Sync USN
+curl -s -X POST "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/usn" | jq
+
+# Sync DSA
+curl -s -X POST "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/dsa/full" | jq
+
+# Sync OVAL (15-30 min)
+curl -s -X POST "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/oval" | jq
+
+# Sync NVD (5-10 min)
+curl -s -X POST "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/sync/nvd" | jq
+
+# Push a UYUNI (da UYUNI server o VNET)
+curl -s -X POST "http://10.172.5.4:5000/api/uyuni/push" | jq
+```
+
+### Monitoraggio
+
+```bash
+# Health check
+curl -s "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/health" | jq
+
+# Health dettagliato
+curl -s "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/health/detailed" | jq
+
+# Statistiche
+curl -s "http://errata-api-spm.italynorth.azurecontainer.io:5000/api/stats/overview" | jq
+
+# Log container pubblico
+az container logs --resource-group test_group --name aci-errata-api --tail 50
+
+# Log container interno
+az container logs --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal --tail 50
+```
+
+### Gestione Container
+
+```bash
+# STOP container (mantiene IP)
+az container stop --resource-group test_group --name aci-errata-api
+az container stop --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal
+
+# START container (stesso IP)
+az container start --resource-group test_group --name aci-errata-api
+az container start --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal
+
+# RESTART container (stesso IP)
+az container restart --resource-group test_group --name aci-errata-api
+az container restart --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal
+
+# Stato container
+az container list --query "[?contains(name, 'errata')].{Name:name, State:instanceView.state, IP:ipAddress.ip}" -o table
+```
+
+**IMPORTANTE**: Usa `stop/start` invece di `delete/create` per mantenere lo stesso IP!
+
+---
+
+## SE L'IP DEL CONTAINER INTERNO CAMBIA
+
+Se elimini e ricrei il container interno, l'IP cambierà. Aggiorna:
+
+```bash
+# 1. Ottieni nuovo IP
+INTERNAL_IP=$(az container show --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal --query 'ipAddress.ip' -o tsv)
+echo "Nuovo IP: $INTERNAL_IP"
+
+# 2. Aggiorna DNS record
+az network private-dns record-set a delete --resource-group ASL0603-spoke10-rg-spoke-italynorth --zone-name spm.internal --name api --yes
+az network private-dns record-set a add-record --resource-group ASL0603-spoke10-rg-spoke-italynorth --zone-name spm.internal --record-set-name api --ipv4-address $INTERNAL_IP
+
+# 3. Ricrea Logic Apps con nuovo IP (vedi FASE 7)
+```
+
+---
+
+## API Endpoints
+
+| Endpoint | Metodo | Descrizione | Container |
+|----------|--------|-------------|-----------|
+| `/api/health` | GET | Health check | Entrambi |
+| `/api/health/detailed` | GET | Health check dettagliato | Entrambi |
+| `/api/sync/usn` | POST | Sync Ubuntu USN | Pubblico |
+| `/api/sync/dsa/full` | POST | Sync Debian DSA | Pubblico |
+| `/api/sync/oval` | POST | Sync OVAL definitions | Pubblico |
+| `/api/sync/nvd` | POST | Sync NVD CVE details | Pubblico |
+| `/api/uyuni/status` | GET | Stato connessione UYUNI | Interno |
+| `/api/uyuni/push` | POST | Push errata a UYUNI | Interno |
+| `/api/stats/overview` | GET | Statistiche generali | Entrambi |
+
+---
+
+## Schedule Logic Apps
+
+| Logic App | Frequenza | Azioni |
+|-----------|-----------|--------|
+| logic-usn-sync | Ogni 6 ore | Sync USN → Push UYUNI |
+| logic-dsa-sync | Daily 03:00 | Sync DSA → Push UYUNI |
+| logic-oval-sync | Weekly Sun 02:00 | Sync OVAL |
+| logic-nvd-sync | Daily 04:00 | Sync NVD |
+
+---
+
+## Troubleshooting
+
+### Container non risponde
+
+```bash
+# Verifica stato
+az container show --resource-group test_group --name aci-errata-api --query 'instanceView.state' -o tsv
+
+# Restart
+az container restart --resource-group test_group --name aci-errata-api
+
+# Vedi log
+az container logs --resource-group test_group --name aci-errata-api --tail 100
+```
+
+### Sync timeout
+
+Il Dockerfile è configurato con timeout 1800s (30 min). Se ancora timeout:
+
+```bash
+# Verifica che l'immagine sia v2.9 con timeout corretto
+az container show --resource-group test_group --name aci-errata-api --query 'containers[0].image' -o tsv
+```
+
+### Push fallisce
+
+```bash
+# Verifica connettività a UYUNI
+curl -s http://10.172.5.4:5000/api/uyuni/status | jq
+
+# Verifica credenziali nel container interno
+az container show --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal --query 'containers[0].environmentVariables' -o table
+```
+
+---
 
 ## Versione
 
-- **API**: v2.9 (timeout 1800s per sync lunghi)
+- **API**: v2.6 (app-v2.5-IMPROVED.py)
 - **Container Image**: acaborerrata.azurecr.io/errata-api:v2.9
+- **Gunicorn Timeout**: 1800s (30 min)
 - **Ambiente**: PSN (Polo Strategico Nazionale)
 - **Ultimo aggiornamento**: 2026-01-31
