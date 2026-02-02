@@ -64,12 +64,12 @@ Standard per infrastrutture critiche (settore elettrico) con focus su:
 
 Guida NIST per la gestione enterprise delle patch con principi chiave:
 
-| Principio | Descrizione |
-|-----------|-------------|
-| **Preparation > Perfection** | Meglio essere preparati che perfetti |
-| **Simplified Decision-Making** | Processo decisionale semplificato |
-| **Automation** | Automazione dove possibile |
-| **Continuous Improvement** | Miglioramento continuo del processo |
+| Principio                      | Descrizione                          |
+| ------------------------------ | ------------------------------------ |
+| **Preparation > Perfection**   | Meglio essere preparati che perfetti |
+| **Simplified Decision-Making** | Processo decisionale semplificato    |
+| **Automation**                 | Automazione dove possibile           |
+| **Continuous Improvement**     | Miglioramento continuo del processo  |
 
 **Risk Responses**: Accept, Mitigate, Transfer, Avoid
 
