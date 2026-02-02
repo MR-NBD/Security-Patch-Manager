@@ -1,0 +1,409 @@
+<mxfile host="Electron" agent="Mozilla/5.0" version="28.2.8">
+  <diagram name="SPM Current Infrastructure" id="spm-current">
+    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE -->
+        <mxCell id="title" value="&lt;b&gt;Security Patch Manager - Infrastruttura Attuale&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;Data: 2026-02-02 | Location: Italy North&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=16;" parent="1" vertex="1">
+          <mxGeometry x="500" y="20" width="400" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- INTERNET / EXTERNAL SOURCES BOX -->
+        <mxCell id="internet-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#f5f5f5;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="80" width="280" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="internet-title" value="&lt;b&gt;Internet - External Sources&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="100" y="85" width="160" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- External Sources Icons -->
+        <mxCell id="usn-icon" value="" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;image=img/lib/active_directory/internet_cloud.svg;" parent="1" vertex="1">
+          <mxGeometry x="60" y="115" width="50" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="usn-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Ubuntu USN&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;ubuntu.com/security&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="45" y="150" width="80" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="dsa-icon" value="" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;image=img/lib/active_directory/internet_cloud.svg;" parent="1" vertex="1">
+          <mxGeometry x="155" y="115" width="50" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="dsa-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Debian DSA&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;security-tracker.debian.org&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="135" y="150" width="90" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="nvd-icon" value="" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;image=img/lib/active_directory/internet_cloud.svg;" parent="1" vertex="1">
+          <mxGeometry x="250" y="115" width="50" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="nvd-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;NIST NVD&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;nvd.nist.gov/api&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="240" y="150" width="70" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="oval-icon" value="" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;image=img/lib/active_directory/internet_cloud.svg;" parent="1" vertex="1">
+          <mxGeometry x="105" y="190" width="50" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="oval-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;OVAL Feeds&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Ubuntu + Debian&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="85" y="225" width="90" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="repos-icon" value="" style="image;aspect=fixed;perimeter=ellipsePerimeter;html=1;align=center;shadow=0;dashed=0;image=img/lib/active_directory/internet_cloud.svg;" parent="1" vertex="1">
+          <mxGeometry x="205" y="190" width="50" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="repos-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Ubuntu Repos&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;archive.ubuntu.com&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="185" y="225" width="90" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- AZURE LOGIC APPS BOX -->
+        <mxCell id="logic-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#0078D4;fillColor=#E6F2FF;" parent="1" vertex="1">
+          <mxGeometry x="360" y="80" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="logic-title" value="&lt;b&gt;Azure Logic Apps (Scheduler)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Resource Group: test_group&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="420" y="85" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="logic-usn-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/integration/Logic_Apps.svg;" parent="1" vertex="1">
+          <mxGeometry x="380" y="125" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="logic-usn-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;logic-usn-sync&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Ogni 6 ore&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="365" y="160" width="70" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="logic-dsa-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/integration/Logic_Apps.svg;" parent="1" vertex="1">
+          <mxGeometry x="460" y="125" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="logic-dsa-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;logic-dsa-sync&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Daily 03:00&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="445" y="160" width="70" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="logic-nvd-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/integration/Logic_Apps.svg;" parent="1" vertex="1">
+          <mxGeometry x="540" y="125" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="logic-nvd-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;logic-nvd-sync&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Daily 04:00&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="523" y="160" width="70" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="logic-oval-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/integration/Logic_Apps.svg;" parent="1" vertex="1">
+          <mxGeometry x="620" y="125" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="logic-oval-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;logic-oval-sync&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Weekly Sun 02:00&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="600" y="160" width="80" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Logic Apps Note -->
+        <mxCell id="logic-note" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;i&gt;Logic Apps (Consumption) non possono &lt;br&gt;raggiungere IP privati - Solo SYNC&lt;/i&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#666666;" parent="1" vertex="1">
+          <mxGeometry x="400" y="200" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- CONTAINER PUBBLICO -->
+        <mxCell id="public-container-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#00AA00;fillColor=#E6FFE6;" parent="1" vertex="1">
+          <mxGeometry x="360" y="310" width="320" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="public-container-title" value="&lt;b&gt;Container Pubblico (ACI)&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Resource Group: test_group&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="420" y="315" width="200" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="aci-public-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/containers/Container_Instances.svg;" parent="1" vertex="1">
+          <mxGeometry x="380" y="355" width="45" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="aci-public-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;aci-errata-api&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;errata-api-spm.italynorth&lt;br&gt;.azurecontainer.io:5000&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="430" y="350" width="130" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="flask-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/app_services/App_Services.svg;" parent="1" vertex="1">
+          <mxGeometry x="570" y="360" width="35" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="flask-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Flask API v2.6&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Gunicorn + Python&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="610" y="360" width="65" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="public-apis" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;Endpoints:&lt;/b&gt;&lt;br&gt;POST /api/sync/usn&lt;br&gt;POST /api/sync/dsa/full&lt;br&gt;POST /api/sync/nvd&lt;br&gt;POST /api/sync/oval&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="380" y="400" width="120" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ACR -->
+        <mxCell id="acr-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/containers/Container_Registries.svg;" parent="1" vertex="1">
+          <mxGeometry x="610" y="405" width="30" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="acr-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;ACR&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;acaborerrata.azurecr.io&lt;br&gt;errata-api:v2.9&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="640" y="400" width="80" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- VNET PSN BOX -->
+        <mxCell id="vnet-bg" value="" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#0078D4;fillColor=#F0F8FF;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="720" y="80" width="440" height="600" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/Virtual_Networks.svg;" parent="1" vertex="1">
+          <mxGeometry x="730" y="85" width="30" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="vnet-title" value="&lt;b&gt;VNET PSN: ASL0603-spoke10-spoke-italynorth&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;10.172.0.0/16 | Resource Group: ASL0603-spoke10-rg-spoke-italynorth&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="765" y="80" width="380" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- SUBNET ACI -->
+        <mxCell id="subnet-aci-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#0078D4;fillColor=#E6F2FF;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="740" y="120" width="200" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet-aci-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/Subnet.svg;" parent="1" vertex="1">
+          <mxGeometry x="750" y="125" width="28" height="17" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet-aci-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;errata-aci-subnet&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;10.172.5.0/28&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="780" y="120" width="100" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Container Interno -->
+        <mxCell id="aci-internal-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/containers/Container_Instances.svg;" parent="1" vertex="1">
+          <mxGeometry x="760" y="160" width="45" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="aci-internal-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;aci-errata-api-internal&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;10.172.5.4:5000&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Flask API v2.6&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="805" y="155" width="120" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="internal-apis" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;b&gt;Endpoints:&lt;/b&gt;&lt;br&gt;POST /api/uyuni/push&lt;br&gt;GET /api/uyuni/status&lt;br&gt;GET /api/stats/overview&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="760" y="210" width="100" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Private DNS -->
+        <mxCell id="dns-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/DNS_Zones.svg;" parent="1" vertex="1">
+          <mxGeometry x="870" y="210" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="dns-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Private DNS&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;spm.internal&lt;br&gt;api.spm.internal&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="900" y="205" width="70" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- SUBNET UYUNI -->
+        <mxCell id="subnet-uyuni-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#FF6600;fillColor=#FFF5E6;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="960" y="120" width="180" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet-uyuni-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/Subnet.svg;" parent="1" vertex="1">
+          <mxGeometry x="970" y="125" width="28" height="17" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet-uyuni-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Subnet-UYUNI&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;10.172.2.0/24&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1000" y="120" width="100" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- UYUNI Server -->
+        <mxCell id="uyuni-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/compute/Virtual_Machine.svg;" parent="1" vertex="1">
+          <mxGeometry x="1010" y="160" width="50" height="47" as="geometry" />
+        </mxCell>
+        <mxCell id="uyuni-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;uyuni-server-test&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;10.172.2.17&lt;br&gt;openSUSE Leap 15.6&lt;br&gt;Podman Container&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="970" y="210" width="110" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- UYUNI Components -->
+        <mxCell id="uyuni-components" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;b&gt;Componenti:&lt;/b&gt;&lt;br&gt;• Salt Master (4505/4506)&lt;br&gt;• Web UI (443)&lt;br&gt;• XML-RPC API&lt;br&gt;• Taskomatic&lt;br&gt;• PostgreSQL interno&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="975" y="265" width="100" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Cron Jobs -->
+        <mxCell id="cron-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;b&gt;Cron Jobs:&lt;/b&gt;&lt;br&gt;• errata-push.sh (6h)&lt;br&gt;• sync-channels.sh (01:00)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontColor=#666666;" parent="1" vertex="1">
+          <mxGeometry x="975" y="335" width="110" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- SUBNET CLIENT VMs -->
+        <mxCell id="subnet-vms-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#008000;fillColor=#E6FFE6;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="740" y="300" width="200" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet-vms-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/Subnet.svg;" parent="1" vertex="1">
+          <mxGeometry x="750" y="305" width="28" height="17" as="geometry" />
+        </mxCell>
+        <mxCell id="subnet-vms-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Subnet-Client-VMs&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;10.172.2.0/24&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="780" y="300" width="100" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Client VMs -->
+        <mxCell id="vm-test-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/compute/Virtual_Machine.svg;" parent="1" vertex="1">
+          <mxGeometry x="760" y="340" width="35" height="33" as="geometry" />
+        </mxCell>
+        <mxCell id="vm-test-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;b&gt;test-VM-Test&lt;/b&gt;&lt;br&gt;Ubuntu 24.04&lt;br&gt;Salt Minion&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="745" y="375" width="65" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vm-prod-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/compute/Virtual_Machine.svg;" parent="1" vertex="1">
+          <mxGeometry x="830" y="340" width="35" height="33" as="geometry" />
+        </mxCell>
+        <mxCell id="vm-prod-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;b&gt;test-VM-Production&lt;/b&gt;&lt;br&gt;Ubuntu 24.04&lt;br&gt;Salt Minion&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="810" y="375" width="75" height="35" as="geometry" />
+        </mxCell>
+
+        <mxCell id="vm-more-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/compute/Virtual_Machine.svg;opacity=50;" parent="1" vertex="1">
+          <mxGeometry x="900" y="340" width="30" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="vm-more-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;b&gt;VM-N&lt;/b&gt;&lt;br&gt;...&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#999999;" parent="1" vertex="1">
+          <mxGeometry x="890" y="370" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <mxCell id="salt-note" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;i&gt;Salt Communication: 4505/4506 TCP&lt;/i&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#666666;" parent="1" vertex="1">
+          <mxGeometry x="760" y="420" width="140" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- POSTGRESQL -->
+        <mxCell id="pg-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#0078D4;fillColor=#E6F2FF;" parent="1" vertex="1">
+          <mxGeometry x="740" y="490" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pg-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/databases/Azure_Database_PostgreSQL_Server.svg;" parent="1" vertex="1">
+          <mxGeometry x="760" y="505" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="pg-label" value="&lt;b&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;PostgreSQL Flexible Server&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;pg-errata-test.postgres.database.azure.com&lt;br&gt;Database: uyuni_errata&lt;br&gt;Resource Group: test_group&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="805" y="500" width="200" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="pg-stats" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;b&gt;Stats:&lt;/b&gt; 116K errata | 48K CVE | 51K OVAL | 141K packages&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontColor=#666666;" parent="1" vertex="1">
+          <mxGeometry x="760" y="560" width="200" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- STATISTICS BOX -->
+        <mxCell id="stats-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;" parent="1" vertex="1">
+          <mxGeometry x="960" y="400" width="180" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="stats-title" value="&lt;b&gt;Statistiche (2026-02-02)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="980" y="405" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="stats-content" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;Errata:&lt;/b&gt; 116.261&lt;br&gt;  • USN: 583&lt;br&gt;  • DSA: 115.678&lt;br&gt;&lt;br&gt;&lt;b&gt;CVE:&lt;/b&gt; 47.845&lt;br&gt;  • Con CVSS: 228+&lt;br&gt;&lt;br&gt;&lt;b&gt;OVAL:&lt;/b&gt; 50.862&lt;br&gt;  • Ubuntu: 5.359&lt;br&gt;  • Debian: 45.503&lt;br&gt;&lt;br&gt;&lt;b&gt;Packages:&lt;/b&gt; 140.937&lt;br&gt;&lt;b&gt;Canali Ubuntu:&lt;/b&gt; 17&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="975" y="425" width="150" height="160" as="geometry" />
+        </mxCell>
+
+        <!-- CONNECTIONS -->
+        <!-- Internet to Logic Apps -->
+        <mxCell id="conn-inet-logic" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0078D4;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="320" y="180" as="sourcePoint" />
+            <mxPoint x="360" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-inet-logic-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;Fetch&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="320" y="160" width="40" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Logic Apps to Container Pubblico -->
+        <mxCell id="conn-logic-public" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#00AA00;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="520" y="280" as="sourcePoint" />
+            <mxPoint x="520" y="310" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-logic-public-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;HTTP POST&lt;br&gt;/api/sync/*&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="530" y="280" width="60" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Container Pubblico to PostgreSQL -->
+        <mxCell id="conn-public-pg" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0078D4;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="520" y="460" as="sourcePoint" />
+            <mxPoint x="520" y="540" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="520" y="500" />
+              <mxPoint x="600" y="500" />
+              <mxPoint x="600" y="540" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-public-pg-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;PostgreSQL&lt;br&gt;(Public Endpoint)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="530" y="470" width="70" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- PostgreSQL to VNET -->
+        <mxCell id="conn-pg-vnet" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0078D4;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="680" y="540" as="sourcePoint" />
+            <mxPoint x="740" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Container Interno to PostgreSQL -->
+        <mxCell id="conn-internal-pg" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=1;strokeColor=#0078D4;dashed=1;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="840" y="280" as="sourcePoint" />
+            <mxPoint x="840" y="490" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Container Interno to UYUNI -->
+        <mxCell id="conn-internal-uyuni" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#FF6600;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="940" y="200" as="sourcePoint" />
+            <mxPoint x="960" y="200" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-internal-uyuni-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;XML-RPC&lt;br&gt;Push Errata&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FF6600;" parent="1" vertex="1">
+          <mxGeometry x="890" y="160" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- UYUNI to VMs -->
+        <mxCell id="conn-uyuni-vms" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#008000;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1010" y="370" as="sourcePoint" />
+            <mxPoint x="940" y="370" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-uyuni-vms-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;Salt&lt;br&gt;4505/4506&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#008000;" parent="1" vertex="1">
+          <mxGeometry x="950" y="380" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- LEGEND -->
+        <mxCell id="legend-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#FFFFFF;" parent="1" vertex="1">
+          <mxGeometry x="40" y="310" width="280" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="&lt;b&gt;Legenda&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="140" y="315" width="80" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-sync" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#0078D4;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="60" y="355" as="sourcePoint" />
+            <mxPoint x="100" y="355" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-sync-label" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;Sync/Database Connection&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="110" y="345" width="130" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-push" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#FF6600;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="60" y="380" as="sourcePoint" />
+            <mxPoint x="100" y="380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-push-label" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;Push Errata (XML-RPC)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="110" y="370" width="130" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-salt" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#008000;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="60" y="405" as="sourcePoint" />
+            <mxPoint x="100" y="405" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-salt-label" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;Salt Communication&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="110" y="395" width="130" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-http" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#00AA00;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="60" y="430" as="sourcePoint" />
+            <mxPoint x="100" y="430" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-http-label" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;HTTP API Call&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="110" y="420" width="130" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="legend-note" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;i&gt;Note: Tutti gli IP sono in Italy North&lt;br&gt;Location conforme PSN&lt;/i&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#666666;" parent="1" vertex="1">
+          <mxGeometry x="60" y="455" width="150" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- FLOW DESCRIPTION -->
+        <mxCell id="flow-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#FFFDE7;" parent="1" vertex="1">
+          <mxGeometry x="40" y="510" width="280" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-title" value="&lt;b&gt;Flusso Operativo&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="120" y="515" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-content" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;1. SYNC (Logic Apps → Container Pubblico)&lt;/b&gt;&lt;br&gt;   USN/DSA/NVD/OVAL → PostgreSQL&lt;br&gt;&lt;br&gt;&lt;b&gt;2. PUSH (Cron → Container Interno → UYUNI)&lt;/b&gt;&lt;br&gt;   Errata dal DB → UYUNI via XML-RPC&lt;br&gt;&lt;br&gt;&lt;b&gt;3. DEPLOY (UYUNI → Salt → VMs)&lt;/b&gt;&lt;br&gt;   Patch applicata ai client Salt&lt;br&gt;&lt;br&gt;&lt;b&gt;4. CHANNEL SYNC (Cron → UYUNI)&lt;/b&gt;&lt;br&gt;   Sync repository Ubuntu upstream&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="50" y="540" width="260" height="130" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
