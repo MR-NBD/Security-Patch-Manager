@@ -748,77 +748,64 @@ L'API NVD ha rate limiting:
 
 ## Service Remediation Automatico (N8N)
 
-Sistema per gestire automaticamente i disservizi delle VM 24/7.
+Sistema per gestire automaticamente i disservizi delle VM 24/7 tramite n8n e AI.
 
 ### Architettura
 
 ```
-[Alert Email/Webhook] → [N8N Parser] → [VM Resolver] → [Salt Executor] → [Report Email]
-                                            ↓
-                                    [UYUNI Server]
-                                    [Salt Master]
-                                            ↓
-                                    [VM Minions]
+[Chat n8n] → [Groq AI] → [Code Parser] → [SSH/Salt Diagnosi] → [SSH/Salt Restart] → [Groq Report] → [Chat Response]
+                              ↓
+                      [UYUNI Server]
+                      [Salt Master]
+                              ↓
+                      [VM Minions]
 ```
 
 ### Componenti
 
 | Componente | Ubicazione | Funzione |
 |------------|------------|----------|
-| N8N | Container Podman | Orchestrazione workflow |
+| n8n | VM Linux (vm-n8n) | Orchestrazione workflow |
+| Groq AI | Cloud (gratuito) | Interpretazione messaggi e report |
 | Salt Master | Container UYUNI | Esecuzione comandi remoti |
 | Salt Minion | VM gestite | Agent per remediation |
 
 ### Quick Start
 
-```bash
-# 1. Deploy N8N (sul server UYUNI o VM dedicata)
-bash Automation/scripts/deploy-n8n.sh
+1. **Installa n8n** su VM Linux nella VNET (vedi documentazione)
+2. **Configura credenziali** in n8n:
+   - Groq API (gratuito)
+   - SSH per UYUNI Server
+3. **Crea workflow** seguendo la guida
+4. **Testa**: stoppa un servizio e invia messaggio in chat
 
-# 2. Setup servizio test su VM Ubuntu
-bash Automation/scripts/setup-test-service.sh
+### Workflow n8n
 
-# 3. Importa workflow in N8N
-# Vai a http://<n8n-host>:5678
-# Settings > Import Workflow > Automation/n8n-workflows/service-remediation-workflow.json
+1. **Chat Trigger**: Riceve messaggio dall'utente
+2. **Groq AI**: Interpreta il messaggio ed estrae VM, servizio, severità
+3. **Code**: Parsa la risposta JSON
+4. **SSH Diagnosi**: Verifica servizi in errore via Salt
+5. **SSH Restart**: Riavvia il servizio via Salt
+6. **Groq Report**: Genera report formattato
+7. **Chat Response**: Mostra risultato all'utente
 
-# 4. Configura credenziali in N8N:
-#    - SSH Key per UYUNI Server
-#    - SMTP per invio email
-
-# 5. Test end-to-end
-bash Automation/scripts/test-remediation-e2e.sh --full
-```
-
-### Workflow N8N
-
-1. **Trigger**: Webhook riceve alert (Prometheus, Zabbix, email)
-2. **Parser**: Estrae vmName, service, organization dal payload
-3. **Salt Commands**: Genera comandi `salt '<minion>' service.restart <service>`
-4. **Execute**: SSH al container UYUNI, esegue Salt
-5. **Report**: Genera HTML report con esito
-6. **Email**: Invia notifica al team
-
-### Test Manuale Remediation
+### Test Manuale
 
 ```bash
-# Simula crash del servizio
-ssh root@<vm-ubuntu> /opt/spm-simulate-crash.sh
+# 1. Stoppa nginx sulla VM target
+sudo systemctl stop nginx
 
-# Invia alert al webhook
-curl -X POST http://n8n-host:5678/webhook/service-alert \
-  -H "Content-Type: application/json" \
-  -d '{"vmName":"vm-test-ubuntu","service":"spm-test-service","severity":"critical"}'
+# 2. Invia messaggio nella chat n8n:
+"Disservizio sulla VM 10.172.2.18, il servizio nginx non risponde"
 
-# Verifica stato
-ssh root@<uyuni-server> "podman exec uyuni-server salt 'vm-test-ubuntu' service.status spm-test-service"
+# 3. Verifica che nginx sia ripartito
+sudo systemctl status nginx
 ```
 
 ### Documentazione Completa
 
 Vedi `Automation/N8N-SERVICE-REMEDIATION.md` per:
-- Configurazione dettagliata N8N
-- Parser per vari formati alert (Prometheus, Zabbix, custom)
-- Integrazione UYUNI API XMLRPC
-- Salt States per remediation
+- Installazione n8n su VM Linux
+- Configurazione credenziali Groq e SSH
+- Creazione workflow step-by-step
 - Troubleshooting

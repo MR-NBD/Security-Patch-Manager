@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Automation/N8N-SERVICE-REMEDIATION.md",
+                "file": "Utenze/ASL0603.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "N8N-SERVICE-REMEDIATION"
+              "title": "ASL0603"
             }
           }
         ],
@@ -212,6 +212,10 @@
   },
   "active": "34337f6bcac16a09",
   "lastOpenFiles": [
+    "Uyuni/README.md.tmp.14348.1770042804944",
+    "Uyuni/Automation/N8N-SERVICE-REMEDIATION.md.tmp.14348.1770042680428",
+    "Uyuni/Automation/N8N-SERVICE-REMEDIATION.md",
+    "Utenze/ASL0603.md",
     "Uyuni/Automation/scripts/test-remediation-e2e.sh",
     "Uyuni/Automation/n8n-workflows/service-remediation-workflow.json",
     "Uyuni/Automation/n8n-workflows/service-remediation-workflow.json.tmp.14348.1769882317001",
@@ -220,7 +224,6 @@
     "Uyuni/Automation/scripts/deploy-n8n.sh",
     "Uyuni/Automation/scripts/setup-test-service.sh",
     "Uyuni/Automation/scripts",
-    "Uyuni/Automation/N8N-SERVICE-REMEDIATION.md",
     "Uyuni/Automation",
     "Uyuni/Teoria/UYUNI.md",
     "Uyuni/Teoria/Supported-Clients.md",
@@ -231,10 +234,7 @@
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
-    "Utenze/ASL0603.md",
     "Uyuni/README.md.tmp.11328.1769874707396",
-    "Uyuni/README.md.tmp.11328.1769874685041",
-    "Uyuni/README.md.tmp.11328.1769874672655",
     "img/treUntitled Diagram.drawio.png",
     "dueUntitled Diagram.drawio.png",
     "img/dueUntitled Diagram.drawio-1.png",
