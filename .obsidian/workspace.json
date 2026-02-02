@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Utenze/ASL0603.md",
+                "file": "Uyuni/Documentazione-Preliminare.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "ASL0603"
+              "title": "Documentazione-Preliminare"
             }
           }
         ],
@@ -212,10 +212,13 @@
   },
   "active": "34337f6bcac16a09",
   "lastOpenFiles": [
+    "Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md",
+    "Uyuni/Documentazione-Preliminare.md",
+    "GeneralDocumentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf",
+    "Utenze/ASL0603.md",
     "Uyuni/README.md.tmp.14348.1770042804944",
     "Uyuni/Automation/N8N-SERVICE-REMEDIATION.md.tmp.14348.1770042680428",
     "Uyuni/Automation/N8N-SERVICE-REMEDIATION.md",
-    "Utenze/ASL0603.md",
     "Uyuni/Automation/scripts/test-remediation-e2e.sh",
     "Uyuni/Automation/n8n-workflows/service-remediation-workflow.json",
     "Uyuni/Automation/n8n-workflows/service-remediation-workflow.json.tmp.14348.1769882317001",
@@ -224,7 +227,6 @@
     "Uyuni/Automation/scripts/deploy-n8n.sh",
     "Uyuni/Automation/scripts/setup-test-service.sh",
     "Uyuni/Automation/scripts",
-    "Uyuni/Automation",
     "Uyuni/Teoria/UYUNI.md",
     "Uyuni/Teoria/Supported-Clients.md",
     "Uyuni/Initial-Setup/UYUNI Errata Manager - Setup & Deployment.md",
@@ -234,7 +236,6 @@
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
-    "Uyuni/README.md.tmp.11328.1769874707396",
     "img/treUntitled Diagram.drawio.png",
     "dueUntitled Diagram.drawio.png",
     "img/dueUntitled Diagram.drawio-1.png",
@@ -251,7 +252,6 @@
     "Uyuni/Initial-Setup/docs/README-v2.5-IMPROVEMENTS.md",
     "Uyuni/Initial-Setup/docs/UYUNI-ERRATA-MANAGER.md",
     "Uyuni/Initial-Setup/docs/UYUNI-Guida-Setup-Ubuntu2204-CLM.md",
-    "Uyuni/Note-Teoriche/Supported Clients and Features.md",
     "Uyuni/Infrastructure-Design/Security-Patch-Manager.png",
     "img/png6.png",
     "img/png4.png",
