@@ -151,14 +151,14 @@ FOREMAN + KATELLO
 
 Motivazioni della scelta di UYUNI per il progetto SPM:
 
-| Vantaggio | Descrizione |
-|-----------|-------------|
-| **Open Source** | GPL v2, nessun costo di licenza |
-| **CVE Audit Nativo** | Supporto OVAL out-of-box |
-| **Salt Integration** | Automazione potente e scalabile |
-| **Multi-OS Reale** | SUSE, RHEL, Ubuntu, Debian |
-| **Architettura Moderna** | Deployment container (Podman) |
-| **Flessibilità** | API XML-RPC completa per automazione |
+| Vantaggio                | Descrizione                          |
+| ------------------------ | ------------------------------------ |
+| **Open Source**          | GPL v2, nessun costo di licenza      |
+| **CVE Audit Nativo**     | Supporto OVAL out-of-box             |
+| **Salt Integration**     | Automazione potente e scalabile      |
+| **Multi-OS Reale**       | SUSE, RHEL, Ubuntu, Debian           |
+| **Architettura Moderna** | Deployment container (Podman)        |
+| **Flessibilità**         | API XML-RPC completa per automazione |
 
 ---
 
@@ -170,13 +170,13 @@ Motivazioni della scelta di UYUNI per il progetto SPM:
 
 ### 3.2 Funzionalità Principali
 
-| Funzionalità | Descrizione |
-|--------------|-------------|
-| **Patch Management** | Distribuzione controllata di aggiornamenti di sicurezza |
-| **Configuration Management** | Gestione centralizzata configurazioni via Salt |
-| **Compliance & Auditing** | Verifica conformità e audit CVE (OVAL) |
-| **Provisioning** | Deployment automatizzato di nuovi sistemi (Cobbler) |
-| **Inventory Management** | Inventario hardware e software centralizzato |
+| Funzionalità                 | Descrizione                                             |
+| ---------------------------- | ------------------------------------------------------- |
+| **Patch Management**         | Distribuzione controllata di aggiornamenti di sicurezza |
+| **Configuration Management** | Gestione centralizzata configurazioni via Salt          |
+| **Compliance & Auditing**    | Verifica conformità e audit CVE (OVAL)                  |
+| **Provisioning**             | Deployment automatizzato di nuovi sistemi (Cobbler)     |
+| **Inventory Management**     | Inventario hardware e software centralizzato            |
 
 ### 3.3 Architettura Componenti
 

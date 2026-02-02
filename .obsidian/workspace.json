@@ -212,8 +212,9 @@
   },
   "active": "34337f6bcac16a09",
   "lastOpenFiles": [
-    "GeneralDocumentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf",
+    "Uyuni/Teoria/UYUNI.md",
     "Uyuni/Documentazione-Preliminare.md",
+    "GeneralDocumentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf",
     "Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md",
     "Utenze/ASL0603.md",
     "Uyuni/README.md.tmp.14348.1770042804944",
@@ -227,7 +228,6 @@
     "Uyuni/Automation/scripts/deploy-n8n.sh",
     "Uyuni/Automation/scripts/setup-test-service.sh",
     "Uyuni/Automation/scripts",
-    "Uyuni/Teoria/UYUNI.md",
     "Uyuni/Teoria/Supported-Clients.md",
     "Uyuni/Initial-Setup/UYUNI Errata Manager - Setup & Deployment.md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
