@@ -32,13 +32,13 @@ Il progetto Security Patch Manager si basa su standard internazionali riconosciu
 
 Framework industriale che definisce un lifecycle completo per il patch management:
 
-| Fase | Descrizione |
-|------|-------------|
-| **Information Gathering** | Raccolta informazioni su vulnerabilità e patch disponibili |
-| **Monitoring & Evaluation** | Monitoraggio continuo e valutazione impatto |
-| **Patch Testing** | Test in ambiente isolato prima del deployment |
-| **Deployment** | Applicazione controllata delle patch |
-| **Verification & Reporting** | Verifica successo e documentazione |
+| Fase                         | Descrizione                                                |
+| ---------------------------- | ---------------------------------------------------------- |
+| **Information Gathering**    | Raccolta informazioni su vulnerabilità e patch disponibili |
+| **Monitoring & Evaluation**  | Monitoraggio continuo e valutazione impatto                |
+| **Patch Testing**            | Test in ambiente isolato prima del deployment              |
+| **Deployment**               | Applicazione controllata delle patch                       |
+| **Verification & Reporting** | Verifica successo e documentazione                         |
 
 **Enfasi**: Continuità operativa e validazione vendor.
 
