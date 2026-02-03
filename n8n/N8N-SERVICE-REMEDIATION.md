@@ -1,8 +1,8 @@
-# N8N Service Remediation - Integrazione con UYUNI
+# Integrazione con UYUNI
 
 ## Panoramica
 
-Sistema automatizzato per gestire disservizi VM 24/7 tramite n8n e Salt/UYUNI.
+Sistema automatizzato per gestire disservizi tramite n8n e Salt/UYUNI.
 
 - **Input**: Messaggio in chat n8n con segnalazione disservizio
 - **Processing**: AI (Groq) interpreta il messaggio, Salt esegue diagnosi e remediation
@@ -59,9 +59,6 @@ Sistema automatizzato per gestire disservizi VM 24/7 tramite n8n e Salt/UYUNI.
 │  └───────────────┘   └───────────────┘                                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
-
----
-
 ## Prerequisiti
 
 - VM Linux (Ubuntu 24.04) nella stessa VNET di UYUNI
@@ -69,31 +66,7 @@ Sistema automatizzato per gestire disservizi VM 24/7 tramite n8n e Salt/UYUNI.
 - Account Groq (gratuito) per AI
 - Salt Minions configurati e connessi al Salt Master
 
----
-
-## Installazione
-
-### Step 1: Crea VM Linux in Azure
-
-Dalla Azure Portal, crea una VM con queste caratteristiche:
-
-| Parametro | Valore |
-|-----------|--------|
-| Resource Group | `test_group` (stesso di UYUNI) |
-| Nome VM | `vm-n8n` |
-| Region | `Italy North` |
-| Image | `Ubuntu Server 24.04 LTS` |
-| Size | `Standard D2ls v5` (2 vCPU, 4GB RAM) |
-| Username | `azureuser` |
-| Auth | Password |
-| VNET | `ASL0603-spoke10-spoke-italynorth` |
-| Subnet | `default` (stessa di UYUNI) |
-| Public IP | None |
-
-### Step 2: Connettiti alla VM
-
-Usa Azure Bastion per connetterti alla VM `vm-n8n`.
-
+## INSTALLAZIONE N8n
 ### Step 3: Installa Docker
 
 ```bash
@@ -109,11 +82,7 @@ sudo usermod -aG docker azureuser
 # Esci e rientra per applicare i permessi
 exit
 ```
-
-Riconnettiti via Bastion.
-
 ### Step 4: Avvia n8n
-
 ```bash
 # Crea directory per n8n
 mkdir -p ~/.n8n
@@ -131,9 +100,7 @@ docker run -d \
   -e GENERIC_TIMEZONE=Europe/Rome \
   n8nio/n8n:latest
 ```
-
 ### Step 5: Verifica installazione
-
 ```bash
 # Verifica che il container sia running
 docker ps
@@ -141,9 +108,7 @@ docker ps
 # Trova l'IP della VM
 hostname -I
 ```
-
 ### Step 6: Accedi a n8n
-
 Dalla macchina Windows nella VNET, apri il browser:
 
 ```
@@ -155,7 +120,6 @@ Credenziali:
 - **Password**: `N8nSecure2024`
 
 ---
-
 ## Configurazione Credenziali
 
 ### Credenziali Groq (AI)
@@ -172,7 +136,6 @@ In n8n:
 4. Salva
 
 ### Credenziali SSH (UYUNI)
-
 In n8n:
 1. **Credentials** → **Add Credential**
 2. Cerca **"SSH"**
@@ -181,32 +144,22 @@ In n8n:
    - **Port**: `22`
    - **Username**: `azureuser`
    - **Password**: (la tua password)
-4. Salva
-
----
-
+1. Salva
 ## Creazione Workflow
 
 ### Struttura del Workflow
 
-```
-Chat Trigger → Interpreta Messaggio (Groq) → Code → Diagnosi Servizi (SSH) → Restart Servizio (SSH) → Format Output (Groq) → Chat Response
-```
-
+![[img2187te87r13.png]]
 ### Step 1: Crea nuovo workflow
 
 1. **Workflows** → **Add Workflow**
 2. Rinomina: `Service Remediation AI`
-
 ### Step 2: Aggiungi Chat Trigger
-
 1. Clicca **"+"**
 2. Cerca **"Chat Trigger"**
 3. Configura:
    - **Make Available in n8n Chat**: selezionato
-
 ### Step 3: Aggiungi nodo Interpreta Messaggio (Groq)
-
 1. Clicca **"+"** a destra del Chat Trigger
 2. Cerca **"Basic LLM Chain"**
 3. Aggiungi modello **"Groq Chat Model"**:
@@ -233,9 +186,7 @@ Se un'informazione manca, usa null. Rispondi SOLO con il JSON, nient'altro.
 ```
 
 5. Rinomina il nodo: `Interpreta Messaggio`
-
 ### Step 4: Aggiungi nodo Code
-
 1. Clicca **"+"** a destra di "Interpreta Messaggio"
 2. Cerca **"Code"**
 3. Language: **JavaScript**
@@ -276,9 +227,7 @@ return {
 ```
 
 5. Rinomina il nodo: `Code`
-
 ### Step 5: Aggiungi nodo Diagnosi Servizi (SSH)
-
 1. Clicca **"+"** a destra di "Code"
 2. Cerca **"SSH"**
 3. Configura:
@@ -290,9 +239,7 @@ sudo podman exec uyuni-server salt "{{ $json.vmIP }}" cmd.run "systemctl list-un
 ```
 
 4. Rinomina il nodo: `Diagnosi Servizi`
-
 ### Step 6: Aggiungi nodo Restart Servizio (SSH)
-
 1. Clicca **"+"** a destra di "Diagnosi Servizi"
 2. Cerca **"SSH"**
 3. Configura:
@@ -304,9 +251,7 @@ sudo podman exec uyuni-server salt "{{ $('Code').first().json.vmIP }}" service.r
 ```
 
 4. Rinomina il nodo: `Restart Servizio`
-
 ### Step 7: Aggiungi nodo Format Output (Groq)
-
 1. Clicca **"+"** a destra di "Restart Servizio"
 2. Cerca **"Basic LLM Chain"**
 3. Aggiungi modello **"Groq Chat Model"**:
@@ -331,18 +276,12 @@ Formatta il report in modo chiaro e leggibile.
 ```
 
 5. Rinomina il nodo: `Format Output`
-
 ### Step 8: Pubblica il workflow
-
 1. Clicca **"Publish"** in alto a destra
 2. Il workflow è ora attivo
-
----
-
 ## Test del Workflow
 
 ### Test 1: Verifica connettività Salt
-
 Prima verifica che Salt funzioni:
 
 ```bash
@@ -350,9 +289,7 @@ Prima verifica che Salt funzioni:
 sudo podman exec uyuni-server salt-key -L
 sudo podman exec uyuni-server salt '*' test.ping
 ```
-
 ### Test 2: Simula disservizio
-
 1. Connettiti alla VM target (es. 10.172.2.18) via Bastion
 
 2. Stoppa nginx:
@@ -366,7 +303,6 @@ sudo systemctl status nginx
 ```
 
 ### Test 3: Invia messaggio alla chat n8n
-
 1. In n8n, apri la chat (icona fumetto)
 2. Scrivi:
 ```
@@ -374,7 +310,6 @@ Disservizio sulla VM 10.172.2.18, il servizio nginx non risponde
 ```
 
 3. Attendi la risposta
-
 ### Test 4: Verifica remediation
 
 Sulla VM target:
@@ -383,51 +318,6 @@ sudo systemctl status nginx
 ```
 
 Nginx dovrebbe essere di nuovo `active (running)`.
-
----
-
-## Comandi Utili
-
-### Gestione container n8n
-
-```bash
-# Stato container
-docker ps
-
-# Log n8n
-docker logs -f n8n
-
-# Restart n8n
-docker restart n8n
-
-# Stop n8n
-docker stop n8n
-
-# Start n8n
-docker start n8n
-```
-
-### Gestione Salt
-
-```bash
-# Lista minion (sul server UYUNI)
-sudo podman exec uyuni-server salt-key -L
-
-# Ping tutti i minion
-sudo podman exec uyuni-server salt '*' test.ping
-
-# Restart servizio su un minion
-sudo podman exec uyuni-server salt "10.172.2.18" service.restart nginx
-
-# Stato servizio su un minion
-sudo podman exec uyuni-server salt "10.172.2.18" service.status nginx
-
-# Servizi in errore su un minion
-sudo podman exec uyuni-server salt "10.172.2.18" cmd.run "systemctl list-units --state=failed"
-```
-
----
-
 ## Troubleshooting
 
 | Problema | Causa | Soluzione |
@@ -437,38 +327,18 @@ sudo podman exec uyuni-server salt "10.172.2.18" cmd.run "systemctl list-units -
 | Groq timeout | Rate limiting | Attendi qualche secondo e riprova |
 | Chat non risponde | Workflow non pubblicato | Clicca "Publish" |
 | Errore "Referenced node doesn't exist" | Nome nodo errato | Verifica nomi esatti dei nodi |
+## Video DImostrazione
 
----
-
+![[2026-02-02 15-25-49.mp4]]
 ## Sicurezza
 
 - n8n è accessibile solo dalla VNET interna (no IP pubblico)
 - Autenticazione Basic Auth abilitata
 - Credenziali SSH salvate in modo sicuro in n8n
 - Comunicazione Salt cifrata
-
----
-
-## Estensioni Future
-
-1. **Telegram Integration**: Richiede HTTPS (certificato SSL + dominio)
-2. **Google Sheets Log**: Richiede configurazione OAuth o Service Account
-3. **Email Report**: Configurare SMTP o Gmail API
-4. **Multi-servizio**: Estendere il workflow per gestire più servizi
-
----
-
 ## Riferimenti
 
 - [n8n Documentation](https://docs.n8n.io/)
 - [Groq Console](https://console.groq.com/)
 - [Salt Documentation](https://docs.saltproject.io/)
 - Infrastruttura UYUNI: `/Uyuni/README.md`
-
----
-
-## Changelog
-
-| Data | Versione | Modifiche |
-|------|----------|-----------|
-| 2026-02-02 | 1.0 | Creazione iniziale con n8n su VM Linux + Groq AI |
