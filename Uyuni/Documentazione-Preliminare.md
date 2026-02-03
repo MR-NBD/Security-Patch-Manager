@@ -16,6 +16,7 @@
 5. [API XML-RPC](#5-api-xml-rpc)
 6. [Workflow Attuale (P1-P5)](#6-workflow-attuale-p1-p5)
 7. [Infrastruttura Cloud Attuale](#7-infrastruttura-cloud-attuale)
+   - 7.5 [Flusso di Sincronizzazione Dati di Sicurezza](#75-flusso-di-sincronizzazione-dati-di-sicurezza)
 8. [Infrastruttura Cloud Target](#8-infrastruttura-cloud-target)
 9. [Processi di Configurazione](#9-processi-di-configurazione)
 10. [Stato Attuale e Lavori Completati](#10-stato-attuale-e-lavori-completati)
@@ -585,6 +586,294 @@ Internet                      │    VNET PSN (10.172.0.0/16)
 | OVAL definitions | 50.862 (Ubuntu: 5.359, Debian: 45.503) |
 | Pacchetti in cache | 140.937 |
 | Canali Ubuntu | 17 |
+
+### 7.5 Flusso di Sincronizzazione Dati di Sicurezza
+
+#### 7.5.1 Schema Generale del Flusso
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              FONTI ESTERNE (Internet)                                    │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐│
+│  │   CANONICAL      │  │   DEBIAN         │  │   NIST           │  │   CANONICAL      ││
+│  │   USN Feed       │  │   Security       │  │   NVD API        │  │   OVAL Feed      ││
+│  │                  │  │   Tracker        │  │                  │  │   + Debian OVAL  ││
+│  │ ubuntu.com/     │  │ security-tracker │  │ services.nvd.    │  │ security-        ││
+│  │ security/notices│  │ .debian.org      │  │ nist.gov/rest/   │  │ metadata.        ││
+│  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘│
+│           │                     │                     │                     │           │
+└───────────┼─────────────────────┼─────────────────────┼─────────────────────┼───────────┘
+            │                     │                     │                     │
+            ▼                     ▼                     ▼                     ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                           AZURE LOGIC APPS (Scheduler)                                   │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐│
+│  │ logic-usn-sync   │  │ logic-dsa-sync   │  │ logic-nvd-sync   │  │ logic-oval-sync  ││
+│  │ ────────────────│  │ ────────────────│  │ ────────────────│  │ ────────────────││
+│  │ Ogni 6 ore       │  │ Daily 03:00      │  │ Daily 04:00      │  │ Weekly Dom 02:00 ││
+│  │                  │  │ Timeout: 30min   │  │ Timeout: 30min   │  │ Timeout: 60min   ││
+│  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘  └────────┬─────────┘│
+│           │                     │                     │                     │           │
+└───────────┼─────────────────────┼─────────────────────┼─────────────────────┼───────────┘
+            │                     │                     │                     │
+            │         POST /api/sync/usn               POST /api/sync/nvd     │
+            │                     POST /api/sync/dsa/full      POST /api/sync/oval
+            ▼                     ▼                     ▼                     ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                    CONTAINER PUBBLICO (errata-api-spm.italynorth.azurecontainer.io)      │
+│                                    Flask API v2.6                                        │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────────────────────────┐│
+│  │                            SYNC & MAPPING ENGINE                                     ││
+│  ├─────────────────────────────────────────────────────────────────────────────────────┤│
+│  │                                                                                      ││
+│  │  USN PARSER                    DSA PARSER                    OVAL PARSER            ││
+│  │  ───────────                   ───────────                   ───────────            ││
+│  │  • Fetch RSS/JSON feed         • Fetch security-tracker     • Fetch XML OVAL       ││
+│  │  • Parse advisory              • Parse advisory HTML         • Parse definitions    ││
+│  │  • Extract:                    • Extract:                    • Extract:             ││
+│  │    - USN ID                      - DSA ID                      - OVAL ID            ││
+│  │    - CVE list                    - CVE list                    - CVE reference      ││
+│  │    - Affected packages           - Affected packages           - Affected versions  ││
+│  │    - Severity                    - Severity                    - Platform           ││
+│  │    - Release date                - Release date                - Test criteria      ││
+│  │                                                                                      ││
+│  │  NVD ENRICHER                                                                       ││
+│  │  ─────────────                                                                      ││
+│  │  • Fetch CVE details from NVD API                                                   ││
+│  │  • Extract CVSS v3.1 scores                                                         ││
+│  │  • Map severity (CRITICAL/HIGH/MEDIUM/LOW)                                          ││
+│  │  • Rate limiting: 0.6s between requests (API Key)                                   ││
+│  │                                                                                      ││
+│  └─────────────────────────────────────────────────────────────────────────────────────┘│
+│                                          │                                               │
+│                                          ▼                                               │
+│                                   DATABASE MAPPING                                       │
+│                                          │                                               │
+└──────────────────────────────────────────┼───────────────────────────────────────────────┘
+                                           │
+                                           ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                         POSTGRESQL FLEXIBLE SERVER (Azure)                               │
+│                      pg-errata-test.postgres.database.azure.com                          │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│   Database: uyuni_errata                                                                 │
+│   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
+│   │   errata    │  │    cves     │  │    oval     │  │  packages   │  │ errata_cve  │  │
+│   │  116,261    │  │   47,845    │  │   50,862    │  │  140,937    │  │   (join)    │  │
+│   └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  │
+│                                                                                          │
+└──────────────────────────────────────────────────────────────────────────────────────────┘
+                                           │
+                                           │ Accesso via VNET
+                                           ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                    CONTAINER INTERNO (10.172.5.4:5000) - VNET PSN                        │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│  ┌─────────────────────────────────────────────────────────────────────────────────────┐│
+│  │                              UYUNI PUSH ENGINE                                       ││
+│  ├─────────────────────────────────────────────────────────────────────────────────────┤│
+│  │                                                                                      ││
+│  │  1. QUERY PENDING ERRATA                                                            ││
+│  │     SELECT * FROM errata WHERE pushed_to_uyuni = false LIMIT 50                     ││
+│  │                                                                                      ││
+│  │  2. PACKAGE RESOLUTION                                                              ││
+│  │     • Match errata packages con UYUNI channel packages                              ││
+│  │     • Verifica versioni disponibili                                                 ││
+│  │     • Skip se pacchetti non trovati                                                 ││
+│  │                                                                                      ││
+│  │  3. ERRATA CREATION (XML-RPC)                                                       ││
+│  │     client.errata.create(session, errata_info, bugs, keywords, packages, channels)  ││
+│  │                                                                                      ││
+│  │  4. UPDATE STATUS                                                                   ││
+│  │     UPDATE errata SET pushed_to_uyuni = true, push_date = NOW()                     ││
+│  │                                                                                      ││
+│  └─────────────────────────────────────────────────────────────────────────────────────┘│
+│                                          │                                               │
+└──────────────────────────────────────────┼───────────────────────────────────────────────┘
+                                           │
+                                           │ XML-RPC API (port 443)
+                                           ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              UYUNI SERVER (10.172.2.17)                                  │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│  ┌────────────────────┐    ┌────────────────────┐    ┌────────────────────┐            │
+│  │   ERRATA DATABASE  │    │  SOFTWARE CHANNELS │    │   CVE AUDIT        │            │
+│  │   ────────────────│    │  ─────────────────│    │   ─────────────────│            │
+│  │   • USN-XXXX-X     │───►│  • ubuntu-2404-    │    │   • OVAL scanning  │            │
+│  │   • DSA-XXXX-X     │    │    main-security   │    │   • CVE correlation│            │
+│  │   • Severity       │    │  • ubuntu-2404-    │    │   • Vulnerability  │            │
+│  │   • CVE links      │    │    universe-sec    │    │     reports        │            │
+│  │   • Packages       │    │                    │    │                    │            │
+│  └────────────────────┘    └────────────────────┘    └────────────────────┘            │
+│                                          │                                               │
+│                                          │ Salt (4505/4506)                              │
+│                                          ▼                                               │
+│                              ┌────────────────────┐                                      │
+│                              │    CLIENT VMs      │                                      │
+│                              │  (Salt Minions)    │                                      │
+│                              └────────────────────┘                                      │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 7.5.2 Dettaglio Flusso per Fonte Dati
+
+**USN (Ubuntu Security Notices)**
+
+| Aspetto | Dettaglio |
+|---------|-----------|
+| **Source** | https://ubuntu.com/security/notices/rss.xml, https://ubuntu.com/security/cves.json |
+| **Trigger** | Logic App ogni 6 ore |
+| **Endpoint** | POST /api/sync/usn |
+| **Dati Estratti** | USN ID, CVE list, Affected packages, Severity, Release date |
+| **Mapping** | → errata, errata_cve, packages tables |
+
+**DSA (Debian Security Advisories)**
+
+| Aspetto | Dettaglio |
+|---------|-----------|
+| **Source** | https://security-tracker.debian.org/tracker/ |
+| **Trigger** | Logic App daily 03:00, Timeout 30min |
+| **Endpoint** | POST /api/sync/dsa/full |
+| **Dati Estratti** | DSA ID, CVE list, Package, Fixed version, Urgency |
+| **Note** | ~115,000 DSA (storico completo Debian) |
+
+**NVD (National Vulnerability Database)**
+
+| Aspetto | Dettaglio |
+|---------|-----------|
+| **Source** | https://services.nvd.nist.gov/rest/json/cves/2.0 |
+| **Trigger** | Logic App daily 04:00 |
+| **Endpoint** | POST /api/sync/nvd?batch_size=200&force=true |
+| **Purpose** | Arricchimento CVE esistenti con CVSS scores |
+| **Rate Limit** | 0.6s tra richieste (con API Key) |
+| **Note** | 47K CVE, ~16 ore per sync completo iniziale |
+
+**OVAL (Open Vulnerability Assessment Language)**
+
+| Aspetto | Dettaglio |
+|---------|-----------|
+| **Source Ubuntu** | https://security-metadata.canonical.com/oval/ |
+| **Source Debian** | https://www.debian.org/security/oval/ |
+| **Trigger** | Logic App weekly (Domenica 02:00) |
+| **Endpoint** | POST /api/sync/oval?platform=ubuntu, POST /api/sync/oval?platform=debian |
+| **Use in UYUNI** | CVE Audit scanning per identificare sistemi vulnerabili |
+| **Note** | Ubuntu ~5,400 definitions, Debian ~45,500 definitions |
+
+#### 7.5.3 Schema Temporale Automazione
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                           SCHEDULING GIORNALIERO                                         │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│  00:00 ─────────────────────────────────────────────────────────────────────────────────│
+│    │                                                                                     │
+│  00:30 │  ┌─────────────────────┐                                                       │
+│    │   │  │ Cron: errata-push   │ Push errata to UYUNI                                  │
+│  01:00 │  └─────────────────────┘                                                       │
+│    │   │  ┌─────────────────────┐                                                       │
+│    │   │  │ Cron: sync-channels │ Sync Ubuntu repositories                              │
+│  02:00 │  └─────────────────────┘                                                       │
+│    │   │  ┌─────────────────────┐ (Solo Domenica)                                       │
+│    │   │  │ Logic: oval-sync    │ Sync OVAL definitions                                 │
+│  03:00 │  └─────────────────────┘                                                       │
+│    │   │  ┌─────────────────────┐                                                       │
+│    │   │  │ Logic: dsa-sync     │ Sync Debian Security Advisories                       │
+│  04:00 │  └─────────────────────┘                                                       │
+│    │   │  ┌─────────────────────┐                                                       │
+│    │   │  │ Logic: nvd-sync     │ Enrich CVE with CVSS scores                           │
+│  05:00 │  └─────────────────────┘                                                       │
+│    │                                                                                     │
+│  06:00 ─────────────────────────────────────────────────────────────────────────────────│
+│    │   │  ┌─────────────────────┐                                                       │
+│    │   │  │ Logic: usn-sync     │ Sync Ubuntu Security Notices                          │
+│  06:30 │  └─────────────────────┘                                                       │
+│    │   │  ┌─────────────────────┐                                                       │
+│    │   │  │ Cron: errata-push   │ Push new errata to UYUNI                              │
+│    │                                                                                     │
+│  12:00 ─────────────────────────────────────────────────────────────────────────────────│
+│    │   │  ┌─────────────────────┐                                                       │
+│    │   │  │ Logic: usn-sync     │ Sync Ubuntu Security Notices                          │
+│  12:30 │  └─────────────────────┘                                                       │
+│    │   │  ┌─────────────────────┐                                                       │
+│    │   │  │ Cron: errata-push   │ Push new errata to UYUNI                              │
+│    │                                                                                     │
+│  18:00 ─────────────────────────────────────────────────────────────────────────────────│
+│    │   │  ┌─────────────────────┐                                                       │
+│    │   │  │ Logic: usn-sync     │ Sync Ubuntu Security Notices                          │
+│  18:30 │  └─────────────────────┘                                                       │
+│    │   │  ┌─────────────────────┐                                                       │
+│    │   │  │ Cron: errata-push   │ Push new errata to UYUNI                              │
+│    │                                                                                     │
+│  24:00 ─────────────────────────────────────────────────────────────────────────────────│
+│                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 7.5.4 Database Schema Mapping
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────┐
+│                              DATABASE SCHEMA MAPPING                                     │
+├─────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                          │
+│  USN/DSA ──────────┐                                                                     │
+│                    ▼                                                                     │
+│              ┌──────────────┐                                                            │
+│              │    errata    │                                                            │
+│              ├──────────────┤          ┌──────────────┐                                 │
+│              │ errata_id PK │──────────│  errata_cve  │                                 │
+│              │ advisory_name│          ├──────────────┤         ┌──────────────┐        │
+│              │ synopsis     │          │ errata_id FK │─────────│     cves     │        │
+│              │ description  │          │ cve_id FK    │─────────├──────────────┤        │
+│              │ severity     │          └──────────────┘         │ cve_id PK    │◄── NVD │
+│              │ issue_date   │                                   │ cvss_score   │        │
+│              │ pushed_to_   │                                   │ cvss_vector  │        │
+│              │   uyuni      │                                   │ severity     │        │
+│              └──────┬───────┘                                   │ nvd_enriched │        │
+│                     │                                           └──────────────┘        │
+│                     │ 1:N                                                               │
+│                     ▼                                                                    │
+│              ┌──────────────┐                                                            │
+│              │   packages   │                                                            │
+│              ├──────────────┤                                   ┌──────────────┐        │
+│              │ package_id PK│                                   │     oval     │◄── OVAL│
+│              │ errata_id FK │                                   ├──────────────┤        │
+│              │ package_name │                                   │ oval_id PK   │        │
+│              │ version      │                                   │ cve_ref      │        │
+│              │ architecture │                                   │ platform     │        │
+│              │ channel_label│                                   │ criteria     │        │
+│              └──────────────┘                                   │ affected_ver │        │
+│                                                                 └──────────────┘        │
+│                                                                                          │
+│  STATISTICHE:                                                                            │
+│  • errata: 116,261 records (USN: 583, DSA: 115,678)                                     │
+│  • cves: 47,845 records                                                                 │
+│  • oval: 50,862 records (Ubuntu: 5,359, Debian: 45,503)                                 │
+│  • packages: 140,937 records                                                            │
+│                                                                                          │
+└─────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### 7.5.5 Flusso Operativo Numerato
+
+| Step | Componente | Azione | Descrizione |
+|------|------------|--------|-------------|
+| **1** | Internet → Logic Apps | Fetch | Logic Apps schedulano chiamate alle fonti esterne |
+| **2** | Logic Apps → Container Pubblico | HTTP POST | Trigger sync endpoints (USN/DSA/NVD/OVAL) |
+| **3** | Container Pubblico → PostgreSQL | INSERT/UPDATE | Parsing e salvataggio dati nel database |
+| **4** | Container Interno ← PostgreSQL | SELECT | Query errata pending da pushare |
+| **5** | Container Interno → UYUNI | XML-RPC | Push errata via API client.errata.create() |
+| **6** | UYUNI → Client VMs | Salt | Deploy patch ai sistemi gestiti |
 
 ---
 
