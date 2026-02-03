@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Installazione-UYUNI-Server.md",
+                "file": "Foreman-Katello/Initial-Setup/Installazione.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installazione-UYUNI-Server"
+              "title": "Installazione"
             }
           }
         ]
@@ -197,8 +197,15 @@
   },
   "active": "62ce1b5725d47bea",
   "lastOpenFiles": [
-    "GeneralDocumentation/Prioritizzazione Vulnerability Management.md",
+    "Foreman-Katello/Initial-Setup/CreateVM.md",
+    "Foreman-Katello/Configurazione-Tutorial/Activation-Key.md",
+    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
+    "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
+    "TO-DO_ALBERTO.md",
+    "README.md",
+    "Utenze/ASL0603.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
+    "GeneralDocumentation/Prioritizzazione Vulnerability Management.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Documentazione-Preliminare.md",
     "Uyuni/Teoria/UYUNI.md",
@@ -214,7 +221,6 @@
     "Uyuni/Teoria/Supported-Clients.md",
     "GeneralDocumentation/Automated_Patch_Management_for_B2B_IaaS_Environments_v1.1.pdf",
     "Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md",
-    "Utenze/ASL0603.md",
     "Uyuni/README.md.tmp.14348.1770042804944",
     "Uyuni/Automation/N8N-SERVICE-REMEDIATION.md.tmp.14348.1770042680428",
     "Uyuni/Automation/N8N-SERVICE-REMEDIATION.md",
@@ -227,17 +233,11 @@
     "img/treUntitled Diagram.drawio.png",
     "dueUntitled Diagram.drawio.png",
     "img/Untitled Diagram.drawio.png",
-    "README.md",
-    "TO-DO_ALBERTO.md",
     "Uyuni/Teoria/Client-Management-Guide.md",
     "Uyuni/Teoria/Supported-Clients Systems.md",
     "Uyuni/DOCUMENTAZIONE-COMPLETA.md",
     "Uyuni/Configurazione-System-Ubuntu-24.04.md",
     "Initial-Setup/Installazione.md",
-    "Uyuni/Initial-Setup/docs/DEPLOYMENT-GUIDE-v2.5.md",
-    "Uyuni/Initial-Setup/docs/Installazione-UYUNI.md",
-    "Uyuni/Initial-Setup/docs/README-v2.5-IMPROVEMENTS.md",
-    "Uyuni/Initial-Setup/docs/UYUNI-ERRATA-MANAGER.md",
     "Uyuni/Infrastructure-Design/Security-Patch-Manager.png",
     "img/png6.png",
     "img/png4.png",
