@@ -1,0 +1,1 @@
+https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/clients-rh-cdn.html
