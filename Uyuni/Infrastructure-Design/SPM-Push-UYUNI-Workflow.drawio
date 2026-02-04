@@ -1,20 +1,16 @@
-<mxfile host="draw.io" agent="Claude Code" version="28.2.8">
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.8 Chrome/140.0.7339.240 Electron/38.4.0 Safari/537.36" version="28.2.8">
   <diagram name="SPM Push to UYUNI Workflow" id="push-workflow">
-    <mxGraphModel dx="1800" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="2377" dy="1402" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-
-        <!-- Title -->
         <mxCell id="title" value="&lt;b&gt;SPM Push to UYUNI Workflow - Errata Distribution Flow&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=20;fontColor=#333333;" parent="1" vertex="1">
           <mxGeometry x="500" y="20" width="600" height="30" as="geometry" />
         </mxCell>
-
-        <!-- STEP 1: Trigger -->
-        <mxCell id="step1-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#82B366;fillColor=#D5E8D4;strokeWidth=2;" parent="1" vertex="1">
-          <mxGeometry x="40" y="70" width="200" height="150" as="geometry" />
+        <mxCell id="step1-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#f5f5f5;strokeWidth=2;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="40" y="70" width="200" height="180" as="geometry" />
         </mxCell>
-        <mxCell id="step1-num" value="&lt;b&gt;1&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#82B366;strokeColor=#82B366;fontColor=#FFFFFF;fontSize=14;" parent="1" vertex="1">
+        <mxCell id="step1-num" value="&lt;b&gt;1&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6C8EBF;fontSize=14;" parent="1" vertex="1">
           <mxGeometry x="50" y="80" width="30" height="30" as="geometry" />
         </mxCell>
         <mxCell id="step1-title" value="&lt;b&gt;TRIGGER&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;" parent="1" vertex="1">
@@ -23,12 +19,10 @@
         <mxCell id="step1-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;POST /api/uyuni/push&lt;/b&gt;&lt;br&gt;&lt;br&gt;Trigger Sources:&lt;br&gt;• Cron: errata-push.sh&lt;br&gt;  (00:30, 06:30, 12:30, 18:30)&lt;br&gt;• Manual API call&lt;br&gt;&lt;br&gt;?limit=10 (default)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="55" y="110" width="175" height="100" as="geometry" />
         </mxCell>
-
-        <!-- STEP 2: UYUNI Auth -->
-        <mxCell id="step2-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#B85450;fillColor=#F8CECC;strokeWidth=2;" parent="1" vertex="1">
-          <mxGeometry x="280" y="70" width="200" height="150" as="geometry" />
+        <mxCell id="step2-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#f5f5f5;strokeWidth=2;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="280" y="70" width="200" height="180" as="geometry" />
         </mxCell>
-        <mxCell id="step2-num" value="&lt;b&gt;2&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#B85450;strokeColor=#B85450;fontColor=#FFFFFF;fontSize=14;" parent="1" vertex="1">
+        <mxCell id="step2-num" value="&lt;b&gt;2&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" parent="1" vertex="1">
           <mxGeometry x="290" y="80" width="30" height="30" as="geometry" />
         </mxCell>
         <mxCell id="step2-title" value="&lt;b&gt;UYUNI AUTH&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;" parent="1" vertex="1">
@@ -37,144 +31,114 @@
         <mxCell id="step2-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;get_uyuni_client()&lt;/b&gt;&lt;br&gt;&lt;br&gt;XML-RPC Connection:&lt;br&gt;• URL: {UYUNI_URL}/rpc/api&lt;br&gt;• SSL: verify_mode=NONE&lt;br&gt;• auth.login(user, pass)&lt;br&gt;• Returns: session_key&lt;br&gt;&lt;br&gt;@retry_with_backoff(2)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="295" y="110" width="175" height="105" as="geometry" />
         </mxCell>
-
-        <!-- STEP 3: Get Channels -->
-        <mxCell id="step3-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#DAE8FC;strokeWidth=2;" parent="1" vertex="1">
-          <mxGeometry x="520" y="70" width="220" height="150" as="geometry" />
+        <mxCell id="step3-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#f5f5f5;strokeWidth=2;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="520" y="70" width="220" height="180" as="geometry" />
         </mxCell>
-        <mxCell id="step3-num" value="&lt;b&gt;3&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#6C8EBF;strokeColor=#6C8EBF;fontColor=#FFFFFF;fontSize=14;" parent="1" vertex="1">
+        <mxCell id="step3-num" value="&lt;b&gt;3&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" parent="1" vertex="1">
           <mxGeometry x="530" y="80" width="30" height="30" as="geometry" />
         </mxCell>
         <mxCell id="step3-title" value="&lt;b&gt;GET CHANNELS MAP&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;" parent="1" vertex="1">
           <mxGeometry x="565" y="80" width="160" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="step3-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;channel.listAllChannels(session)&lt;/b&gt;&lt;br&gt;&lt;br&gt;map_channel_to_distribution():&lt;br&gt;• 'ubuntu' → ubuntu channels&lt;br&gt;• 'debian-bookworm' → deb-12&lt;br&gt;• 'debian-bullseye' → deb-11&lt;br&gt;&lt;br&gt;channel_map = {dist: [labels]}&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+        <mxCell id="step3-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;channel.listAllChannels(session)&lt;/b&gt;&lt;br&gt;&lt;br&gt;map_channel_to_distribution():&lt;br&gt;• &#39;ubuntu&#39; → ubuntu channels&lt;br&gt;• &#39;debian-bookworm&#39; → deb-12&lt;br&gt;• &#39;debian-bullseye&#39; → deb-11&lt;br&gt;&lt;br&gt;channel_map = {dist: [labels]}&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="535" y="110" width="195" height="105" as="geometry" />
         </mxCell>
-
-        <!-- STEP 4: Query Pending Errata -->
-        <mxCell id="step4-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#DAE8FC;strokeWidth=2;" parent="1" vertex="1">
-          <mxGeometry x="780" y="70" width="220" height="150" as="geometry" />
+        <mxCell id="step4-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#f5f5f5;strokeWidth=2;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="780" y="70" width="220" height="180" as="geometry" />
         </mxCell>
-        <mxCell id="step4-num" value="&lt;b&gt;4&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#6C8EBF;strokeColor=#6C8EBF;fontColor=#FFFFFF;fontSize=14;" parent="1" vertex="1">
+        <mxCell id="step4-num" value="&lt;b&gt;4&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" parent="1" vertex="1">
           <mxGeometry x="790" y="80" width="30" height="30" as="geometry" />
         </mxCell>
         <mxCell id="step4-title" value="&lt;b&gt;QUERY PENDING ERRATA&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;" parent="1" vertex="1">
           <mxGeometry x="825" y="80" width="165" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="step4-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;PostgreSQL Query:&lt;/b&gt;&lt;br&gt;&lt;br&gt;SELECT * FROM errata&lt;br&gt;WHERE sync_status = 'pending'&lt;br&gt;AND distribution = ANY(?)&lt;br&gt;ORDER BY issued_date DESC&lt;br&gt;LIMIT {limit}&lt;br&gt;&lt;br&gt;Filter by active distributions&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+        <mxCell id="step4-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;PostgreSQL Query:&lt;/b&gt;&lt;br&gt;&lt;br&gt;SELECT * FROM errata&lt;br&gt;WHERE sync_status = &#39;pending&#39;&lt;br&gt;AND distribution = ANY(?)&lt;br&gt;ORDER BY issued_date DESC&lt;br&gt;LIMIT {limit}&lt;br&gt;&lt;br&gt;Filter by active distributions&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="795" y="110" width="195" height="105" as="geometry" />
         </mxCell>
-
-        <!-- STEP 5: Package Matching (FIX #1) -->
-        <mxCell id="step5-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#D79B00;fillColor=#FFE6CC;strokeWidth=2;" parent="1" vertex="1">
-          <mxGeometry x="40" y="260" width="320" height="200" as="geometry" />
+        <mxCell id="step5-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#f5f5f5;strokeWidth=2;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="40" y="300" width="320" height="260" as="geometry" />
         </mxCell>
-        <mxCell id="step5-num" value="&lt;b&gt;5&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#D79B00;strokeColor=#D79B00;fontColor=#FFFFFF;fontSize=14;" parent="1" vertex="1">
-          <mxGeometry x="50" y="270" width="30" height="30" as="geometry" />
+        <mxCell id="step5-num" value="&lt;b&gt;5&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="50" y="310" width="30" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="step5-title" value="&lt;b&gt;PACKAGE MATCHING [FIX #1]&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;fontColor=#D79B00;" parent="1" vertex="1">
-          <mxGeometry x="90" y="270" width="260" height="25" as="geometry" />
+        <mxCell id="step5-title" value="&lt;b&gt;PACKAGE MATCHING [FIX #1]&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="90" y="310" width="260" height="25" as="geometry" />
         </mxCell>
         <mxCell id="step5-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;For each errata:&lt;/b&gt;&lt;br&gt;&lt;br&gt;1. Query errata_packages for errata_id&lt;br&gt;   → package_name, fixed_version&lt;br&gt;&lt;br&gt;2. For each channel in target_channels:&lt;br&gt;   Query uyuni_package_cache&lt;br&gt;   WHERE channel_label AND package_name&lt;br&gt;&lt;br&gt;3. &lt;b&gt;version_compare()&lt;/b&gt;:&lt;br&gt;   Only include if cache_version &amp;gt;= fixed_version&lt;br&gt;   (uses packaging.version.parse())&lt;br&gt;&lt;br&gt;4. Collect package_ids (deduplicated)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="55" y="300" width="295" height="150" as="geometry" />
+          <mxGeometry x="55" y="340" width="295" height="150" as="geometry" />
         </mxCell>
-
-        <!-- Version Compare Detail -->
         <mxCell id="version-box" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#CC6600;fillColor=#FFF2CC;dashed=1;" parent="1" vertex="1">
-          <mxGeometry x="380" y="260" width="180" height="100" as="geometry" />
+          <mxGeometry x="410" y="310" width="180" height="100" as="geometry" />
         </mxCell>
         <mxCell id="version-title" value="&lt;b&gt;version_compare()&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
-          <mxGeometry x="400" y="265" width="140" height="20" as="geometry" />
+          <mxGeometry x="430" y="310" width="140" height="20" as="geometry" />
         </mxCell>
         <mxCell id="version-code" value="&lt;font style=&quot;font-size:9px;font-family:monospace&quot;&gt;try:&lt;br&gt;  pkg_version.parse(pkg)&lt;br&gt;  &amp;gt;= pkg_version.parse(fix)&lt;br&gt;except:&lt;br&gt;  pkg &amp;gt;= fix (string)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="390" y="290" width="160" height="65" as="geometry" />
+          <mxGeometry x="430" y="317.5" width="160" height="65" as="geometry" />
         </mxCell>
-
-        <!-- Decision: Packages Found? -->
         <mxCell id="decision1" value="&lt;b&gt;Packages&lt;br&gt;Found?&lt;/b&gt;" style="rhombus;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;" parent="1" vertex="1">
-          <mxGeometry x="410" y="380" width="100" height="70" as="geometry" />
+          <mxGeometry x="445" y="417.5" width="100" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="decision1-no" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;NO&lt;/b&gt;&lt;br&gt;skipped_version_mismatch++&lt;br&gt;Mark as 'synced'&lt;br&gt;(nothing to push)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" parent="1" vertex="1">
-          <mxGeometry x="280" y="400" width="110" height="60" as="geometry" />
+        <mxCell id="decision1-no" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;NO&lt;/b&gt;&lt;br&gt;skipped_version_mismatch++&lt;br&gt;Mark as &#39;synced&#39;&lt;br&gt;(nothing to push)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" parent="1" vertex="1">
+          <mxGeometry x="430" y="520" width="130" height="60" as="geometry" />
         </mxCell>
-
-        <!-- STEP 6: Build Errata Info -->
-        <mxCell id="step6-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#82B366;fillColor=#D5E8D4;strokeWidth=2;" parent="1" vertex="1">
-          <mxGeometry x="580" y="260" width="220" height="200" as="geometry" />
+        <mxCell id="step6-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#f5f5f5;strokeWidth=2;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="700" y="300" width="220" height="260" as="geometry" />
         </mxCell>
-        <mxCell id="step6-num" value="&lt;b&gt;6&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#82B366;strokeColor=#82B366;fontColor=#FFFFFF;fontSize=14;" parent="1" vertex="1">
-          <mxGeometry x="590" y="270" width="30" height="30" as="geometry" />
+        <mxCell id="step6-num" value="&lt;b&gt;6&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="710" y="310" width="30" height="30" as="geometry" />
         </mxCell>
         <mxCell id="step6-title" value="&lt;b&gt;BUILD ERRATA INFO&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;" parent="1" vertex="1">
-          <mxGeometry x="625" y="270" width="165" height="25" as="geometry" />
+          <mxGeometry x="745" y="310" width="165" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="step6-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;errata_info dict:&lt;/b&gt;&lt;br&gt;&lt;br&gt;• synopsis: title[:200]&lt;br&gt;• advisory_name: advisory_id&lt;br&gt;• advisory_type: 'Security Advisory'&lt;br&gt;• advisory_release: 1&lt;br&gt;• product: distribution title&lt;br&gt;• topic: title[:500]&lt;br&gt;• description: description[:2000]&lt;br&gt;• solution: 'Apply updated packages'&lt;br&gt;• notes: 'Imported by SPM v2.5'&lt;br&gt;&lt;br&gt;&lt;b&gt;keywords:&lt;/b&gt; ['critical'|'important'|&lt;br&gt;'moderate'|'low', 'security']&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="595" y="300" width="195" height="155" as="geometry" />
+        <mxCell id="step6-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;errata_info dict:&lt;/b&gt;&lt;br&gt;&lt;br&gt;• synopsis: title[:200]&lt;br&gt;• advisory_name: advisory_id&lt;br&gt;• advisory_type: &#39;Security Advisory&#39;&lt;br&gt;• advisory_release: 1&lt;br&gt;• product: distribution title&lt;br&gt;• topic: title[:500]&lt;br&gt;• description: description[:2000]&lt;br&gt;• solution: &#39;Apply updated packages&#39;&lt;br&gt;• notes: &#39;Imported by SPM v2.5&#39;&lt;br&gt;&lt;br&gt;&lt;b&gt;keywords:&lt;/b&gt; [&#39;critical&#39;|&#39;important&#39;|&lt;br&gt;&#39;moderate&#39;|&#39;low&#39;, &#39;security&#39;]&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="715" y="340" width="195" height="155" as="geometry" />
         </mxCell>
-
-        <!-- STEP 7: XML-RPC Push -->
-        <mxCell id="step7-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#B85450;fillColor=#F8CECC;strokeWidth=2;" parent="1" vertex="1">
-          <mxGeometry x="840" y="260" width="220" height="200" as="geometry" />
+        <mxCell id="step7-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#f5f5f5;strokeWidth=2;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="960" y="300" width="220" height="260" as="geometry" />
         </mxCell>
-        <mxCell id="step7-num" value="&lt;b&gt;7&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#B85450;strokeColor=#B85450;fontColor=#FFFFFF;fontSize=14;" parent="1" vertex="1">
-          <mxGeometry x="850" y="270" width="30" height="30" as="geometry" />
+        <mxCell id="step7-num" value="&lt;b&gt;7&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="970" y="310" width="30" height="30" as="geometry" />
         </mxCell>
         <mxCell id="step7-title" value="&lt;b&gt;XML-RPC PUSH&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;" parent="1" vertex="1">
-          <mxGeometry x="885" y="270" width="165" height="25" as="geometry" />
+          <mxGeometry x="1005" y="310" width="165" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="step7-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;client.errata.create()&lt;/b&gt;&lt;br&gt;&lt;br&gt;Parameters:&lt;br&gt;• session: session_key&lt;br&gt;• errata_info: dict&lt;br&gt;• bugs: [] (empty)&lt;br&gt;• keywords: [severity, 'security']&lt;br&gt;• package_ids: [int, ...]&lt;br&gt;• channel_labels: [str, ...]&lt;br&gt;&lt;br&gt;This creates AND publishes&lt;br&gt;the errata to target channels&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="855" y="300" width="195" height="155" as="geometry" />
+        <mxCell id="step7-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;client.errata.create()&lt;/b&gt;&lt;br&gt;&lt;br&gt;Parameters:&lt;br&gt;• session: session_key&lt;br&gt;• errata_info: dict&lt;br&gt;• bugs: [] (empty)&lt;br&gt;• keywords: [severity, &#39;security&#39;]&lt;br&gt;• package_ids: [int, ...]&lt;br&gt;• channel_labels: [str, ...]&lt;br&gt;&lt;br&gt;This creates AND publishes&lt;br&gt;the errata to target channels&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="975" y="340" width="195" height="155" as="geometry" />
         </mxCell>
-
-        <!-- STEP 8: Update Status -->
-        <mxCell id="step8-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#DAE8FC;strokeWidth=2;" parent="1" vertex="1">
-          <mxGeometry x="1100" y="260" width="180" height="130" as="geometry" />
+        <mxCell id="step8-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#f5f5f5;strokeWidth=2;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="1260" y="300" width="200" height="260" as="geometry" />
         </mxCell>
-        <mxCell id="step8-num" value="&lt;b&gt;8&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#6C8EBF;strokeColor=#6C8EBF;fontColor=#FFFFFF;fontSize=14;" parent="1" vertex="1">
-          <mxGeometry x="1110" y="270" width="30" height="30" as="geometry" />
+        <mxCell id="step8-num" value="&lt;b&gt;8&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="1270" y="310" width="30" height="30" as="geometry" />
         </mxCell>
         <mxCell id="step8-title" value="&lt;b&gt;UPDATE STATUS&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;" parent="1" vertex="1">
-          <mxGeometry x="1145" y="270" width="125" height="25" as="geometry" />
+          <mxGeometry x="1305" y="310" width="125" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="step8-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;On Success:&lt;/b&gt;&lt;br&gt;UPDATE errata&lt;br&gt;SET sync_status = 'synced'&lt;br&gt;WHERE id = errata_id&lt;br&gt;&lt;br&gt;&lt;b&gt;On 'already exists':&lt;/b&gt;&lt;br&gt;Mark as 'synced' anyway&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="1115" y="300" width="155" height="85" as="geometry" />
+        <mxCell id="step8-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;&lt;b&gt;On Success:&lt;/b&gt;&lt;br&gt;UPDATE errata&lt;br&gt;SET sync_status = &#39;synced&#39;&lt;br&gt;WHERE id = errata_id&lt;br&gt;&lt;br&gt;&lt;b&gt;On &#39;already exists&#39;:&lt;/b&gt;&lt;br&gt;Mark as &#39;synced&#39; anyway&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1275" y="340" width="155" height="85" as="geometry" />
         </mxCell>
-
-        <!-- Error Handling -->
         <mxCell id="error-box" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#B85450;fillColor=#F8CECC;dashed=1;strokeWidth=1;" parent="1" vertex="1">
-          <mxGeometry x="1100" y="400" width="180" height="60" as="geometry" />
+          <mxGeometry x="1270" y="467.5" width="180" height="60" as="geometry" />
         </mxCell>
         <mxCell id="error-title" value="&lt;b&gt;Error Handling&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
-          <mxGeometry x="1140" y="405" width="100" height="15" as="geometry" />
+          <mxGeometry x="1310" y="472.5" width="100" height="15" as="geometry" />
         </mxCell>
         <mxCell id="error-desc" value="&lt;font style=&quot;font-size:9px&quot;&gt;errors.append(advisory_id: msg[:100])&lt;br&gt;Continue to next errata&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="1110" y="420" width="160" height="35" as="geometry" />
-        </mxCell>
-
-        <!-- Response -->
-        <mxCell id="response-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#82B366;fillColor=#D5E8D4;strokeWidth=2;" parent="1" vertex="1">
-          <mxGeometry x="40" y="490" width="300" height="140" as="geometry" />
+          <mxGeometry x="1280" y="487.5" width="160" height="35" as="geometry" />
         </mxCell>
         <mxCell id="response-title" value="&lt;b&gt;JSON Response&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;" parent="1" vertex="1">
-          <mxGeometry x="130" y="500" width="120" height="20" as="geometry" />
+          <mxGeometry x="65" y="680" width="120" height="20" as="geometry" />
         </mxCell>
         <mxCell id="response-json" value="&lt;font style=&quot;font-size:10px;font-family:monospace&quot;&gt;{&lt;br&gt;  &quot;status&quot;: &quot;success&quot;,&lt;br&gt;  &quot;pushed&quot;: 8,&lt;br&gt;  &quot;skipped_no_packages&quot;: 0,&lt;br&gt;  &quot;skipped_version_mismatch&quot;: 2,&lt;br&gt;  &quot;pending_processed&quot;: 10,&lt;br&gt;  &quot;errors&quot;: [&quot;USN-1234: msg...&quot;]&lt;br&gt;}&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="55" y="525" width="275" height="100" as="geometry" />
-        </mxCell>
-
-        <!-- UYUNI Server Result -->
-        <mxCell id="uyuni-result-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#B85450;fillColor=#F8CECC;strokeWidth=2;" parent="1" vertex="1">
-          <mxGeometry x="380" y="490" width="350" height="140" as="geometry" />
+          <mxGeometry x="65" y="705" width="275" height="100" as="geometry" />
         </mxCell>
         <mxCell id="uyuni-result-title" value="&lt;b&gt;UYUNI Server - Result&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=12;" parent="1" vertex="1">
-          <mxGeometry x="470" y="500" width="160" height="20" as="geometry" />
+          <mxGeometry x="270" y="680" width="160" height="20" as="geometry" />
         </mxCell>
         <mxCell id="uyuni-result-desc" value="&lt;font style=&quot;font-size:10px&quot;&gt;Errata appears in UYUNI Web UI:&lt;br&gt;&lt;br&gt;• &lt;b&gt;Patches → Patch List → Security&lt;/b&gt;&lt;br&gt;• Visible in affected systems dashboard&lt;br&gt;• Can be scheduled for installation&lt;br&gt;• Linked to software channels&lt;br&gt;&lt;br&gt;Systems subscribed to target channels&lt;br&gt;will see the errata as applicable&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="395" y="525" width="325" height="100" as="geometry" />
+          <mxGeometry x="280" y="705" width="325" height="100" as="geometry" />
         </mxCell>
-
-        <!-- Arrows connecting steps -->
         <mxCell id="arr-1-2" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#333333;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="240" y="145" as="sourcePoint" />
@@ -193,103 +157,80 @@
             <mxPoint x="780" y="145" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="arr-4-5" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#333333;" parent="1" edge="1">
+        <mxCell id="arr-4-5" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#333333;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" edge="1" source="step4-bg">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="890" y="220" as="sourcePoint" />
-            <mxPoint x="200" y="260" as="targetPoint" />
+            <mxPoint x="890" y="260" as="sourcePoint" />
+            <mxPoint x="200" y="300" as="targetPoint" />
             <Array as="points">
-              <mxPoint x="890" y="240" />
-              <mxPoint x="200" y="240" />
+              <mxPoint x="890" y="280" />
+              <mxPoint x="200" y="280" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="arr-5-decision" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#333333;" parent="1" edge="1">
+        <mxCell id="arr-decision-no" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#B85450;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" target="decision1-no" source="decision1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="360" y="360" as="sourcePoint" />
-            <mxPoint x="410" y="415" as="targetPoint" />
-            <Array as="points">
-              <mxPoint x="360" y="415" />
-            </Array>
+            <mxPoint x="510" y="500" as="sourcePoint" />
+            <mxPoint x="490" y="500" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="arr-decision-no" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#B85450;" parent="1" edge="1">
+        <mxCell id="arr-decision-yes" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#82B366;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" edge="1" source="decision1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="410" y="415" as="sourcePoint" />
-            <mxPoint x="390" y="415" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="arr-decision-yes" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#82B366;" parent="1" edge="1">
-          <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="510" y="415" as="sourcePoint" />
-            <mxPoint x="580" y="360" as="targetPoint" />
+            <mxPoint x="630" y="455" as="sourcePoint" />
+            <mxPoint x="700" y="400" as="targetPoint" />
             <Array as="points">
-              <mxPoint x="555" y="415" />
-              <mxPoint x="555" y="360" />
+              <mxPoint x="675" y="453" />
+              <mxPoint x="675" y="400" />
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="arr-yes-label" value="&lt;b&gt;YES&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=9;fontColor=#82B366;" parent="1" vertex="1">
-          <mxGeometry x="515" y="395" width="30" height="15" as="geometry" />
+          <mxGeometry x="635" y="435" width="30" height="15" as="geometry" />
         </mxCell>
         <mxCell id="arr-no-label" value="&lt;b&gt;NO&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=9;fontColor=#B85450;" parent="1" vertex="1">
-          <mxGeometry x="390" y="380" width="25" height="15" as="geometry" />
+          <mxGeometry x="470" y="490" width="25" height="15" as="geometry" />
         </mxCell>
         <mxCell id="arr-6-7" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#333333;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="800" y="360" as="sourcePoint" />
-            <mxPoint x="840" y="360" as="targetPoint" />
+            <mxPoint x="920" y="400" as="sourcePoint" />
+            <mxPoint x="960" y="400" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="arr-7-8" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#333333;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="1060" y="325" as="sourcePoint" />
-            <mxPoint x="1100" y="325" as="targetPoint" />
+            <mxPoint x="1180" y="400" as="sourcePoint" />
+            <mxPoint x="1260" y="400" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-
-        <!-- Loop arrow -->
-        <mxCell id="loop-arrow" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#9673A6;dashed=1;" parent="1" edge="1">
+        <mxCell id="loop-arrow" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=2;strokeColor=#9673A6;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" edge="1" source="step7-bg">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="1190" y="390" as="sourcePoint" />
-            <mxPoint x="200" y="260" as="targetPoint" />
+            <mxPoint x="1190" y="430" as="sourcePoint" />
+            <mxPoint x="200" y="300" as="targetPoint" />
             <Array as="points">
-              <mxPoint x="1330" y="390" />
-              <mxPoint x="1330" y="240" />
-              <mxPoint x="200" y="240" />
+              <mxPoint x="1240" y="430" />
+              <mxPoint x="1240" y="360" />
+              <mxPoint x="1240" y="280" />
+              <mxPoint x="200" y="280" />
             </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="loop-label" value="&lt;font style=&quot;font-size:9px;color:#9673A6&quot;&gt;&lt;b&gt;For each pending errata&lt;/b&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="1310" y="300" width="100" height="20" as="geometry" />
-        </mxCell>
-
-        <!-- UYUNI Channels Detail -->
-        <mxCell id="channels-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#B85450;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
-          <mxGeometry x="770" y="490" width="280" height="140" as="geometry" />
+          <mxGeometry x="1142.5" y="250" width="100" height="20" as="geometry" />
         </mxCell>
         <mxCell id="channels-title" value="&lt;b&gt;Target Channels (Ubuntu Example)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
-          <mxGeometry x="810" y="498" width="200" height="20" as="geometry" />
+          <mxGeometry x="490" y="680" width="200" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="channels-list" value="&lt;font style=&quot;font-size:9px;font-family:monospace&quot;&gt;ubuntu-2404-amd64-main-security-uyuni&lt;br&gt;ubuntu-2404-amd64-universe-security-uyuni&lt;br&gt;ubuntu-2404-amd64-main-updates-uyuni&lt;br&gt;ubuntu-2404-amd64-universe-updates-uyuni&lt;br&gt;&lt;br&gt;Errata pushed to channels where:&lt;br&gt;• Channel's distribution matches errata&lt;br&gt;• Package versions match or exceed&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="780" y="520" width="260" height="105" as="geometry" />
+        <mxCell id="channels-list" value="&lt;font style=&quot;font-size:9px;font-family:monospace&quot;&gt;ubuntu-2404-amd64-main-security-uyuni&lt;br&gt;ubuntu-2404-amd64-universe-security-uyuni&lt;br&gt;ubuntu-2404-amd64-main-updates-uyuni&lt;br&gt;ubuntu-2404-amd64-universe-updates-uyuni&lt;br&gt;&lt;br&gt;Errata pushed to channels where:&lt;br&gt;• Channel&#39;s distribution matches errata&lt;br&gt;• Package versions match or exceed&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="502.5" y="702.5" width="260" height="105" as="geometry" />
         </mxCell>
-
-        <!-- Process Statistics -->
-        <mxCell id="stats-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;strokeWidth=1;" parent="1" vertex="1">
-          <mxGeometry x="1080" y="490" width="200" height="140" as="geometry" />
-        </mxCell>
-        <mxCell id="stats-title" value="&lt;b&gt;Typical Push Statistics&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
-          <mxGeometry x="1110" y="498" width="140" height="20" as="geometry" />
-        </mxCell>
-        <mxCell id="stats-content" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;Per execution (limit=10):&lt;/b&gt;&lt;br&gt;• Pushed: 6-8 errata&lt;br&gt;• Skipped (version): 1-2&lt;br&gt;• Skipped (no pkg): 0-1&lt;br&gt;• Errors: rare&lt;br&gt;&lt;br&gt;&lt;b&gt;Daily total (4 runs):&lt;/b&gt;&lt;br&gt;• ~30-40 errata processed&lt;br&gt;• Depending on USN/DSA flow&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
-          <mxGeometry x="1095" y="520" width="175" height="105" as="geometry" />
-        </mxCell>
-
-        <!-- Final auth.logout -->
         <mxCell id="logout-box" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;Finally:&lt;/b&gt;&lt;br&gt;client.auth.logout(session)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;" parent="1" vertex="1">
-          <mxGeometry x="1100" y="650" width="180" height="40" as="geometry" />
+          <mxGeometry x="1270" y="590" width="180" height="40" as="geometry" />
         </mxCell>
-
+        <mxCell id="4pBygulyiPf8ScWUZ-ST-1" value="" style="endArrow=classic;html=1;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.587;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="step5-bg" target="decision1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="362" y="448" as="sourcePoint" />
+            <mxPoint x="440" y="460" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
       </root>
     </mxGraphModel>
   </diagram>
