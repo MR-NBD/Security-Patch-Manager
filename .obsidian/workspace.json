@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
+                "file": "GeneralDocumentation/Insecurity_score_formula.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Azure Security-First Architecture (Conforme PSN)"
+              "title": "Insecurity_score_formula"
             }
           }
         ]
@@ -197,6 +197,8 @@
   },
   "active": "8ca8113ad3726bba",
   "lastOpenFiles": [
+    "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
+    "GeneralDocumentation/Insecurity_score_formula.md",
     "Uyuni/Infrastructure-Design/SPM-Ideal-Architecture.drawio",
     "Uyuni/Infrastructure-Design/HLD-Schema-Blocchi-SPM.md.tmp.62375.1770149711993",
     "Uyuni/Infrastructure-Design/HLD-Schema-Blocchi-SPM.md.tmp.62375.1770149698553",
@@ -229,8 +231,6 @@
     "img/dueUntitled Diagram.drawio-1.png",
     "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
-    "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
-    "Uyuni/Infrastructure-Design/SPM-Current-Infrastructure.drawio",
     "Uyuni/Deployment/DEPLOYMENT-GUIDE.md",
     "Uyuni/Teoria/Supported-Clients.md",
     "Foreman-Katello/Configurazione-Tutorial/Errata-Management-Ubuntu-Debian.md",
