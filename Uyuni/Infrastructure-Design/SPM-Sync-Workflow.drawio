@@ -1,0 +1,439 @@
+<mxfile host="draw.io" agent="Claude Code" version="28.2.8">
+  <diagram name="SPM Sync Workflow - Data Flow" id="sync-workflow">
+    <mxGraphModel dx="2000" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;SPM Sync Workflow - Security Data Synchronization Flow&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=20;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="550" y="20" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- PHASE 1: External Sources -->
+        <mxCell id="phase1-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#D79B00;fillColor=#FFF2CC;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="40" y="80" width="400" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="phase1-title" value="&lt;b&gt;PHASE 1: External Data Sources&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=14;fontColor=#D79B00;" parent="1" vertex="1">
+          <mxGeometry x="120" y="90" width="250" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- USN Source Detail -->
+        <mxCell id="usn-box" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#CC6600;fillColor=#FFE6CC;" parent="1" vertex="1">
+          <mxGeometry x="60" y="125" width="170" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="usn-title" value="&lt;b&gt;Ubuntu Security Notices&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="70" y="130" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="usn-icon" value="" style="shape=image;html=1;verticalAlign=top;verticalLabelPosition=bottom;labelBackgroundColor=#ffffff;imageAspect=0;aspect=fixed;image=https://assets.ubuntu.com/v1/29985a98-ubuntu-logo32.png" parent="1" vertex="1">
+          <mxGeometry x="125" y="152" width="32" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="usn-url" value="&lt;font style=&quot;font-size:8px&quot;&gt;ubuntu.com/security/notices.json&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="65" y="185" width="160" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="usn-data" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;Data extracted:&lt;/b&gt;&lt;br&gt;• USN-XXXX-X (advisory_id)&lt;br&gt;• Title, Description&lt;br&gt;• Priority → Severity&lt;br&gt;• CVE list (cves[])&lt;br&gt;• release_packages{}&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="70" y="200" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- DSA Source Detail -->
+        <mxCell id="dsa-box" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#CC6600;fillColor=#FFE6CC;" parent="1" vertex="1">
+          <mxGeometry x="250" y="125" width="170" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="dsa-title" value="&lt;b&gt;Debian Security Tracker&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="260" y="130" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="dsa-icon" value="🐧" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=24;" parent="1" vertex="1">
+          <mxGeometry x="315" y="150" width="32" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="dsa-url" value="&lt;font style=&quot;font-size:8px&quot;&gt;security-tracker.debian.org/json&lt;br&gt;(~63MB single download)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="255" y="180" width="160" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="dsa-data" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;Data structure:&lt;/b&gt;&lt;br&gt;• package_name → CVE dict&lt;br&gt;• releases{bookworm, bullseye}&lt;br&gt;• status: resolved/open&lt;br&gt;• fixed_version&lt;br&gt;• urgency → severity&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="260" y="200" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- NVD Source Detail -->
+        <mxCell id="nvd-box" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#CC6600;fillColor=#FFE6CC;" parent="1" vertex="1">
+          <mxGeometry x="60" y="300" width="170" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="nvd-title" value="&lt;b&gt;NVD API 2.0 (NIST)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="70" y="305" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="nvd-icon" value="🛡️" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=24;" parent="1" vertex="1">
+          <mxGeometry x="125" y="325" width="32" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="nvd-url" value="&lt;font style=&quot;font-size:8px&quot;&gt;services.nvd.nist.gov/rest/json/cves/2.0&lt;br&gt;Rate: 0.6s (API key) / 6s (no key)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="65" y="355" width="160" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="nvd-data" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;CVE enrichment:&lt;/b&gt;&lt;br&gt;• CVSS v3.1/v3.0 score&lt;br&gt;• CVSS vector string&lt;br&gt;• CWE IDs&lt;br&gt;• Description (EN)&lt;br&gt;• Published/Modified dates&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="70" y="380" width="150" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- OVAL Source Detail -->
+        <mxCell id="oval-box" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#CC6600;fillColor=#FFE6CC;" parent="1" vertex="1">
+          <mxGeometry x="250" y="300" width="170" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="oval-title" value="&lt;b&gt;OVAL Definitions&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=11;" parent="1" vertex="1">
+          <mxGeometry x="260" y="305" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="oval-icon" value="📋" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=24;" parent="1" vertex="1">
+          <mxGeometry x="315" y="325" width="32" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="oval-urls" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;Ubuntu:&lt;/b&gt; security-metadata.canonical.com&lt;br&gt;&lt;b&gt;Debian:&lt;/b&gt; debian.org/security/oval&lt;br&gt;(bz2 compressed XML)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="255" y="355" width="160" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="oval-data" value="&lt;font style=&quot;font-size:9px&quot;&gt;&lt;b&gt;XML structure:&lt;/b&gt;&lt;br&gt;• oval_id (definition ID)&lt;br&gt;• title, description&lt;br&gt;• severity (advisory)&lt;br&gt;• CVE references[]&lt;br&gt;• platform/version&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="260" y="390" width="150" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- PHASE 2: API Processing -->
+        <mxCell id="phase2-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#0066CC;fillColor=#DAE8FC;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="480" y="80" width="440" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="phase2-title" value="&lt;b&gt;PHASE 2: Flask API Processing&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=14;fontColor=#0066CC;" parent="1" vertex="1">
+          <mxGeometry x="580" y="90" width="250" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- sync_usn() flow -->
+        <mxCell id="sync-usn-flow" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#FFFFFF;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="500" y="125" width="200" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-usn-title" value="&lt;b&gt;sync_usn() [FIX #4]&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#0066CC;" parent="1" vertex="1">
+          <mxGeometry x="530" y="130" width="140" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-usn-step1" value="&lt;font style=&quot;font-size:8px&quot;&gt;1. Query last advisory_id&lt;br&gt;(temporal index)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="510" y="150" width="90" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-usn-step2" value="&lt;font style=&quot;font-size:8px&quot;&gt;2. Fetch JSON&lt;br&gt;limit=20, offset++&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="605" y="150" width="85" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-usn-step3" value="&lt;font style=&quot;font-size:8px&quot;&gt;3. Stop if found last_usn&lt;br&gt;or date older&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="510" y="190" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-usn-step4" value="&lt;font style=&quot;font-size:8px&quot;&gt;4. Insert errata +&lt;br&gt;packages + CVEs&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="605" y="190" width="85" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-usn-delay" value="&lt;font style=&quot;font-size:7px;color:#666666&quot;&gt;0.5s delay between requests&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="530" y="225" width="140" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- sync_dsa_full() flow -->
+        <mxCell id="sync-dsa-flow" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#FFFFFF;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="710" y="125" width="200" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-dsa-title" value="&lt;b&gt;sync_dsa_full() [FIX #5]&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#0066CC;" parent="1" vertex="1">
+          <mxGeometry x="740" y="130" width="150" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-dsa-step1" value="&lt;font style=&quot;font-size:8px&quot;&gt;1. Download full JSON&lt;br&gt;(~63MB, 300s timeout)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="720" y="150" width="90" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-dsa-step2" value="&lt;font style=&quot;font-size:8px&quot;&gt;2. Filter releases:&lt;br&gt;bookworm, bullseye&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="815" y="150" width="85" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-dsa-step3" value="&lt;font style=&quot;font-size:8px&quot;&gt;3. Batch processing&lt;br&gt;(500 packages/batch)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="720" y="190" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-dsa-step4" value="&lt;font style=&quot;font-size:8px&quot;&gt;4. Create DEB-CVE-&lt;br&gt;release advisory_id&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="815" y="190" width="85" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-dsa-note" value="&lt;font style=&quot;font-size:7px;color:#666666&quot;&gt;Only status='resolved' with fixed_version&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="730" y="225" width="170" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- sync_nvd() flow -->
+        <mxCell id="sync-nvd-flow" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#FFFFFF;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="500" y="265" width="200" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-nvd-title" value="&lt;b&gt;sync_nvd() - CVE Enrichment&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#0066CC;" parent="1" vertex="1">
+          <mxGeometry x="520" y="270" width="160" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-nvd-step1" value="&lt;font style=&quot;font-size:8px&quot;&gt;1. Get pending CVEs&lt;br&gt;(prioritize high sev)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="510" y="290" width="85" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-nvd-step2" value="&lt;font style=&quot;font-size:8px&quot;&gt;2. Fetch NVD API&lt;br&gt;per CVE ID&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="600" y="290" width="85" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-nvd-step3" value="&lt;font style=&quot;font-size:8px&quot;&gt;3. Insert cve_details (CVSS, CWE, description)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="510" y="330" width="175" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- sync_oval() flow -->
+        <mxCell id="sync-oval-flow" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#FFFFFF;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="710" y="265" width="200" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-oval-title" value="&lt;b&gt;sync_oval() [FIX #2]&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;fontColor=#0066CC;" parent="1" vertex="1">
+          <mxGeometry x="750" y="270" width="120" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-oval-step1" value="&lt;font style=&quot;font-size:8px&quot;&gt;1. Download bz2&lt;br&gt;decompress XML&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="720" y="290" width="85" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-oval-step2" value="&lt;font style=&quot;font-size:8px&quot;&gt;2. Parse definitions&lt;br&gt;(ElementTree)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="810" y="290" width="85" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="sync-oval-step3" value="&lt;font style=&quot;font-size:8px&quot;&gt;3. Insert oval_definitions + errata_cve_oval_map&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E6F2FF;strokeColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="720" y="330" width="175" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Common Processing -->
+        <mxCell id="common-box" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#82B366;fillColor=#D5E8D4;" parent="1" vertex="1">
+          <mxGeometry x="500" y="385" width="410" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="common-title" value="&lt;b&gt;Common Processing Steps&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="620" y="390" width="160" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="common-step1" value="&lt;font style=&quot;font-size:8px&quot;&gt;INSERT sync_logs&lt;br&gt;(sync_type, 'running')&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" parent="1" vertex="1">
+          <mxGeometry x="510" y="410" width="90" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="common-step2" value="&lt;font style=&quot;font-size:8px&quot;&gt;@retry_with_backoff&lt;br&gt;(max=3, delay*2)&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" parent="1" vertex="1">
+          <mxGeometry x="610" y="410" width="90" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="common-step3" value="&lt;font style=&quot;font-size:8px&quot;&gt;ON CONFLICT&lt;br&gt;DO NOTHING/UPDATE&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" parent="1" vertex="1">
+          <mxGeometry x="710" y="410" width="90" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="common-step4" value="&lt;font style=&quot;font-size:8px&quot;&gt;UPDATE sync_logs&lt;br&gt;('completed')&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82B366;" parent="1" vertex="1">
+          <mxGeometry x="810" y="410" width="90" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="common-arrow1" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#82B366;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="600" y="427" as="sourcePoint" />
+            <mxPoint x="610" y="427" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="common-arrow2" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#82B366;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="700" y="427" as="sourcePoint" />
+            <mxPoint x="710" y="427" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="common-arrow3" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#82B366;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="800" y="427" as="sourcePoint" />
+            <mxPoint x="810" y="427" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- PHASE 3: Database Storage -->
+        <mxCell id="phase3-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#DAE8FC;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="960" y="80" width="380" height="400" as="geometry" />
+        </mxCell>
+        <mxCell id="phase3-title" value="&lt;b&gt;PHASE 3: PostgreSQL Storage&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=14;fontColor=#6C8EBF;" parent="1" vertex="1">
+          <mxGeometry x="1050" y="90" width="220" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Errata Table -->
+        <mxCell id="db-errata" value="" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#FFFFFF;" parent="1" vertex="1">
+          <mxGeometry x="980" y="125" width="170" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="db-errata-title" value="&lt;b&gt;errata&lt;/b&gt; (116,261)" style="text;html=1;strokeColor=none;fillColor=#E6F2FF;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="980" y="125" width="170" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="db-errata-cols" value="&lt;font style=&quot;font-size:8px&quot;&gt;id (PK SERIAL)&lt;br&gt;advisory_id (UNIQUE)&lt;br&gt;title VARCHAR(500)&lt;br&gt;description TEXT&lt;br&gt;severity VARCHAR(20)&lt;br&gt;source ('usn'|'dsa')&lt;br&gt;distribution VARCHAR(50)&lt;br&gt;issued_date TIMESTAMP&lt;br&gt;sync_status ('pending'|'synced')&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="985" y="148" width="160" height="105" as="geometry" />
+        </mxCell>
+
+        <!-- CVEs Table -->
+        <mxCell id="db-cves" value="" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#FFFFFF;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="125" width="160" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="db-cves-title" value="&lt;b&gt;cves&lt;/b&gt; (47,845)" style="text;html=1;strokeColor=none;fillColor=#E6F2FF;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="125" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="db-cves-cols" value="&lt;font style=&quot;font-size:8px&quot;&gt;id (PK SERIAL)&lt;br&gt;cve_id VARCHAR(20) UNIQUE&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1165" y="148" width="150" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- CVE Details Table -->
+        <mxCell id="db-cve-details" value="" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#FFFFFF;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="210" width="160" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="db-cve-details-title" value="&lt;b&gt;cve_details&lt;/b&gt; (NVD)" style="text;html=1;strokeColor=none;fillColor=#FFE6CC;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="210" width="160" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="db-cve-details-cols" value="&lt;font style=&quot;font-size:8px&quot;&gt;cve_id VARCHAR(20) PK&lt;br&gt;cvss_v3_score DECIMAL&lt;br&gt;cvss_v3_vector VARCHAR&lt;br&gt;cvss_v3_severity VARCHAR&lt;br&gt;cvss_v2_score DECIMAL&lt;br&gt;severity VARCHAR(20)&lt;br&gt;cwe_ids TEXT[]&lt;br&gt;nvd_last_sync TIMESTAMP&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1165" y="233" width="150" height="95" as="geometry" />
+        </mxCell>
+
+        <!-- Errata Packages Table -->
+        <mxCell id="db-errata-pkg" value="" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#FFFFFF;" parent="1" vertex="1">
+          <mxGeometry x="980" y="265" width="170" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="db-errata-pkg-title" value="&lt;b&gt;errata_packages&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=#E6F2FF;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="980" y="265" width="170" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="db-errata-pkg-cols" value="&lt;font style=&quot;font-size:8px&quot;&gt;id (PK SERIAL)&lt;br&gt;errata_id FK → errata.id&lt;br&gt;package_name VARCHAR&lt;br&gt;fixed_version VARCHAR&lt;br&gt;release_name VARCHAR&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="985" y="288" width="160" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- OVAL Definitions Table -->
+        <mxCell id="db-oval" value="" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#FFFFFF;" parent="1" vertex="1">
+          <mxGeometry x="980" y="360" width="170" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="db-oval-title" value="&lt;b&gt;oval_definitions&lt;/b&gt; (50,862)" style="text;html=1;strokeColor=none;fillColor=#D5E8D4;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="980" y="360" width="170" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="db-oval-cols" value="&lt;font style=&quot;font-size:8px&quot;&gt;oval_id VARCHAR PK&lt;br&gt;title VARCHAR(500)&lt;br&gt;description TEXT&lt;br&gt;severity VARCHAR(20)&lt;br&gt;platform VARCHAR(50)&lt;br&gt;platform_version VARCHAR&lt;br&gt;cve_refs TEXT[]&lt;br&gt;source_url VARCHAR&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="985" y="383" width="160" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- UYUNI Package Cache Table -->
+        <mxCell id="db-cache" value="" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#6C8EBF;fillColor=#FFFFFF;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="340" width="160" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="db-cache-title" value="&lt;b&gt;uyuni_package_cache&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:8px&quot;&gt;(140,937)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=#F8CECC;align=center;verticalAlign=middle;rounded=0;fontSize=10;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="340" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="db-cache-cols" value="&lt;font style=&quot;font-size:8px&quot;&gt;channel_label VARCHAR&lt;br&gt;package_id INT&lt;br&gt;package_name VARCHAR&lt;br&gt;package_version VARCHAR&lt;br&gt;package_release VARCHAR&lt;br&gt;package_arch VARCHAR&lt;br&gt;last_sync TIMESTAMP&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1165" y="373" width="150" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Join Tables -->
+        <mxCell id="join-errata-cves" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;errata_cves&lt;/b&gt;&lt;br&gt;errata_id FK&lt;br&gt;cve_id FK&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#9673A6;fillColor=#E1D5E7;" parent="1" vertex="1">
+          <mxGeometry x="1150" y="150" width="60" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Sync Logs Table -->
+        <mxCell id="db-sync-logs" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;sync_logs&lt;/b&gt;&lt;br&gt;sync_type, status,&lt;br&gt;started_at, completed_at,&lt;br&gt;items_processed, error_message&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#82B366;fillColor=#D5E8D4;" parent="1" vertex="1">
+          <mxGeometry x="1160" y="210" width="160" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows from Sources to API -->
+        <mxCell id="arr-usn" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#D79B00;strokeWidth=2;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="230" y="180" as="sourcePoint" />
+            <mxPoint x="500" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr-usn-label" value="&lt;font style=&quot;font-size:8px&quot;&gt;HTTP GET&lt;br&gt;JSON&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="340" y="165" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arr-dsa" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#D79B00;strokeWidth=2;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="420" y="180" as="sourcePoint" />
+            <mxPoint x="710" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arr-nvd" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#D79B00;strokeWidth=2;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="230" y="360" as="sourcePoint" />
+            <mxPoint x="500" y="315" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="380" y="360" />
+              <mxPoint x="380" y="315" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="arr-oval" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#D79B00;strokeWidth=2;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="420" y="360" as="sourcePoint" />
+            <mxPoint x="710" y="315" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="470" y="360" />
+              <mxPoint x="470" y="315" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Arrows from API to Database -->
+        <mxCell id="arr-api-db" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#6C8EBF;strokeWidth=2;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="920" y="250" as="sourcePoint" />
+            <mxPoint x="960" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="arr-api-db-label" value="&lt;font style=&quot;font-size:8px&quot;&gt;psycopg2&lt;br&gt;INSERT/UPDATE&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="920" y="220" width="70" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Scheduling Timeline -->
+        <mxCell id="schedule-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#666666;fillColor=#F5F5F5;strokeWidth=2;" parent="1" vertex="1">
+          <mxGeometry x="40" y="510" width="1300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="schedule-title" value="&lt;b&gt;Scheduling Timeline (Azure Logic Apps)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=14;" parent="1" vertex="1">
+          <mxGeometry x="540" y="520" width="300" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Timeline -->
+        <mxCell id="timeline-line" value="" style="endArrow=classic;html=1;rounded=0;strokeWidth=3;strokeColor=#333333;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="60" y="600" as="sourcePoint" />
+            <mxPoint x="1300" y="600" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Time markers -->
+        <mxCell id="time-00" value="&lt;b&gt;00:00&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="60" y="605" width="40" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="time-03" value="&lt;b&gt;03:00&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="215" y="605" width="40" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="time-04" value="&lt;b&gt;04:00&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="267" y="605" width="40" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="time-06" value="&lt;b&gt;06:00&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="370" y="605" width="40" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="time-12" value="&lt;b&gt;12:00&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="680" y="605" width="40" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="time-18" value="&lt;b&gt;18:00&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="990" y="605" width="40" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="time-24" value="&lt;b&gt;24:00&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=9;" parent="1" vertex="1">
+          <mxGeometry x="1270" y="605" width="40" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Scheduled tasks -->
+        <mxCell id="sched-dsa" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;DSA&lt;/b&gt;&lt;br&gt;30m&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;" parent="1" vertex="1">
+          <mxGeometry x="215" y="560" width="40" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="sched-nvd" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;NVD&lt;/b&gt;&lt;br&gt;30m&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;" parent="1" vertex="1">
+          <mxGeometry x="267" y="560" width="40" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="sched-usn1" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;USN&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;" parent="1" vertex="1">
+          <mxGeometry x="370" y="570" width="35" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="sched-usn2" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;USN&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;" parent="1" vertex="1">
+          <mxGeometry x="680" y="570" width="35" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="sched-usn3" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;USN&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;" parent="1" vertex="1">
+          <mxGeometry x="990" y="570" width="35" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="sched-usn4" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;USN&lt;/b&gt;&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;" parent="1" vertex="1">
+          <mxGeometry x="60" y="570" width="35" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- OVAL weekly -->
+        <mxCell id="sched-oval" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;OVAL&lt;/b&gt;&lt;br&gt;Weekly Sun 02:00&lt;br&gt;(60m timeout)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="155" y="550" width="50" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Cron jobs -->
+        <mxCell id="cron-push1" value="&lt;font style=&quot;font-size:7px&quot;&gt;push&lt;br&gt;00:30&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" parent="1" vertex="1">
+          <mxGeometry x="95" y="625" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-push2" value="&lt;font style=&quot;font-size:7px&quot;&gt;push&lt;br&gt;06:30&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" parent="1" vertex="1">
+          <mxGeometry x="405" y="625" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-push3" value="&lt;font style=&quot;font-size:7px&quot;&gt;push&lt;br&gt;12:30&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" parent="1" vertex="1">
+          <mxGeometry x="715" y="625" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-push4" value="&lt;font style=&quot;font-size:7px&quot;&gt;push&lt;br&gt;18:30&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" parent="1" vertex="1">
+          <mxGeometry x="1025" y="625" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-sync-ch" value="&lt;font style=&quot;font-size:7px&quot;&gt;sync-ch&lt;br&gt;01:00&lt;/font&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;" parent="1" vertex="1">
+          <mxGeometry x="132" y="625" width="35" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="sched-legend" value="&lt;font style=&quot;font-size:8px&quot;&gt;&lt;b&gt;Legend:&lt;/b&gt; 🟩 USN sync | 🟨 DSA/NVD sync | 🟦 OVAL weekly | 🟥 UYUNI push (cron) | 🟪 Channel sync (cron)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="400" y="665" width="550" height="15" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
