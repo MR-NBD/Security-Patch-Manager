@@ -431,7 +431,45 @@ curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991B
 > **NOTA**: Con `spacewalk-common-channels` le GPG keys sono gestite automaticamente.
 
 ---
+## Note importanti
 
+### Storage
+
+UYUNI **non duplica** i pacchetti fisicamente. I canali CLM usano riferimenti agli stessi file, quindi lo spazio occupato è solo quello dei pacchetti unici.
+
+Verifica spazio:
+```bash
+du -sh /var/spacewalk/packages/
+```
+
+### Rinnovo certificati
+
+I certificati di entitlement Red Hat hanno una scadenza che corrisponde alla subscription. Ricordati di rinnovarli prima della scadenza ripetendo la procedura di ottenimento e caricamento.
+
+### Espansione storage con LVM
+
+Se lo spazio disco si esaurisce durante il sync, puoi espandere a caldo con LVM:
+
+```bash
+# Dopo aver espanso il disco su Azure
+echo 1 > /sys/class/block/sdX/device/rescan
+pvresize /dev/sdX
+lvextend -L +100G /dev/vg_uyuni_repo/lv_repo
+xfs_growfs /manager_storage   # per XFS
+# resize2fs /dev/vg_uyuni_repo/lv_repo   # per ext4
+```
+
+---
+
+## Struttura canali risultante
+
+```
+rhel9-pool-uyuni (Base Channel - da spacewalk-common-channels)
+├── RHEL 9 BaseOS CDN (Custom - da CDN)
+├── RHEL 9 AppStream CDN (Custom - da CDN)
+├── rhel9-uyuni-client (Tools - da spacewalk-common-channels)
+└── [Canali CLM test/production]
+```
 ## Riferimenti
 
 - [UYUNI - Registering Ubuntu Clients](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/clients-ubuntu.html)
