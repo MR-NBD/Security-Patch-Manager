@@ -13,16 +13,16 @@ Questo documento definisce l'architettura infrastrutturale del Security Patch Ma
 
 ### 1.1 Principi Generali
 
-| Principio | Implementazione | Riferimento PSN |
-|-----------|-----------------|-----------------|
-| **Zero Trust** | Nessun IP pubblico per risorse interne, verifica identità sempre | BR-003, POG-PSN-023 |
-| **Network Segmentation** | VNet separate, subnet dedicate, NSG per ogni subnet | BR-001, BR-002 |
-| **Defense in Depth** | Multi-layer: NSG + Azure Firewall + Private Endpoints | BR-002.5, BR-002.6 |
-| **Least Privilege** | RBAC granulare, Managed Identities, no permanent access | BR-010, POG-PSN-012 |
-| **Encryption Everywhere** | TLS 1.3 in transit, encryption at rest con CMK/BYOK | SR-PSN-046, SR-PSN-047 |
-| **Private by Default** | Private Endpoints per tutti i servizi PaaS | POG-PSN-023 |
-| **Centralized Logging** | Log Analytics + Sentinel | SR-PSN-011, POG-PSN-002 |
-| **Data Sovereignty** | Tutti i dati risiedono su territorio italiano | BR-003, POG-PSN-007 |
+| Principio                 | Implementazione                                                  | Riferimento PSN         |
+| ------------------------- | ---------------------------------------------------------------- | ----------------------- |
+| **Zero Trust**            | Nessun IP pubblico per risorse interne, verifica identità sempre | BR-003, POG-PSN-023     |
+| **Network Segmentation**  | VNet separate, subnet dedicate, NSG per ogni subnet              | BR-001, BR-002          |
+| **Defense in Depth**      | Multi-layer: NSG + Azure Firewall + Private Endpoints            | BR-002.5, BR-002.6      |
+| **Least Privilege**       | RBAC granulare, Managed Identities, no permanent access          | BR-010, POG-PSN-012     |
+| **Encryption Everywhere** | TLS 1.3 in transit, encryption at rest con CMK/BYOK              | SR-PSN-046, SR-PSN-047  |
+| **Private by Default**    | Private Endpoints per tutti i servizi PaaS                       | POG-PSN-023             |
+| **Centralized Logging**   | Log Analytics + Sentinel                                         | SR-PSN-011, POG-PSN-002 |
+| **Data Sovereignty**      | Tutti i dati risiedono su territorio italiano                    | BR-003, POG-PSN-007     |
 ### 1.2 Requisiti di Business PSN (BR)
 
 | ID | Requisito | Applicazione SPM |
