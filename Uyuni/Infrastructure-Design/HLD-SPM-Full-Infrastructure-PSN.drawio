@@ -1,0 +1,506 @@
+<mxfile host="Electron" agent="Mozilla/5.0" version="28.2.8">
+  <diagram name="HLD - SPM Full Infrastructure (PSN Compliant)" id="hld-spm-full">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="&lt;font style=&quot;font-size: 22px;&quot;&gt;&lt;b&gt;HLD - Security Patch Manager + UYUNI Infrastructure&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 11px;&quot;&gt;CSP-Independent | Hub &amp; Spoke | PSN Compliant | Errata Parsing Pipeline&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="450" y="15" width="700" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Legend Box -->
+        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="75" width="230" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="&lt;b&gt;Legenda&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="80" width="230" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-1" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#0066CC;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1365" y="115" as="sourcePoint" />
+            <mxPoint x="1415" y="115" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-1-text" value="Salt/SSH Management" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1425" y="105" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-2" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#009900;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1365" y="140" as="sourcePoint" />
+            <mxPoint x="1415" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-2-text" value="Data Flow (API/DB)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1425" y="130" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-3" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#FF6600;strokeWidth=2;dashed=1;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1365" y="165" as="sourcePoint" />
+            <mxPoint x="1415" y="165" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-3-text" value="External (Internet)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1425" y="155" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-4" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#CC00CC;strokeWidth=2;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1365" y="190" as="sourcePoint" />
+            <mxPoint x="1415" y="190" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="legend-4-text" value="Errata Sync Pipeline" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1425" y="180" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-5" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1365" y="210" width="50" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-5-text" value="Hub (Master)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1425" y="205" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-6" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1365" y="235" width="50" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-6-text" value="Spoke (Client)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1425" y="230" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- PSN Principles Box -->
+        <mxCell id="psn-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="295" width="230" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="psn-title" value="&lt;b&gt;Principi PSN Applicati&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="300" width="230" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="psn-list" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;&#10;&#x2022; Zero Trust (no public IP on resources)&lt;br&gt;&#10;&#x2022; Hub &amp; Spoke Architecture&lt;br&gt;&#10;&#x2022; Network Segmentation (NSG/SG)&lt;br&gt;&#10;&#x2022; Private Endpoints Only&lt;br&gt;&#10;&#x2022; Encryption (TLS 1.3 + CMK/BYOK)&lt;br&gt;&#10;&#x2022; Data Sovereignty (Italy Region)&lt;br&gt;&#10;&#x2022; MFA + Bastion Access Only&lt;br&gt;&#10;&#x2022; Centralized Logging (SIEM)&lt;br&gt;&#10;&#x2022; NGFW with IDS/IPS&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="325" width="210" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- INTERNET ZONE -->
+        <mxCell id="internet-zone" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="220" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="internet-title" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;INTERNET&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;External Data Sources&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="85" width="220" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- External Sources -->
+        <mxCell id="usn-source" value="&lt;b&gt;USN&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Ubuntu Security&lt;br&gt;Notices&lt;br&gt;(RSS/JSON)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="130" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dsa-source" value="&lt;b&gt;DSA&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Debian Security&lt;br&gt;Advisories&lt;br&gt;(HTML Scrape)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="160" y="130" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="nvd-source" value="&lt;b&gt;NVD&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;NIST CVE&lt;br&gt;Database&lt;br&gt;(REST API)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="oval-source" value="&lt;b&gt;OVAL&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Vulnerability&lt;br&gt;Definitions&lt;br&gt;(XML)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="160" y="210" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="vendor-repos" value="&lt;b&gt;VENDOR REPOS&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;RHEL, SUSE&lt;br&gt;Packages &amp; Errata&lt;br&gt;(Native UYUNI)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="60" y="290" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="internet-io" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;OUTPUT:&lt;/b&gt;&lt;br&gt;HTTPS 443 (all sources)&lt;br&gt;Rate Limited APIs&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="180" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- FIREWALL -->
+        <mxCell id="firewall-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="480" width="220" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="firewall-title" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b&gt;NGFW (Hub)&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Next-Gen Firewall&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="485" width="220" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="firewall-content" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&#x2022; IDS/IPS Active (Threat Intel)&lt;br&gt;&#x2022; TLS Inspection&lt;br&gt;&#x2022; Application Rules (Allow lists)&lt;br&gt;&#x2022; All Traffic Logged → SIEM&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="50" y="512" width="200" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Connection Internet to Firewall -->
+        <mxCell id="conn-int-fw" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#FF6600;strokeWidth=2;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="internet-zone" target="firewall-block">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="150" y="470" as="sourcePoint" />
+            <mxPoint x="150" y="490" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- HUB ZONE -->
+        <mxCell id="hub-zone" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="290" y="80" width="700" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="hub-title" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;&lt;b&gt;HUB - Tenant Master&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;Central Management &amp; Data Processing&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="300" y="85" width="250" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- SPM-SYNC Block -->
+        <mxCell id="spm-sync-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="320" y="140" width="250" height="250" as="geometry" />
+        </mxCell>
+        <mxCell id="spm-sync-title" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;SPM-SYNC&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Errata Sync API (Port 5000)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="320" y="145" width="250" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="parser" value="&lt;b&gt;Parser&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;USN/DSA/OVAL&lt;br&gt;Normalization&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="335" y="185" width="75" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="enricher" value="&lt;b&gt;Enricher&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;NVD CVSS&lt;br&gt;Score Mapping&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="420" y="185" width="75" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pusher" value="&lt;b&gt;UYUNI Pusher&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;XML-RPC Push&lt;br&gt;to Channels&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="335" y="250" width="75" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cache" value="&lt;b&gt;Pkg Cache&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Version Match&lt;br&gt;UYUNI Sync&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="420" y="250" width="75" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sync-api" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;API Endpoints:&lt;/b&gt;&lt;br&gt;POST /api/sync/usn&lt;br&gt;POST /api/sync/dsa/full&lt;br&gt;POST /api/sync/nvd&lt;br&gt;POST /api/sync/oval&lt;br&gt;POST /api/uyuni/push&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="335" y="310" width="110" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sync-io" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;I/O:&lt;/b&gt;&lt;br&gt;IN: HTTP 5000 (trigger)&lt;br&gt;OUT: DB 5432, UYUNI API&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="450" y="325" width="110" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- SPM-ORCHESTRATOR Block -->
+        <mxCell id="spm-orch-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="320" y="410" width="250" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="spm-orch-title" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;SPM-ORCHESTRATOR&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Patch Orchestration API (Port 5001)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="320" y="415" width="250" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="score-calc" value="&lt;b&gt;Success Score&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Risk Calculation&lt;br&gt;Priority Queue&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="335" y="455" width="75" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="test-mgr" value="&lt;b&gt;Test Manager&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Snapshot/Clone&lt;br&gt;Validation&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="420" y="455" width="75" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="approval" value="&lt;b&gt;Approval Gate&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Human Review&lt;br&gt;Dashboard&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="335" y="520" width="75" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="rollback" value="&lt;b&gt;Rollback Mgr&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Package/System&lt;br&gt;Level Restore&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="420" y="520" width="75" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="orch-api" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;API Endpoints:&lt;/b&gt;&lt;br&gt;/api/v1/risk-profile/*&lt;br&gt;/api/v1/queue/*&lt;br&gt;/api/v1/test/*&lt;br&gt;/api/v1/approvals/*&lt;br&gt;/api/v1/rollback/*&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="335" y="580" width="100" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="orch-io" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;I/O:&lt;/b&gt;&lt;br&gt;IN: HTTP 5001&lt;br&gt;OUT: Salt, Prometheus&lt;br&gt;Email/Webhook alerts&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;fontColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="440" y="585" width="120" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- UYUNI Server Block -->
+        <mxCell id="uyuni-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="140" width="180" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="uyuni-title" value="&lt;font style=&quot;font-size: 14px;&quot;&gt;&lt;b&gt;UYUNI SERVER&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Patch Management Platform&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="600" y="145" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="salt-master" value="&lt;b&gt;Salt Master&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;4505/4506&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="615" y="185" width="65" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="web-ui" value="&lt;b&gt;Web UI&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;HTTPS 443&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="700" y="185" width="65" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="xmlrpc" value="&lt;b&gt;XML-RPC&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Automation&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="615" y="240" width="65" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="clm" value="&lt;b&gt;CLM&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;DEV/TEST/PROD&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="700" y="240" width="65" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="taskomatic" value="&lt;b&gt;Taskomatic&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Scheduler&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="615" y="295" width="65" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="repo-mgr" value="&lt;b&gt;Repo Mgr&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Channels&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="700" y="295" width="65" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uyuni-io" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;I/O:&lt;/b&gt; 443, 4505/4506&lt;br&gt;XML-RPC for automation&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="600" y="345" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Database Block -->
+        <mxCell id="db-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="800" y="140" width="170" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="db-title" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b&gt;DATABASE&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;PostgreSQL&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="800" y="145" width="170" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="db-tables" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;SPM Tables:&lt;/b&gt;&lt;br&gt;&#x2022; errata (116K+)&lt;br&gt;&#x2022; cves (48K+)&lt;br&gt;&#x2022; packages (141K+)&lt;br&gt;&#x2022; oval_definitions (51K+)&lt;br&gt;&#x2022; patch_risk_profile&lt;br&gt;&#x2022; patch_test_queue&lt;br&gt;&#x2022; patch_approvals&lt;br&gt;&#x2022; notifications&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="810" y="175" width="150" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="db-io" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;I/O:&lt;/b&gt; TCP 5432&lt;br&gt;Private Endpoint Only&lt;br&gt;Encryption: CMK/BYOK&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="800" y="285" width="170" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Monitoring Block -->
+        <mxCell id="monitor-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="800" y="340" width="170" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor-title" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b&gt;MONITORING&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Observability Stack&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="800" y="345" width="170" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="prometheus" value="&lt;b&gt;Prometheus&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Metrics (9090)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="815" y="380" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="grafana" value="&lt;b&gt;Grafana&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Dashboards&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="895" y="380" width="60" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="monitor-io" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;I/O:&lt;/b&gt; 9090, 9100 (scrape)&lt;br&gt;3000 (Grafana UI)&lt;br&gt;Alerts: webhook/email&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="800" y="430" width="170" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Dashboard Block -->
+        <mxCell id="dashboard-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="410" width="180" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="dashboard-title" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b&gt;STREAMLIT&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Approval Dashboard&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="600" y="415" width="180" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="dashboard-content" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&#x2022; Queue View&lt;br&gt;&#x2022; Test Results&lt;br&gt;&#x2022; Approve/Reject/Snooze&lt;br&gt;&#x2022; Rollback Trigger&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="615" y="445" width="150" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="dashboard-io" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;I/O:&lt;/b&gt; HTTPS (UI)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="600" y="500" width="180" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Scheduler Block -->
+        <mxCell id="scheduler-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="600" y="555" width="370" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="scheduler-title" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b&gt;SCHEDULER / AUTOMATION&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Cron Jobs / Logic Apps / Event-Driven&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="600" y="560" width="370" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-usn" value="&lt;b&gt;USN Sync&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Every 6h&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="615" y="595" width="60" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-dsa" value="&lt;b&gt;DSA Sync&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Daily 03:00&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="690" y="595" width="60" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-nvd" value="&lt;b&gt;NVD Sync&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Daily 04:00&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="765" y="595" width="60" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-oval" value="&lt;b&gt;OVAL Sync&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Weekly Sun&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="840" y="595" width="60" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="cron-push" value="&lt;b&gt;UYUNI Push&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Every 6h&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="915" y="595" width="60" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="scheduler-io" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;I/O:&lt;/b&gt; HTTP POST to SPM-SYNC endpoints | Triggers via Cron or Event-based&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="600" y="640" width="370" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- SPOKE ZONE -->
+        <mxCell id="spoke-zone" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="80" width="300" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="spoke-title" value="&lt;font style=&quot;font-size: 16px;&quot;&gt;&lt;b&gt;SPOKE - Tenant Client&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;Managed Systems&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="85" width="200" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Proxy Block -->
+        <mxCell id="proxy-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="140" width="260" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="proxy-title" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b&gt;UYUNI PROXY (Optional)&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Smart Proxy / Salt Broker&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="145" width="260" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="proxy-content" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&#x2022; Salt Broker (4505/4506)&lt;br&gt;&#x2022; Package Cache (local mirror)&lt;br&gt;&#x2022; TFTP/HTTP Proxy&lt;br&gt;&lt;b&gt;I/O:&lt;/b&gt; IN from Master, OUT to Clients&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1055" y="175" width="230" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Production VMs Block -->
+        <mxCell id="prod-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="290" width="260" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-title" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b&gt;PRODUCTION VMs&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Managed Workloads&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="295" width="260" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="vm-rhel" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;VM&lt;br&gt;RHEL 9&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1055" y="330" width="50" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vm-ubuntu" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;VM&lt;br&gt;Ubuntu&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1115" y="330" width="50" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vm-debian" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;VM&lt;br&gt;Debian&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1175" y="330" width="50" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="vm-suse" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;VM&lt;br&gt;SUSE&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1235" y="330" width="50" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-agents" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;Each VM has: Salt Minion + node_exporter&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="375" width="260" height="15" as="geometry" />
+        </mxCell>
+        <mxCell id="prod-io" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;I/O:&lt;/b&gt; Salt (4505/4506), SSH (22)&lt;br&gt;node_exporter (9100), Repos (443)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="395" width="260" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Test Subnet Block -->
+        <mxCell id="test-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="460" width="260" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="test-title" value="&lt;font style=&quot;font-size: 12px;&quot;&gt;&lt;b&gt;TEST SUBNET (P3)&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Isolated Test Environment&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="465" width="260" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="test-content" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&#x2022; Clone VMs from Production (snapshot)&lt;br&gt;&#x2022; Salt Minion (inherited from clone)&lt;br&gt;&#x2022; Baseline metrics collection&lt;br&gt;&#x2022; Patch application &amp; validation&lt;br&gt;&#x2022; Auto-delete after test (max 4h)&lt;br&gt;&lt;br&gt;&lt;b&gt;NSG:&lt;/b&gt; DENY ALL outbound (isolated)&lt;br&gt;&lt;b&gt;I/O:&lt;/b&gt; Salt 4505/4506 from Proxy&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1055" y="495" width="230" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Security Block -->
+        <mxCell id="security-block" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="620" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="security-title" value="&lt;font style=&quot;font-size: 11px;&quot;&gt;&lt;b&gt;SECURITY / MANAGEMENT&lt;/b&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="625" width="260" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="security-content" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&#x2022; Bastion (SSH access only)&lt;br&gt;&#x2022; Key Vault (secrets)&lt;br&gt;&#x2022; NSG per subnet&lt;br&gt;&#x2022; Log forwarding to SIEM&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="1055" y="645" width="230" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- Connections -->
+        <!-- Internet to Sync -->
+        <mxCell id="conn-int-sync" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#FF6600;strokeWidth=2;dashed=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="firewall-block" target="spm-sync-block">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="260" y="525" as="sourcePoint" />
+            <mxPoint x="320" y="200" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="280" y="525" />
+              <mxPoint x="280" y="203" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-int-sync-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;HTTPS 443&lt;br&gt;(Fetch Errata)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FF6600;" vertex="1" parent="1">
+          <mxGeometry x="270" y="350" width="50" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Sync to DB -->
+        <mxCell id="conn-sync-db" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#009900;strokeWidth=2;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="spm-sync-block" target="db-block">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="215" as="sourcePoint" />
+            <mxPoint x="800" y="215" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="215" />
+              <mxPoint x="590" y="230" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-sync-db-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;5432&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#009900;" vertex="1" parent="1">
+          <mxGeometry x="580" y="200" width="30" height="15" as="geometry" />
+        </mxCell>
+
+        <!-- Sync to UYUNI -->
+        <mxCell id="conn-sync-uyuni" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#CC00CC;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="spm-sync-block" target="uyuni-block">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="265" as="sourcePoint" />
+            <mxPoint x="600" y="265" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-sync-uyuni-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;XML-RPC&lt;br&gt;Push Errata&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#CC00CC;" vertex="1" parent="1">
+          <mxGeometry x="570" y="245" width="50" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Orch to DB -->
+        <mxCell id="conn-orch-db" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#009900;strokeWidth=2;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" edge="1" parent="1" source="spm-orch-block" target="db-block">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="490" as="sourcePoint" />
+            <mxPoint x="800" y="290" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="491" />
+              <mxPoint x="590" y="284" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Orch to UYUNI -->
+        <mxCell id="conn-orch-uyuni" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#0066CC;strokeWidth=2;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.8;entryDx=0;entryDy=0;" edge="1" parent="1" source="spm-orch-block" target="uyuni-block">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="464" as="sourcePoint" />
+            <mxPoint x="600" y="330" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-orch-uyuni-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;Salt API&lt;br&gt;Patch Apply&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#0066CC;" vertex="1" parent="1">
+          <mxGeometry x="570" y="430" width="45" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Orch to Monitoring -->
+        <mxCell id="conn-orch-monitor" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#009900;strokeWidth=2;exitX=1;exitY=0.7;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="spm-orch-block" target="monitor-block">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="570" y="600" as="sourcePoint" />
+            <mxPoint x="800" y="415" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="599" />
+              <mxPoint x="590" y="415" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-orch-monitor-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;Prometheus&lt;br&gt;Query&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#009900;" vertex="1" parent="1">
+          <mxGeometry x="600" y="395" width="45" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- UYUNI to Spoke -->
+        <mxCell id="conn-uyuni-spoke" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#0066CC;strokeWidth=3;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="hub-zone" target="spoke-zone">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="990" y="390" as="sourcePoint" />
+            <mxPoint x="1020" y="390" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-uyuni-spoke-label" value="&lt;b&gt;Private Link&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Salt (4505/4506)&lt;br&gt;HTTPS (443)&lt;br&gt;No Public Internet&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#0066CC;" vertex="1" parent="1">
+          <mxGeometry x="990" y="350" width="80" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- Proxy to VMs -->
+        <mxCell id="conn-proxy-vms" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#0066CC;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="proxy-block" target="prod-block">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1170" y="280" as="sourcePoint" />
+            <mxPoint x="1170" y="300" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Proxy to Test -->
+        <mxCell id="conn-proxy-test" value="" style="endArrow=classic;html=1;rounded=0;strokeColor=#FF6600;strokeWidth=2;dashed=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="prod-block" target="test-block">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1170" y="450" as="sourcePoint" />
+            <mxPoint x="1170" y="470" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="conn-proxy-test-label" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;Clone +&lt;br&gt;Salt 4505/4506&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontColor=#FF6600;" vertex="1" parent="1">
+          <mxGeometry x="1175" y="443" width="55" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Version info -->
+        <mxCell id="version" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;v1.0 | 2026-02-05 | HLD SPM Full Infrastructure (PSN Compliant)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;rounded=0;fontColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="960" width="300" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Data Flow Summary Box -->
+        <mxCell id="flow-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="720" width="550" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-title" value="&lt;b&gt;Data Flow Summary - Errata Pipeline&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="725" width="550" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="flow-content" value="&lt;font style=&quot;font-size: 9px;&quot;&gt;&#10;&lt;b&gt;1. FETCH:&lt;/b&gt; Scheduler triggers SPM-SYNC → Fetch USN/DSA/NVD/OVAL from Internet (via NGFW)&lt;br&gt;&#10;&lt;b&gt;2. PARSE:&lt;/b&gt; SPM-SYNC parses &amp; normalizes errata → Enriches with NVD CVSS scores&lt;br&gt;&#10;&lt;b&gt;3. STORE:&lt;/b&gt; Errata data stored in PostgreSQL (Private Endpoint, encrypted)&lt;br&gt;&#10;&lt;b&gt;4. PUSH:&lt;/b&gt; SPM-SYNC pushes errata to UYUNI channels via XML-RPC&lt;br&gt;&#10;&lt;b&gt;5. SCORE:&lt;/b&gt; SPM-ORCHESTRATOR calculates Success Score → Queues patches by priority&lt;br&gt;&#10;&lt;b&gt;6. TEST:&lt;/b&gt; Clone VM to isolated Test Subnet → Apply patch → Validate metrics&lt;br&gt;&#10;&lt;b&gt;7. APPROVE:&lt;/b&gt; Operator reviews via Streamlit Dashboard → Approve/Reject/Snooze&lt;br&gt;&#10;&lt;b&gt;8. DEPLOY:&lt;/b&gt; UYUNI CLM promotes to PROD → Salt applies patches to production VMs&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="50" y="750" width="530" height="105" as="geometry" />
+        </mxCell>
+
+        <!-- Interface Summary Box -->
+        <mxCell id="interface-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="880" width="550" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="interface-title" value="&lt;b&gt;Key Interfaces (I/O)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="885" width="550" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="interface-in" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;INGRESS (to Hub):&lt;/b&gt;&lt;br&gt;&#x2022; HTTPS 443 from Internet (via FW) - Errata fetch&lt;br&gt;&#x2022; HTTPS 443/5000/5001 from Spoke - Private Link&lt;br&gt;&#x2022; Salt 4505/4506 from Minions&lt;br&gt;&#x2022; SSH 22 via Bastion only&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="50" y="910" width="260" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="interface-out" value="&lt;font style=&quot;font-size: 8px;&quot;&gt;&lt;b&gt;EGRESS (from Hub):&lt;/b&gt;&lt;br&gt;&#x2022; HTTPS 443 to Vendor Sources (via FW)&lt;br&gt;&#x2022; Salt 4505/4506 to Minions&lt;br&gt;&#x2022; PostgreSQL 5432 internal only&lt;br&gt;&#x2022; Prometheus 9090/9100 internal only&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="320" y="910" width="260" height="65" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
