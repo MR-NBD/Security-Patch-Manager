@@ -337,7 +337,7 @@ curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap.sh | 
 > update-ca-certificates
 > ```
 
-### 7.3 Sul Server UYUNI: Accettare il Salt Key
+### Sul Server UYUNI: Accettare il Salt Key
 
 Dalla Web UI:
 1. **Salt → Keys**
@@ -349,29 +349,24 @@ Oppure da CLI sul Server:
 mgrctl exec -- salt-key -a uyuni-proxy-test.uyuni.internal
 ```
 
-### 7.4 Verificare Registrazione
+### Verificare Registrazione
 
 Dalla Web UI:
 1. **Systems → System List**
 2. Verificare che `uyuni-proxy-test` appaia nella lista
 3. Cliccare sul sistema e verificare lo stato "Active"
-
----
-
 ## FASE 8: Generare Configurazione Proxy
-
-### Opzione A: Via Web UI (Consigliata)
-
+### Opzione A: Via Web UI
 1. Sul Server UYUNI, andare su **Systems → Proxy Configuration**
 2. Compilare:
 
-| Campo | Valore |
-|-------|--------|
-| **Proxy FQDN** | `uyuni-proxy-test.uyuni.internal` |
-| **Parent FQDN** | `uyuni-server-test.uyuni.internal` |
-| **Proxy SSH Port** | `8022` |
-| **Max Squid Cache [MB]** | `38000` (60% di 64 GB) |
-| **SSL Certificate** | Generate (certificato self-signed) |
+| Campo                    | Valore                             |
+| ------------------------ | ---------------------------------- |
+| **Proxy FQDN**           | `uyuni-proxy-test.uyuni.internal`  |
+| **Parent FQDN**          | `uyuni-server-test.uyuni.internal` |
+| **Proxy SSH Port**       | `8022`                             |
+| **Max Squid Cache [MB]** | `38000` (60% di 64 GB)             |
+| **SSL Certificate**      | Generate (certificato self-signed) |
 
 3. Cliccare **Generate**
 4. Scaricare il file `config.tar.gz` generato
