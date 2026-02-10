@@ -229,13 +229,13 @@ lsblk
 ### Configurazione LVM per disco cache (es. /dev/sdb)
 #### Creare partizione
 ```bash
-parted /dev/sdb --script mklabel gpt
-parted /dev/sdb --script mkpart primary 0% 100%
+parted /dev/sda --script mklabel gpt
+parted /dev/sda --script mkpart primary 0% 100%
 ```
 #### Configura LVM
 ```bash
-pvcreate /dev/sdb1
-vgcreate vg_proxy_cache /dev/sdb1
+pvcreate /dev/sda1
+vgcreate vg_proxy_cache /dev/sda1
 lvcreate -l 100%FREE -n lv_cache vg_proxy_cache
 ```
 #### Formatta XFS
@@ -312,7 +312,6 @@ systemctl enable --now podman.socket
 > **PREREQUISITO CRITICO**: L'host del Proxy DEVE essere registrato come Salt minion sul Server UYUNI **PRIMA** di generare la configurazione Proxy. Senza questo passaggio, la generazione del certificato SSL fallirà.
 
 ### Sul Server UYUNI: Generare il Bootstrap Script
-
 Il bootstrap script **non è presente di default** — va generato manualmente.
 
 Dalla Web UI del Server UYUNI:
@@ -343,7 +342,7 @@ Dalla **Web UI** del Server UYUNI (`https://uyuni-server-test.uyuni.internal`):
 | ----------------------- | --------------------------------------------------- |
 | **Key**                 | `1-proxy-asl06-test`                                |
 | **Description**         | Activation key per Uyuni Proxy - openSUSE Leap 15.6 |
-| **Base Channel**        | Universal Default                                   |
+| **Base Channel**        | Uyuni Default                                       |
 | **Add-On Entitlements** | Container Build Host                                |
 | **Contact Method**      | Default                                             |
 
