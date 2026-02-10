@@ -22,16 +22,7 @@ UYUNI Proxy (10.172.2.20)
 | **proxy-ssh** | SSH tunneling per push clients |
 | **proxy-tftpd** | TFTP per PXE boot (provisioning automatico) |
 
-### Requisiti Hardware
-
-| Componente | Test | Production |
-|------------|------|------------|
-| CPU | 2+ core | 4+ core |
-| RAM | 2 GB | 8 GB |
-| Disco OS | 40 GB SSD | 64 GB SSD |
-| Disco Cache | 64 GB Standard SSD | 128+ GB Premium SSD |
-
-> **NOTA**: La dimensione del disco cache Squid determina quanti pacchetti vengono serviti localmente senza contattare il Server. Più grande è, meno traffico di rete tra Proxy e Server. Impostare Squid cache al massimo **60% dello spazio disponibile** sul disco cache.
+> La dimensione del disco cache Squid determina quanti pacchetti vengono serviti localmente senza contattare il Server. Più grande è, meno traffico di rete tra Proxy e Server. Impostare Squid cache al massimo **60% dello spazio disponibile** sul disco cache.
 ## DEPLOYMENT
 ### Configurazione VM Azure
 
@@ -54,7 +45,6 @@ UYUNI Proxy (10.172.2.20)
 | **Subnet**         | default (10.172.2.0/24)             |
 | **Public IP**      | None                                |
 | **NSG**            | uyuni-proxy-test-nsg                |
-
 ### Configurazione NSG
 
 | Priority | Nome               | Port      | Protocol | Source        | Destination | Action |
@@ -67,22 +57,19 @@ UYUNI Proxy (10.172.2.20)
 
 **Outbound** (dal Proxy):
 
-| Priority | Nome | Port | Protocol | Source | Destination | Action |
-|----------|------|------|----------|--------|-------------|--------|
-| 100 | AllowHTTPS_ToServer | 443 | TCP | 10.172.2.20 | 10.172.2.17 | Allow |
-| 110 | AllowSalt_ToServer | 4505-4506 | TCP | 10.172.2.20 | 10.172.2.17 | Allow |
+| Priority | Nome                | Port      | Protocol | Source      | Destination | Action |
+| -------- | ------------------- | --------- | -------- | ----------- | ----------- | ------ |
+| 100      | AllowHTTPS_ToServer | 443       | TCP      | 10.172.2.20 | 10.172.2.17 | Allow  |
+| 110      | AllowSalt_ToServer  | 4505-4506 | TCP      | 10.172.2.20 | 10.172.2.17 | Allow  |
 
 ---
-
 ## FASE 1: Preparazione del Sistema Base
 
-### 1.1 Dalla VM
-
+### Dalla VM
 #### Diventa root
 ```bash
 sudo su -
 ```
-
 #### Verifica versione OS
 ```bash
 cat /etc/os-release
@@ -93,21 +80,18 @@ Output atteso:
 NAME="openSUSE Leap"
 VERSION="15.6"
 ```
-
-### 1.2 Aggiornamento Sistema
+### Aggiornamento Sistema
 ```bash
 zypper refresh
 ```
 ```bash
 zypper update -y
 ```
-
 #### Riavvia per applicare aggiornamenti kernel
 ```bash
 reboot
 ```
-
-### 1.3 Installazione Pacchetti Prerequisiti
+### Installazione Pacchetti Prerequisiti
 ```bash
 zypper install -y \
   chrony \
@@ -118,20 +102,13 @@ zypper install -y \
   curl \
   jq
 ```
-
----
-
 ## FASE 2: Configurazione NTP con Chrony
-
 La sincronizzazione temporale è **CRITICA** per il corretto funzionamento di Salt e i certificati SSL.
-
-### 2.1 Configurazione Chrony
-
+### Configurazione Chrony
 #### Backup configurazione originale
 ```bash
 cp /etc/chrony.conf /etc/chrony.conf.bak
 ```
-
 #### Modifica configurazione
 ```bash
 nano /etc/chrony.conf
@@ -153,17 +130,14 @@ logdir /var/log/chrony
 # Drift file
 driftfile /var/lib/chrony/drift
 ```
-
-### 2.2 Abilita e Avvia il Servizio
+### Abilita e Avvia il Servizio
 ```bash
 systemctl enable --now chronyd
 ```
-
 #### Abilita NTP via timedatectl
 ```bash
 timedatectl set-ntp true
 ```
-
 #### Verificare stato sincronizzazione
 ```bash
 timedatectl status
@@ -174,35 +148,21 @@ Output atteso:
 System clock synchronized: yes
 NTP service: active
 ```
-
----
-
 ## FASE 3: Configurazione Hostname e DNS
-
-### 3.1 Configurare l'Hostname
-
+### Configurare l'Hostname
 #### Impostare hostname
 ```bash
 hostnamectl set-hostname uyuni-proxy-test.uyuni.internal
 ```
-
 #### Verificare hostname
 ```bash
 hostname -f
 ```
-
-### 3.2 Configura il File /etc/hosts
-
+### Configura il File /etc/hosts
 #### Recuperare l'IP privato della VM
 ```bash
 ip addr show eth0
 ```
-
-#### Backup del file hosts originale
-```bash
-cp /etc/hosts /etc/hosts.bak
-```
-
 #### Editare il file hosts
 ```bash
 nano /etc/hosts
@@ -215,57 +175,44 @@ Aggiungere:
 ```
 
 > **IMPORTANTE**: Il Proxy DEVE risolvere l'FQDN del Server UYUNI. Aggiungere anche l'entry del Server nel file hosts se non si usa Azure Private DNS Zone.
-
-### 3.3 Verificare la Configurazione DNS
+### Verificare la Configurazione DNS
 
 #### Test risoluzione diretta
 ```bash
 ping -c 2 $(hostname -f)
 ```
-
 #### Test risoluzione Server
 ```bash
 ping -c 2 uyuni-server-test.uyuni.internal
 ```
-
----
-
 ## FASE 4: Configurazione Firewall
-
-### 4.1 Abilitare Firewalld
+### Abilitare Firewalld
 ```bash
 systemctl enable --now firewalld
 ```
-
-### 4.2 Configurare Porte Proxy
-
+### Configurare Porte Proxy
 #### HTTPS (Web UI e repository pacchetti)
 ```bash
 firewall-cmd --permanent --add-port=443/tcp
 ```
-
 #### HTTP (repository pacchetti)
 ```bash
 firewall-cmd --permanent --add-port=80/tcp
 ```
-
 #### Salt (comunicazione con client e Server)
 ```bash
 firewall-cmd --permanent --add-port=4505/tcp
 firewall-cmd --permanent --add-port=4506/tcp
 ```
-
 #### SSH Push (per contact method ssh-push)
 ```bash
 firewall-cmd --permanent --add-port=8022/tcp
 ```
-
-### 4.3 Applicare le Modifiche
+### Applicare le Modifiche
 ```bash
 firewall-cmd --reload
 ```
-
-### 4.4 Verifica Configurazione
+### Verifica Configurazione
 ```bash
 firewall-cmd --list-all
 ```
@@ -274,53 +221,41 @@ Output atteso:
 ```
 ports: 80/tcp 443/tcp 4505/tcp 4506/tcp 8022/tcp
 ```
-
----
-
 ## FASE 5: Configurazione Storage Cache
-
-### 5.1 Identificare il Disco Dati
+### Identificare il Disco Dati
 ```bash
 lsblk
 ```
-
-### 5.2 Configurazione LVM per disco cache (es. /dev/sdb)
-
+### Configurazione LVM per disco cache (es. /dev/sdb)
 #### Creare partizione
 ```bash
 parted /dev/sdb --script mklabel gpt
 parted /dev/sdb --script mkpart primary 0% 100%
 ```
-
 #### Configura LVM
 ```bash
 pvcreate /dev/sdb1
 vgcreate vg_proxy_cache /dev/sdb1
 lvcreate -l 100%FREE -n lv_cache vg_proxy_cache
 ```
-
 #### Formatta XFS
 ```bash
 mkfs.xfs /dev/mapper/vg_proxy_cache-lv_cache
 ```
-
 #### Crea mount point e monta
 ```bash
 mkdir -p /proxy_storage
 mount /dev/mapper/vg_proxy_cache-lv_cache /proxy_storage
 ```
-
 #### Aggiungi a fstab
 ```bash
 echo "/dev/mapper/vg_proxy_cache-lv_cache /proxy_storage xfs defaults,nofail 0 0" >> /etc/fstab
 ```
-
 #### Reload systemd
 ```bash
 systemctl daemon-reload
 ```
-
-### 5.3 Spostare Container Storage su proxy_storage
+### Spostare Container Storage su proxy_storage
 
 ```bash
 # Crea directory per containers
@@ -342,54 +277,39 @@ ln -s /proxy_storage/containers /var/lib/containers
 systemctl start podman.socket
 ```
 
-> **NOTA**: Eseguire questa operazione PRIMA di installare il Proxy.
-
-### 5.4 Verificare Configurazione Storage
+> Eseguire questa operazione PRIMA di installare il Proxy.
+### Verificare Configurazione Storage
 ```bash
 df -hP /proxy_storage
 lvs
 ```
-
----
-
 ## FASE 6: Installazione Repository e Pacchetti Proxy
-
-### 6.1 Aggiungere Repository UYUNI Proxy
-
+### Aggiungere Repository UYUNI Proxy
 ```bash
 zypper ar https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Stable/images/repo/Uyuni-Proxy-POOL-$(arch)-Media1/ uyuni-proxy-stable
 ```
-
-### 6.2 Refresh e Installazione
-
+### Refresh e Installazione
 #### Accettare chiave GPG e refresh
 ```bash
 zypper --gpg-auto-import-keys refresh
 ```
-
 #### Installare tool di gestione Proxy
 ```bash
 zypper install -y mgrpxy mgrpxy-bash-completion uyuni-storage-setup-proxy
 ```
-
-### 6.3 Verificare Versione Podman
+### Verificare Versione Podman
 ```bash
 podman --version
 ```
 
 UYUNI richiede Podman >= 4.5.0
-
-### 6.4 Abilitare Podman Socket
+### Abilitare Podman Socket
 ```bash
 systemctl enable --now podman.socket
 ```
-
----
-
 ## FASE 7: Registrare l'Host Proxy come Salt Minion
 
-> **PREREQUISITO CRITICO**: L'host del Proxy DEVE essere registrato come Salt minion sul Server UYUNI **PRIMA** di generare la configurazione Proxy. Senza questo passaggio, la generazione del certificato SSL fallirà.
-
+> L'host del Proxy DEVE essere registrato come Salt minion sul Server UYUNI **PRIMA** di generare la configurazione Proxy. Senza questo passaggio, la generazione del certificato SSL fallirà.
 ### 7.1 Sul Server UYUNI: Creare Activation Key per il Proxy
 
 Dalla **Web UI** del Server UYUNI (`https://uyuni-server-test.uyuni.internal`):
