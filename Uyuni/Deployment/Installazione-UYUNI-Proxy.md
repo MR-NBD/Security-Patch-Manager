@@ -350,7 +350,6 @@ mgrctl exec -- salt-key -a uyuni-proxy-test.uyuni.internal
 ```
 
 ### Verificare Registrazione
-
 Dalla Web UI:
 1. **Systems → System List**
 2. Verificare che `uyuni-proxy-test` appaia nella lista
@@ -370,11 +369,8 @@ Dalla Web UI:
 
 3. Cliccare **Generate**
 4. Scaricare il file `config.tar.gz` generato
-
 ### Opzione B: Via spacecmd (CLI)
-
 Dal Server UYUNI:
-
 ```bash
 mgrctl exec -ti 'spacecmd proxy_container_config_generate_cert -- \
   uyuni-proxy-test.uyuni.internal \
@@ -384,23 +380,17 @@ mgrctl exec -ti 'spacecmd proxy_container_config_generate_cert -- \
   -o /tmp/config.tar.gz \
   -p 8022'
 ```
-
 #### Copiare il file config dal container Server all'host
 ```bash
 podman cp uyuni-server:/tmp/config.tar.gz /root/config.tar.gz
 ```
-
 #### Trasferire sull'host Proxy
 ```bash
 scp /root/config.tar.gz azureuser@10.172.2.20:/tmp/config.tar.gz
 ```
 
-> **PER PRODUZIONE**: Utilizzare certificati firmati dalla CA aziendale. Vedere sezione "Certificati Custom per Production" in fondo.
-
----
-
+> Utilizzare certificati firmati dalla CA aziendale. Vedere sezione "Certificati Custom per Production" in fondo.
 ## FASE 9: Installazione Container Proxy
-
 ### 9.1 Sull'Host Proxy: Installare i Container
 
 ```bash
