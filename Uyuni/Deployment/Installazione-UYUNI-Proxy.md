@@ -418,23 +418,23 @@ sudo podman cp uyuni-server:/root/ssl-build/RHN-ORG-PRIVATE-SSL-KEY /tmp/ca.key
 
 5. Caricare i file nel form Web UI:
 
-| Campo | File |
-|-------|------|
-| **CA certificate** | `ca.crt` (RHN-ORG-TRUSTED-SSL-CERT) |
-| **CA private key** | `ca.key` (RHN-ORG-PRIVATE-SSL-KEY) |
-| **CA password** | La password CA scelta durante `mgradm install podman` |
+| Campo              | File                                                  |
+| ------------------ | ----------------------------------------------------- |
+| **CA certificate** | `ca.crt` (RHN-ORG-TRUSTED-SSL-CERT)                   |
+| **CA private key** | `ca.key` (RHN-ORG-PRIVATE-SSL-KEY)                    |
+| **CA password**    | La password CA scelta durante `mgradm install podman` |
 
 6. Compilare i dati del certificato SSL:
 
-| Campo | Valore |
-|-------|--------|
-| **Alternate CNAMEs** | (vuoto, oppure `uyuni-proxy-test`) |
-| **2-letter country code** | `IT` |
-| **State** | Regione (es. `Lazio`) |
-| **City** | Città |
-| **Organization** | Nome azienda |
-| **Organization Unit** | `IT` |
-| **Email** | Email admin |
+| Campo                     | Valore                             |
+| ------------------------- | ---------------------------------- |
+| **Alternate CNAMEs**      | (vuoto, oppure `uyuni-proxy-test`) |
+| **2-letter country code** | `IT`                               |
+| **State**                 | Regione (es. `Lazio`)              |
+| **City**                  | Città                              |
+| **Organization**          | Nome azienda                       |
+| **Organization Unit**     | `IT`                               |
+| **Email**                 | Email admin                        |
 
 7. Cliccare **Generate**
 8. Scaricare il file `config.tar.gz` generato
@@ -454,20 +454,9 @@ mgrctl exec -ti 'spacecmd proxy_container_config_generate_cert -- \
   -p 8022'
 ```
 
-#### Copiare il file config dal container Server all'host
-```bash
-podman cp uyuni-server:/tmp/config.tar.gz /root/config.tar.gz
-```
-
-#### Trasferire sull'host Proxy
-```bash
-scp /root/config.tar.gz azureuser@10.172.2.20:/tmp/config.tar.gz
-```
-
 > **PER PRODUZIONE**: Per certificati firmati dalla CA aziendale, vedere sezione "Certificati Custom per Production" in fondo.
 ## FASE 9: Installazione Container Proxy
 ### Sull'Host Proxy: Installare i Container
-
 ```bash
 sudo su -
 mgrpxy install podman /tmp/uyuni-proxy-test-config.tar.gz
