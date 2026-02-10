@@ -310,24 +310,22 @@ systemctl enable --now podman.socket
 ## FASE 7: Registrare l'Host Proxy come Salt Minion
 
 > L'host del Proxy DEVE essere registrato come Salt minion sul Server UYUNI **PRIMA** di generare la configurazione Proxy. Senza questo passaggio, la generazione del certificato SSL fallirà.
-### 7.1 Sul Server UYUNI: Creare Activation Key per il Proxy
-
+### Sul Server UYUNI: Creare Activation Key per il Proxy
 Dalla **Web UI** del Server UYUNI (`https://uyuni-server-test.uyuni.internal`):
 
 1. **Systems → Activation Keys → Create Key**
 2. Configurare:
 
-| Campo | Valore |
-|-------|--------|
-| **Key** | `1-proxy-opensuse156` |
-| **Description** | Activation key per Uyuni Proxy - openSUSE Leap 15.6 |
-| **Base Channel** | openSUSE Leap 15.6 (x86_64) |
-| **Add-On Entitlements** | Container Build Host |
-| **Contact Method** | Default |
+| Campo                   | Valore                                              |
+| ----------------------- | --------------------------------------------------- |
+| **Key**                 | `1-proxy-asl06-test`                                |
+| **Description**         | Activation key per Uyuni Proxy - openSUSE Leap 15.6 |
+| **Base Channel**        | openSUSE Leap 15.6 (x86_64)                         |
+| **Add-On Entitlements** | Container Build Host                                |
+| **Contact Method**      | Default                                             |
 
 3. **Create Activation Key**
-
-### 7.2 Sull'Host Proxy: Bootstrap via Script
+### Sull'Host Proxy: Bootstrap via Script
 
 ```bash
 curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap.sh | /bin/bash
