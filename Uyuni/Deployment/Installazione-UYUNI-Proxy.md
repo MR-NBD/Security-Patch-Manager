@@ -1,14 +1,4 @@
-# Installazione UYUNI Proxy Containerizzato
-
 Installazione di **UYUNI Proxy 2025.10** su **openSUSE Leap 15.6** in ambiente **Azure** con deployment containerizzato tramite **Podman**.
-
-### Accesso alla VM
-L'accesso alla VM avviene **esclusivamente tramite Azure Bastion** (nessun IP pubblico).
-
-> Il Proxy UYUNI funge da intermediario tra il Server UYUNI e i client Salt. Tutto il traffico Salt e i pacchetti transitano attraverso il Proxy, riducendo il carico sul Server e migliorando le performance nella rete locale.
-
-> A partire da UYUNI 2024.10, il Proxy è disponibile **esclusivamente come container**. La versione classica RPM non è più supportata.
-
 ### Architettura Target
 
 ```
@@ -16,13 +6,12 @@ UYUNI Server (10.172.2.17)
         │
         │ Salt 4505/4506 + HTTPS 443
         │
-UYUNI Proxy (10.172.1.10)          ◄── Questa guida
+UYUNI Proxy (10.172.2.20)
         │
         ├── Ubuntu Client #1
         ├── Ubuntu Client #2
         └── RHEL 9 Client
 ```
-
 ### Componenti Container (Proxy 2025.10)
 
 | Container | Funzione |
@@ -43,12 +32,8 @@ UYUNI Proxy (10.172.1.10)          ◄── Questa guida
 | Disco Cache | 64 GB Standard SSD | 128+ GB Premium SSD |
 
 > **NOTA**: La dimensione del disco cache Squid determina quanti pacchetti vengono serviti localmente senza contattare il Server. Più grande è, meno traffico di rete tra Proxy e Server. Impostare Squid cache al massimo **60% dello spazio disponibile** sul disco cache.
-
----
-
 ## DEPLOYMENT
-
-### Configurazione VM Azure - Ambiente TEST
+### Configurazione VM Azure
 
 | Parametro          | Valore                              |
 | ------------------ | ----------------------------------- |
@@ -66,27 +51,26 @@ UYUNI Proxy (10.172.1.10)          ◄── Questa guida
 | **OS Disk**        | 40 GB Standard SSD LRS              |
 | **Data Disks**     | 1 disco (64 GB) per cache pacchetti |
 | **VNet**           | ASL0603-spoke10-spoke-italynorth    |
-| **Subnet**         | Subnet-Proxy (10.172.1.0/24)        |
-| **Private IP**     | Statico: 10.172.1.10                |
+| **Subnet**         | default (10.172.2.0/24)             |
 | **Public IP**      | None                                |
 | **NSG**            | uyuni-proxy-test-nsg                |
 
 ### Configurazione NSG
 
-| Priority | Nome | Port | Protocol | Source | Destination | Action |
-|----------|------|------|----------|--------|-------------|--------|
-| 100 | AllowHTTPS_Clients | 443 | TCP | 10.172.2.0/24 | 10.172.1.10 | Allow |
-| 110 | AllowSalt_Clients | 4505-4506 | TCP | 10.172.2.0/24 | 10.172.1.10 | Allow |
-| 120 | AllowHTTPS_Server | 443 | TCP | 10.172.2.17 | 10.172.1.10 | Allow |
-| 130 | AllowSalt_Server | 4505-4506 | TCP | 10.172.2.17 | 10.172.1.10 | Allow |
-| 140 | AllowSSHPush | 8022 | TCP | 10.172.2.0/24 | 10.172.1.10 | Allow |
+| Priority | Nome               | Port      | Protocol | Source        | Destination | Action |
+| -------- | ------------------ | --------- | -------- | ------------- | ----------- | ------ |
+| 100      | AllowHTTPS_Clients | 443       | TCP      | 10.172.2.0/24 | 10.172.2.20 | Allow  |
+| 110      | AllowSalt_Clients  | 4505-4506 | TCP      | 10.172.2.0/24 | 10.172.2.20 | Allow  |
+| 120      | AllowHTTPS_Server  | 443       | TCP      | 10.172.2.17   | 10.172.2.20 | Allow  |
+| 130      | AllowSalt_Server   | 4505-4506 | TCP      | 10.172.2.17   | 10.172.2.20 | Allow  |
+| 140      | AllowSSHPush       | 8022      | TCP      | 10.172.2.0/24 | 10.172.2.20 | Allow  |
 
 **Outbound** (dal Proxy):
 
 | Priority | Nome | Port | Protocol | Source | Destination | Action |
 |----------|------|------|----------|--------|-------------|--------|
-| 100 | AllowHTTPS_ToServer | 443 | TCP | 10.172.1.10 | 10.172.2.17 | Allow |
-| 110 | AllowSalt_ToServer | 4505-4506 | TCP | 10.172.1.10 | 10.172.2.17 | Allow |
+| 100 | AllowHTTPS_ToServer | 443 | TCP | 10.172.2.20 | 10.172.2.17 | Allow |
+| 110 | AllowSalt_ToServer | 4505-4506 | TCP | 10.172.2.20 | 10.172.2.17 | Allow |
 
 ---
 
@@ -226,7 +210,7 @@ nano /etc/hosts
 
 Aggiungere:
 ```
-10.172.1.10    uyuni-proxy-test.uyuni.internal    uyuni-proxy-test
+10.172.2.20    uyuni-proxy-test.uyuni.internal    uyuni-proxy-test
 10.172.2.17    uyuni-server-test.uyuni.internal    uyuni-server-test
 ```
 
@@ -495,7 +479,7 @@ podman cp uyuni-server:/tmp/config.tar.gz /root/config.tar.gz
 
 #### Trasferire sull'host Proxy
 ```bash
-scp /root/config.tar.gz azureuser@10.172.1.10:/tmp/config.tar.gz
+scp /root/config.tar.gz azureuser@10.172.2.20:/tmp/config.tar.gz
 ```
 
 > **PER PRODUZIONE**: Utilizzare certificati firmati dalla CA aziendale. Vedere sezione "Certificati Custom per Production" in fondo.
