@@ -194,11 +194,9 @@ Applica la stessa configurazione GPG a:
 > **Nota**: Tutti i canali Ubuntu usano la stessa chiave GPG.
 
 ---
-
 ## FASE 4: Sincronizzazione Repository
 
 ### 4.1 Avvia Sincronizzazione
-
 La sincronizzazione parte automaticamente alla creazione dei canali. Per avviarla manualmente:
 
 **Via CLI** (tutti i child in parallelo):
@@ -212,7 +210,6 @@ mgrctl exec -- spacewalk-repo-sync -p ubuntu-2404-pool-amd64-uyuni
 3. Tab **Repositories** → **Sync** → **Sync Now**
 
 ### 4.2 Monitora Progresso
-
 ```bash
 # Verifica processi sync attivi
 mgrctl exec -- ps aux | grep spacewalk-repo-sync
@@ -246,7 +243,6 @@ mgrctl exec -- spacecmd -u admin -p 'password' -- softwarechannel_listallpackage
 ```
 
 ---
-
 ## FASE 5: Bootstrap Repository
 
 Il Bootstrap Repository contiene i pacchetti minimi necessari per la prima registrazione di un client (salt-minion, uyuni-client-tools).

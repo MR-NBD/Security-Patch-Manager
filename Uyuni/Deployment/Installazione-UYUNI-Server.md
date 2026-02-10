@@ -80,10 +80,10 @@ sdc (Data Disk 2 - 64GB) [LVM]
 ### Configurazione NSG per Test
 Per l'ambiente di test, configurare il NSG `uyuni-server-test-nsg` con queste regole minime:
 
-| Priority | Nome | Port | Protocol | Source | Action |
-|----------|------|------|----------|--------|--------|
-| 100 | AllowHTTPS | 443 | TCP | VNet | Allow |
-| 110 | AllowSalt | 4505-4506 | TCP | VNet | Allow |
+| Priority | Nome       | Port      | Protocol | Source | Action |     |
+| -------- | ---------- | --------- | -------- | ------ | ------ | --- |
+| 100      | AllowHTTPS | 443       | TCP      | VNet   | Allow  |     |
+| 110      | AllowSalt  | 4505-4506 | TCP      | VNet   | Allow  |     |
 ### Configurazioni Aggiuntive per Production (Futuro)
 Per il passaggio in production, da valutare:
 - Premium SSD per i dischi dati
