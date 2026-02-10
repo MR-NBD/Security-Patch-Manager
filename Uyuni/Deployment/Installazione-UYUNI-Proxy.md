@@ -534,7 +534,24 @@ Dalla Web UI:
 ## FASE 10: Ri-puntare i Client Esistenti al Proxy
 
 Ora i 3 client (2 Ubuntu + 1 RHEL) devono essere reindirizzati dal Server diretto al Proxy.
-### Opzione A: Via Web UI (Consigliata)
+
+### Prerequisito: Configurare DNS sui Client
+
+> **IMPORTANTE**: Prima di cambiare proxy, ogni client DEVE poter risolvere l'FQDN del Proxy. Senza questo passaggio il client non riuscirà a connettersi e risulterà offline.
+
+Su **ogni client**, aggiungere l'entry del Proxy in `/etc/hosts`:
+```bash
+echo "10.172.2.20    uyuni-proxy-test.uyuni.internal    uyuni-proxy-test" >> /etc/hosts
+```
+
+Verificare la risoluzione:
+```bash
+ping -c 2 uyuni-proxy-test.uyuni.internal
+```
+
+> **NOTA**: I client non hanno più bisogno di raggiungere il Server direttamente. Il flusso diventa: `Client → Proxy → Server`. L'entry del Server nel file hosts può restare ma non è più necessaria.
+
+### Opzione A: Via Web UI
 
 Per **ogni client**:
 
@@ -544,26 +561,25 @@ Per **ogni client**:
 4. Selezionare `uyuni-proxy-test.uyuni.internal` dal menu dropdown
 5. Cliccare **Confirm**
 
-Uyuni modificherà automaticamente la configurazione Salt del client (`/etc/salt/minion.d/susemanager.conf`) e riavvierà il Salt minion.
+Uyuni schedula un'azione che modifica la configurazione Salt del client e riavvia il Salt minion. Verificare lo stato in **Events → History**.
+
+> Se dopo 5 minuti il client risulta offline ("Minion is down"), verificare che il DNS sia configurato correttamente sul client (prerequisito sopra).
 
 ### Opzione B: Via CLI (su ogni client manualmente)
 
+Se la Web UI non applica le modifiche, procedere manualmente:
+
 #### Modificare configurazione Salt minion
+
+Per client con `venv-salt-minion` (Ubuntu/RHEL registrati con bootstrap):
 ```bash
-nano /etc/salt/minion.d/susemanager.conf
+sed -i 's/uyuni-server-test.uyuni.internal/uyuni-proxy-test.uyuni.internal/' /etc/venv-salt-minion/minion.d/susemanager.conf
+systemctl restart venv-salt-minion
 ```
 
-Cambiare:
-```yaml
-# PRIMA (connessione diretta al Server)
-master: uyuni-server-test.uyuni.internal
-
-# DOPO (connessione tramite Proxy)
-master: uyuni-proxy-test.uyuni.internal
-```
-
-#### Riavviare Salt minion
+Per client con `salt-minion` standard:
 ```bash
+sed -i 's/uyuni-server-test.uyuni.internal/uyuni-proxy-test.uyuni.internal/' /etc/salt/minion.d/susemanager.conf
 systemctl restart salt-minion
 ```
 
@@ -578,14 +594,17 @@ local:
     True
 ```
 
-### 10.1 Verificare che i Client siano Connessi via Proxy
+### Verificare che i Client siano Connessi via Proxy
 
 Dalla Web UI del Server:
 1. **Systems → System List** → cliccare su un client
 2. Tab **Details → Connection**
 3. Verificare che **Proxy** mostri `uyuni-proxy-test.uyuni.internal`
 
-Oppure dalla lista sistemi, la colonna "Proxy" mostrerà il proxy di appartenenza.
+Dalla pagina del Proxy:
+1. **Systems → System List** → `uyuni-proxy-test`
+2. Tab **Details → Proxy**
+3. Deve elencare i client connessi tramite questo proxy
 
 ---
 
