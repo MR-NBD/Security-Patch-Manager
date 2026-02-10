@@ -467,6 +467,41 @@ L'installazione:
 - Configura il pod `uyuni-proxy-pod`
 - Crea il servizio systemd
 - Abilita IPv4/IPv6 forwarding
+
+### Fix Bug: Volume mount mancante per systemid
+
+> **BUG NOTO**: L'immagine `proxy-httpd` tenta di scrivere in `/etc/sysconfig/rhn/systemid` all'interno del container, ma questa directory non viene montata dal servizio systemd generato da `mgrpxy`. Senza questo fix, il container httpd crasha in loop con errore `FileNotFoundError: '/etc/sysconfig/rhn/systemid'`.
+
+#### Creare la directory e il file sull'host
+```bash
+mkdir -p /etc/sysconfig/rhn
+touch /etc/sysconfig/rhn/systemid
+```
+
+#### Aggiungere il volume mount al service file
+```bash
+sed -i 's|-v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro|-v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro \\\n-v /etc/sysconfig/rhn:/etc/sysconfig/rhn|' /etc/systemd/system/uyuni-proxy-httpd.service
+```
+
+#### Verificare la modifica
+```bash
+grep sysconfig /etc/systemd/system/uyuni-proxy-httpd.service
+```
+
+Output atteso:
+```
+-v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro \
+-v /etc/sysconfig/rhn:/etc/sysconfig/rhn \
+```
+
+#### Ricaricare e avviare
+```bash
+systemctl daemon-reload
+systemctl start uyuni-proxy-pod
+sleep 2
+systemctl start uyuni-proxy-httpd
+```
+
 ### Verificare Container Attivi
 
 ```bash
@@ -488,7 +523,7 @@ podman pod ps
 ```
 ### Abilitare Avvio Automatico
 ```bash
-systemctl enable uyuni-proxy-pod
+systemctl enable uyuni-proxy-pod uyuni-proxy-httpd uyuni-proxy-squid uyuni-proxy-tftpd uyuni-proxy-salt-broker uyuni-proxy-ssh
 ```
 ### Verificare dal Server UYUNI
 
