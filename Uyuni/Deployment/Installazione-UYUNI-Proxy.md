@@ -471,7 +471,7 @@ scp /root/config.tar.gz azureuser@10.172.2.20:/tmp/config.tar.gz
 
 ```bash
 sudo su -
-mgrpxy install podman /tmp/config.tar.gz
+mgrpxy install podman /tmp/uyuni-proxy-test-config.tar.gz
 ```
 
 L'installazione:
@@ -479,8 +479,7 @@ L'installazione:
 - Configura il pod `uyuni-proxy-pod`
 - Crea il servizio systemd
 - Abilita IPv4/IPv6 forwarding
-
-### 9.2 Verificare Container Attivi
+### Verificare Container Attivi
 
 ```bash
 podman ps
@@ -495,30 +494,23 @@ xxxx          registry.opensuse.org/uyuni/proxy-squid        Up (healthy)   prox
 xxxx          registry.opensuse.org/uyuni/proxy-ssh          Up (healthy)   proxy-ssh
 xxxx          registry.opensuse.org/uyuni/proxy-tftpd        Up (healthy)   proxy-tftpd
 ```
-
-### 9.3 Verificare Pod
+### Verificare Pod
 ```bash
 podman pod ps
 ```
-
-### 9.4 Abilitare Avvio Automatico
+### Abilitare Avvio Automatico
 ```bash
 systemctl enable uyuni-proxy-pod
 ```
-
-### 9.5 Verificare dal Server UYUNI
+### Verificare dal Server UYUNI
 
 Dalla Web UI:
 1. **Systems → System List** → selezionare `uyuni-proxy-test`
 2. Tab **Details → Proxy**
 3. Verificare status: **Active**
-
----
-
 ## FASE 10: Ri-puntare i Client Esistenti al Proxy
 
 Ora i 3 client (2 Ubuntu + 1 RHEL) devono essere reindirizzati dal Server diretto al Proxy.
-
 ### Opzione A: Via Web UI (Consigliata)
 
 Per **ogni client**:
