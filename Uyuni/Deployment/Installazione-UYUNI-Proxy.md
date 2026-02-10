@@ -309,8 +309,31 @@ systemctl enable --now podman.socket
 ```
 ## FASE 7: Registrare l'Host Proxy come Salt Minion
 
-> L'host del Proxy DEVE essere registrato come Salt minion sul Server UYUNI **PRIMA** di generare la configurazione Proxy. Senza questo passaggio, la generazione del certificato SSL fallirà.
+> **PREREQUISITO CRITICO**: L'host del Proxy DEVE essere registrato come Salt minion sul Server UYUNI **PRIMA** di generare la configurazione Proxy. Senza questo passaggio, la generazione del certificato SSL fallirà.
+
+### Sul Server UYUNI: Generare il Bootstrap Script
+
+Il bootstrap script **non è presente di default** — va generato manualmente.
+
+Dalla Web UI del Server UYUNI:
+1. **Admin → Manager Configuration → Bootstrap Script**
+2. Verificare i parametri:
+
+| Campo | Valore |
+|-------|--------|
+| **UYUNI Server Hostname** | `uyuni-server-test.uyuni.internal` |
+| **SSL Cert Location** | (lascia default) |
+| **Bootstrap Using Salt** | abilitato |
+
+3. Cliccare **Generate**
+
+Verificare che lo script sia stato creato:
+```bash
+mgrctl exec -- ls -la /srv/www/htdocs/pub/bootstrap/bootstrap.sh
+```
+
 ### Sul Server UYUNI: Creare Activation Key per il Proxy
+
 Dalla **Web UI** del Server UYUNI (`https://uyuni-server-test.uyuni.internal`):
 
 1. **Systems → Activation Keys → Create Key**
@@ -320,18 +343,23 @@ Dalla **Web UI** del Server UYUNI (`https://uyuni-server-test.uyuni.internal`):
 | ----------------------- | --------------------------------------------------- |
 | **Key**                 | `1-proxy-asl06-test`                                |
 | **Description**         | Activation key per Uyuni Proxy - openSUSE Leap 15.6 |
-| **Base Channel**        | openSUSE Leap 15.6 (x86_64)                         |
+| **Base Channel**        | Universal Default                                   |
 | **Add-On Entitlements** | Container Build Host                                |
 | **Contact Method**      | Default                                             |
 
+> **NOTA**: Se hai i canali openSUSE Leap 15.6 sincronizzati sul Server, puoi selezionarli esplicitamente come Base Channel. Altrimenti usa "Universal Default" e Uyuni auto-detecterà l'OS.
+
 3. **Create Activation Key**
+
 ### Sull'Host Proxy: Bootstrap via Script
 
 ```bash
 curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap.sh | /bin/bash
 ```
 
-> Se il certificato SSL del Server non è attendibile, aggiungere `--insecure` o scaricare prima il CA certificate:
+> Se il comando restituisce un errore `syntax error near unexpected token 'newline'` con `<!DOCTYPE HTML>`, significa che il bootstrap script non è stato generato. Tornare al passaggio "Generare il Bootstrap Script".
+
+> Se il certificato SSL del Server non è attendibile, scaricare prima il CA certificate:
 > ```bash
 > curl -Sks https://uyuni-server-test.uyuni.internal/pub/RHN-ORG-TRUSTED-SSL-CERT -o /etc/pki/trust/anchors/uyuni-ca.crt
 > update-ca-certificates
@@ -354,10 +382,12 @@ Dalla Web UI:
 1. **Systems → System List**
 2. Verificare che `uyuni-proxy-test` appaia nella lista
 3. Cliccare sul sistema e verificare lo stato "Active"
-## FASE 8: Generare Configurazione Proxy
+## FASE 8: Generare Configurazione Proxy e Certificato SSL
+
 ### Opzione A: Via Web UI
+
 1. Sul Server UYUNI, andare su **Systems → Proxy Configuration**
-2. Compilare:
+2. Compilare i campi principali:
 
 | Campo                    | Valore                             |
 | ------------------------ | ---------------------------------- |
@@ -365,12 +395,56 @@ Dalla Web UI:
 | **Parent FQDN**          | `uyuni-server-test.uyuni.internal` |
 | **Proxy SSH Port**       | `8022`                             |
 | **Max Squid Cache [MB]** | `38000` (60% di 64 GB)             |
-| **SSL Certificate**      | Generate (certificato self-signed) |
+| **SSL Certificate**      | Generate                           |
 
-3. Cliccare **Generate**
-4. Scaricare il file `config.tar.gz` generato
-### Opzione B: Via spacecmd (CLI)
-Dal Server UYUNI:
+3. Per la sezione SSL, servono i **file CA del Server UYUNI**. Recuperarli dal Server:
+
+#### Recuperare i file CA dal container Server
+```bash
+sudo podman cp uyuni-server:/root/ssl-build/RHN-ORG-TRUSTED-SSL-CERT /tmp/ca.crt
+sudo podman cp uyuni-server:/root/ssl-build/RHN-ORG-PRIVATE-SSL-KEY /tmp/ca.key
+```
+
+> **NOTA**: Il file `ca.key` è accessibile solo da root. Se WinSCP restituisce "Permission denied", eseguire sul Server:
+> ```bash
+> sudo chmod 644 /tmp/ca.key
+> ```
+> **Dopo il trasferimento**, ripristinare i permessi e cancellare le copie:
+> ```bash
+> sudo chmod 600 /tmp/ca.key
+> sudo rm /tmp/ca.crt /tmp/ca.key
+> ```
+
+4. Trasferire i file CA sul proprio PC tramite WinSCP (connessione SSH al Server `10.172.2.17`, navigare a `/tmp/`)
+
+5. Caricare i file nel form Web UI:
+
+| Campo | File |
+|-------|------|
+| **CA certificate** | `ca.crt` (RHN-ORG-TRUSTED-SSL-CERT) |
+| **CA private key** | `ca.key` (RHN-ORG-PRIVATE-SSL-KEY) |
+| **CA password** | La password CA scelta durante `mgradm install podman` |
+
+6. Compilare i dati del certificato SSL:
+
+| Campo | Valore |
+|-------|--------|
+| **Alternate CNAMEs** | (vuoto, oppure `uyuni-proxy-test`) |
+| **2-letter country code** | `IT` |
+| **State** | Regione (es. `Lazio`) |
+| **City** | Città |
+| **Organization** | Nome azienda |
+| **Organization Unit** | `IT` |
+| **Email** | Email admin |
+
+7. Cliccare **Generate**
+8. Scaricare il file `config.tar.gz` generato
+
+> **IMPORTANTE**: Il certificato generato NON è self-signed. Viene firmato dalla CA interna di Uyuni (creata durante l'installazione del Server). Tutti i client che si fidano già del Server si fideranno anche del Proxy.
+
+### Opzione B: Via spacecmd (CLI — evita il trasferimento dei file CA)
+
+Dal Server UYUNI, questo comando usa la CA già presente nel container senza bisogno di trasferire file:
 ```bash
 mgrctl exec -ti 'spacecmd proxy_container_config_generate_cert -- \
   uyuni-proxy-test.uyuni.internal \
@@ -380,18 +454,20 @@ mgrctl exec -ti 'spacecmd proxy_container_config_generate_cert -- \
   -o /tmp/config.tar.gz \
   -p 8022'
 ```
+
 #### Copiare il file config dal container Server all'host
 ```bash
 podman cp uyuni-server:/tmp/config.tar.gz /root/config.tar.gz
 ```
+
 #### Trasferire sull'host Proxy
 ```bash
 scp /root/config.tar.gz azureuser@10.172.2.20:/tmp/config.tar.gz
 ```
 
-> Utilizzare certificati firmati dalla CA aziendale. Vedere sezione "Certificati Custom per Production" in fondo.
+> **PER PRODUZIONE**: Per certificati firmati dalla CA aziendale, vedere sezione "Certificati Custom per Production" in fondo.
 ## FASE 9: Installazione Container Proxy
-### 9.1 Sull'Host Proxy: Installare i Container
+### Sull'Host Proxy: Installare i Container
 
 ```bash
 sudo su -

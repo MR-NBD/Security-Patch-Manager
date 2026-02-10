@@ -211,6 +211,8 @@
   },
   "active": "8ca8113ad3726bba",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770722833883",
+    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770722801409",
     "Utenze/ASL0603.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770716924978",
@@ -224,7 +226,6 @@
     "Uyuni/Initial-Setup/orchestrator/services/success_score.py",
     "Uyuni/Initial-Setup/orchestrator/services",
     "Uyuni/Initial-Setup/orchestrator",
-    "Uyuni/Initial-Setup/sql/orchestrator/001_orchestrator_schema.sql",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-API-SPEC.md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
     "Uyuni/Documentazione-Preliminare.md",
