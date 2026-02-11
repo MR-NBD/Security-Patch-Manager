@@ -3,7 +3,11 @@
     "allow": [
       "WebSearch",
       "WebFetch(domain:documentation.suse.com)",
-      "WebFetch(domain:www.uyuni-project.org)"
+      "WebFetch(domain:www.uyuni-project.org)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:cstan.io)",
+      "WebFetch(domain:galaxy.ansible.com)",
+      "WebFetch(domain:docs.saltproject.io)"
     ]
   }
 }
