@@ -13,12 +13,26 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
+                "file": "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installazione-UYUNI-Proxy"
+              "title": "Configurazione-RHEL-9.4"
+            }
+          },
+          {
+            "id": "7b767d49ae469e89",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Setup-Canali-Ubuntu"
             }
           },
           {
@@ -35,7 +49,8 @@
               "title": "ASL0603"
             }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -209,31 +224,32 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "8ca8113ad3726bba",
+  "active": "f2b1d8d0b2f6ef0d",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
+    "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
+    "Uyuni/Deployment/Installazione-UYUNI-Server.md",
+    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
+    "Uyuni/Deployment/DEPLOYMENT-GUIDE.md",
     "Uyuni/Deployment/Configurazione-VHM-Azure.md",
     "Uyuni/Deployment/Configurazione-VHM-Azure.md.tmp.1960.1770743398211",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770739832573",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770736102566",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770736042258",
     "Utenze/ASL0603.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770722833883",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770722801409",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770716924978",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770716867031",
     "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Infrastructure-Design/UYUNI-Infrastructure.drawio",
     "Uyuni/Infrastructure-Design/SPM-Ideal-Architecture - Copy.drawio",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-API-SPEC.md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
     "Uyuni/Documentazione-Preliminare.md",
     "Uyuni/Initial-Setup/UYUNI Errata Manager - Setup & Deployment.md",
-    "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "README.md",
     "TO-DO_ALBERTO.md",
-    "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
     "GeneralDocumentation/Insecurity_score_formula.md",
@@ -247,7 +263,6 @@
     "Foreman-Katello/Configurazione-Tutorial/Activation-Key.md",
     "Foreman-Katello/Configurazione-Tutorial/Configurazione-Content-Credentials.md",
     "Foreman-Katello/Configurazione-Tutorial/Configurazione-Organization-e-Location.md",
-    "GeneralDocumentation/Prioritizzazione Vulnerability Management.md",
     "img/dueUntitled Diagram.drawio-1 1.png",
     "img/dueUntitled Diagram.drawio-1.png",
     "img/treUntitled Diagram.drawio.png",

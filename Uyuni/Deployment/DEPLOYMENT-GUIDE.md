@@ -1,7 +1,6 @@
 # UYUNI Errata Manager v2.5 - Deployment Guide
 
-## 🎯 Cosa È Cambiato in v2.5
-
+## Cosa È Cambiato in v2.5
 ### Problemi Risolti
 
 | # | Problema | Soluzione v2.5 | Impatto |
@@ -13,30 +12,21 @@
 | 6 | **Automazione parziale** | Script con retry, logging, health check | ✅ Produzione-ready |
 
 ### Nuove Features
-
 - **Health check dettagliato**: `/api/health/detailed` con metriche real-time
 - **Retry automatico**: Exponential backoff su tutti gli endpoint critici
 - **Logging strutturato**: Ogni operazione tracciata con timestamp
 - **Alerting via email**: Notifiche automatiche su errori critici
 - **Lock file**: Prevenzione esecuzioni concorrenti
 - **Prioritizzazione NVD**: CVE critici/high per primi
-
----
-
-## 📋 Prerequisiti
+## Prerequisiti
 
 Prima di procedere, verifica di avere:
-
 - ✅ PostgreSQL Azure Flexible Server con schema v2.4 (include tabelle `errata_packages`, `uyuni_package_cache`, `errata_cve_oval_map`)
 - ✅ Azure Container Registry con immagini esistenti
 - ✅ Server UYUNI funzionante e raggiungibile
 - ✅ Accesso SSH al server UYUNI (per script cron)
-
----
-
-## 🚀 FASE 1: Build Nuova Immagine v2.5
-
-### 1.1 Prepara File Locali
+## FASE 1: Build Nuova Immagine v2.5
+### Prepara File Locali
 
 ```bash
 # Sul tuo workstation (o Azure Cloud Shell)
@@ -46,8 +36,7 @@ cd ~/uyuni-errata-manager-v2.5
 # Download file dal repository
 # (oppure crea i file manualmente con il contenuto fornito)
 ```
-
-### 1.2 Crea Dockerfile
+### Crea Dockerfile
 
 ```bash
 cat > Dockerfile.api << 'EOF'
@@ -79,17 +68,13 @@ EOF
 ```
 
 **NOTA**: Aggiunta dipendenza `packaging` per version comparison.
-
-### 1.3 Copia app.py Migliorato
-
+### Copia app.py Migliorato
 ```bash
 # Copia il file app-v2.5-IMPROVED.py nella directory
 # (già creato nel passo precedente)
 cp /path/to/app-v2.5-IMPROVED.py app-v2.5-IMPROVED.py
 ```
-
-### 1.4 Build e Push Immagine
-
+### Build e Push Immagine
 ```bash
 # Variabili
 ACR_NAME="acaborerrata"
@@ -107,11 +92,7 @@ az acr repository show-tags \
   --repository errata-api \
   --output table
 ```
-
----
-
-## 🔄 FASE 2: Update Database Schema (se necessario)
-
+## FASE 2: Update Database Schema (se necessario)
 La v2.5 riutilizza lo schema v2.4, ma verifica che tutte le tabelle siano presenti:
 
 ```bash
@@ -139,11 +120,7 @@ CREATE INDEX IF NOT EXISTS idx_ecov_errata ON errata_cve_oval_map(errata_id);
 CREATE INDEX IF NOT EXISTS idx_ecov_cve ON errata_cve_oval_map(cve_id);
 CREATE INDEX IF NOT EXISTS idx_ecov_oval ON errata_cve_oval_map(oval_id);
 ```
-
----
-
-## 🐳 FASE 3: Deploy Container v2.5
-
+## FASE 3: Deploy Container v2.5
 ### Opzione A: Container Interno (architettura attuale a 2 container)
 
 ```bash
@@ -221,9 +198,7 @@ az container create \
   --environment-variables \
     DATABASE_URL="postgresql://errataadmin:ErrataSecure2024@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require"
 ```
-
 ### Opzione B: Container Unificato (dopo approvazione NAT Gateway)
-
 **DOPO aver ottenuto il NAT Gateway**, deploy singolo container:
 
 ```bash
@@ -249,12 +224,8 @@ DATABASE_URL="postgresql://errataadmin:ErrataSecure2024@10.172.2.6:5432/uyuni_er
     UYUNI_PASSWORD="password" \
     NVD_API_KEY="49b6e254-d81d-4b61-abac-2dbe04471e38"
 ```
-
----
-
-## 🧪 FASE 4: Testing v2.5
-
-### 4.1 Health Check Dettagliato
+## FASE 4: Testing v2.5
+### Health Check Dettagliato
 ```bash
 az container list \
     --output table \
@@ -276,7 +247,6 @@ curl -s http://10.172.5.5:5000/api/health | jq
 # Verifica health dettagliato (nuovo in v2.5)
 curl -s http://10.172.5.5:5000/api/health/detailed | jq
 ```
-
 **Output atteso (health detailed)**:
 ```json
 {
@@ -309,9 +279,7 @@ curl -s http://10.172.5.5:5000/api/health/detailed | jq
   }
 }
 ```
-
-### 4.2 Test Sync USN Ottimizzato
-
+### Test Sync USN Ottimizzato
 ```bash
 # Test sync USN (dovrebbe essere molto più veloce in v2.5)
 time curl -s -X POST http://4.232.4.142:5000/api/sync/usn | jq
@@ -326,9 +294,7 @@ time curl -s -X POST http://4.232.4.142:5000/api/sync/usn | jq
 # }
 # real	0m45.123s  (prima era ~10min)
 ```
-
-### 4.3 Test DSA Full Auto (NUOVO!)
-
+### Test DSA Full Auto (NUOVO!)
 ```bash
 # Test nuovo endpoint DSA full automatico
 time curl -s -X POST http://4.232.4.142:5000/api/sync/dsa/full | jq
@@ -343,9 +309,7 @@ time curl -s -X POST http://4.232.4.142:5000/api/sync/dsa/full | jq
 # }
 # real	12m34.567s  (automatico, prima richiedeva 8 comandi manuali)
 ```
-
-### 4.4 Test Package Cache Update
-
+### Test Package Cache Update
 ```bash
 # Aggiorna cache pacchetti UYUNI
 curl -s -X POST http://10.172.5.5:5000/api/uyuni/sync-packages | jq
@@ -353,9 +317,7 @@ curl -s -X POST http://10.172.5.5:5000/api/uyuni/sync-packages | jq
 # Verifica statistiche pacchetti
 curl -s http://10.172.5.5:5000/api/stats/packages | jq
 ```
-
-### 4.5 Test Push con Version Matching (FIX #1)
-
+### Test Push con Version Matching (FIX #1)
 ```bash
 # Push 5 errata con version matching migliorato
 curl -s -X POST "http://10.172.5.5:5000/api/uyuni/push?limit=5" | jq
@@ -370,9 +332,7 @@ curl -s -X POST "http://10.172.5.5:5000/api/uyuni/push?limit=5" | jq
 #   "errors": null
 # }
 ```
-
-### 4.6 Test OVAL Sync + CVE Mapping (FIX #2)
-
+### Test OVAL Sync + CVE Mapping (FIX #2)
 ```bash
 # Sync OVAL definitions per CVE audit
 curl -s -X POST "http://10.172.5.5:5000/api/sync/oval?platform=all" | jq
@@ -388,13 +348,8 @@ JOIN oval_definitions o ON ecov.oval_id = o.oval_id
 LIMIT 10;
 EOF
 ```
-
----
-
-## 🔁 FASE 5: Deploy Script Automazione v2.5
-
-### 5.1 Copia Script sul Server UYUNI
-
+## FASE 5: Deploy Script Automazione v2.5
+### Copia Script sul Server UYUNI
 ```bash
 # Dal tuo workstation, copia lo script
 scp errata-sync-v2.5-IMPROVED.sh user@uyuni-server-test:/tmp/
@@ -407,9 +362,7 @@ sudo su -
 mv /tmp/errata-sync-v2.5-IMPROVED.sh /root/errata-sync.sh
 chmod +x /root/errata-sync.sh
 ```
-
-### 5.2 Configura Variabili d'Ambiente
-
+### Configura Variabili d'Ambiente
 ```bash
 # Crea file di configurazione
 cat > /root/.errata-sync.env << 'EOF'
@@ -423,9 +376,7 @@ EOF
 
 chmod 600 /root/.errata-sync.env
 ```
-
-### 5.3 Test Manuale
-
+### Test Manuale
 ```bash
 # Source environment
 source /root/.errata-sync.env
@@ -457,9 +408,7 @@ tail -f /var/log/errata-sync.log
 [2026-01-07 11:25:30] [INFO] Errors encountered: 0
 [2026-01-07 11:25:30] [SUCCESS] All sync operations completed successfully!
 ```
-
-### 5.4 Setup Cron Job
-
+### Setup Cron Job
 ```bash
 # Aggiungi a crontab (esegui ogni domenica alle 02:00)
 cat > /etc/cron.d/errata-sync << 'EOF'
@@ -471,12 +420,8 @@ EOF
 crontab -l
 ```
 
----
-
-## 📊 FASE 6: Monitoring e Validazione
-
-### 6.1 Setup Log Rotation
-
+## FASE 6: Monitoring e Validazione
+### Setup Log Rotation
 ```bash
 cat > /etc/logrotate.d/errata-sync << 'EOF'
 /var/log/errata-sync.log {
@@ -498,9 +443,7 @@ cat > /etc/logrotate.d/errata-sync << 'EOF'
 }
 EOF
 ```
-
-### 6.2 Verifica Errata in UYUNI
-
+### Verifica Errata in UYUNI
 ```bash
 # Web UI:
 # Vai a: Patches → Patch List → All
@@ -509,9 +452,7 @@ EOF
 # CLI check:
 spacecmd errata_list | grep -i usn | head -5
 ```
-
-### 6.3 Verifica CVE Audit (NEW!)
-
+### Verifica CVE Audit (NEW!)
 ```bash
 # Web UI:
 # Vai a: Audit → CVE Audit
@@ -531,13 +472,10 @@ ORDER BY cd.cvss_v3_score DESC
 LIMIT 20;
 EOF
 ```
-
 ---
 
-## 🔧 Troubleshooting v2.5
-
+## Troubleshooting v2.5
 ### Container non risponde
-
 ```bash
 # Verifica stato
 az container show \
@@ -556,9 +494,7 @@ az container restart \
   --resource-group ASL0603-spoke10-rg-spoke-italynorth \
   --name aci-errata-api-internal
 ```
-
 ### Version matching non funziona
-
 ```bash
 # Verifica che la libreria packaging sia installata
 curl http://10.172.5.5:5000/api/health
@@ -574,15 +510,12 @@ WHERE e.advisory_id = 'USN-7931-4'
 LIMIT 5;
 EOF
 ```
-
 ### Sync DSA full troppo lento
-
 ```bash
 # Il sync full DSA può richiedere 15-30 minuti (è normale)
 # Monitora progress con:
 watch -n 5 'curl -s http://10.172.5.5:5000/api/stats/overview | jq ".errata_by_source"'
 ```
-
 ### Email alerts non arrivano
 
 ```bash
@@ -596,8 +529,7 @@ systemctl enable --now postfix
 
 ---
 
-## 📈 Metriche di Successo
-
+## Metriche di Successo
 Dopo il deployment v2.5, dovresti vedere:
 
 | Metrica | Prima (v2.4) | Dopo (v2.5) | Miglioramento |
@@ -611,24 +543,9 @@ Dopo il deployment v2.5, dovresti vedere:
 
 ---
 
-## 🎓 Next Steps
-
-1. **Dopo 1 settimana**: Verifica log e statistiche, valuta riduzione batch sizes se necessario
-2. **Dopo 1 mese**: Richiedi NAT Gateway e migra a container unificato
-3. **Dopo 2 mesi**: Implementa Grafana dashboard con metriche da `/api/stats/*`
-4. **Dopo 3 mesi**: Valuta integrazione Azure Monitor per alerting avanzato
-
----
-
-## 📚 Riferimenti
+## Riferimenti
 
 - [RICHIESTA-NAT-GATEWAY-PSN.md](./RICHIESTA-NAT-GATEWAY-PSN.md) - Template richiesta NAT Gateway
 - [app-v2.5-IMPROVED.py](./app-v2.5-IMPROVED.py) - Codice sorgente API
 - [errata-sync-v2.5-IMPROVED.sh](./errata-sync-v2.5-IMPROVED.sh) - Script automazione
 - [UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md](UYUNI-ERRATA-MANAGER.md) - Documentazione base
-
----
-
-**Versione**: 2.5
-**Data**: 2026-01-07
-**Autore**: Security Patch Management Team

@@ -1,6 +1,5 @@
 Installazione di **UYUNI Proxy 2025.10** su **openSUSE Leap 15.6** in ambiente **Azure** con deployment containerizzato tramite **Podman**.
 ### Architettura Target
-
 ```
 UYUNI Server (10.172.2.17)
         │
@@ -61,10 +60,7 @@ UYUNI Proxy (10.172.2.20)
 | -------- | ------------------- | --------- | -------- | ----------- | ----------- | ------ |
 | 100      | AllowHTTPS_ToServer | 443       | TCP      | 10.172.2.20 | 10.172.2.17 | Allow  |
 | 110      | AllowSalt_ToServer  | 4505-4506 | TCP      | 10.172.2.20 | 10.172.2.17 | Allow  |
-
----
 ## FASE 1: Preparazione del Sistema Base
-
 ### Dalla VM
 #### Diventa root
 ```bash
@@ -74,7 +70,6 @@ sudo su -
 ```bash
 cat /etc/os-release
 ```
-
 Output atteso:
 ```
 NAME="openSUSE Leap"
@@ -113,7 +108,6 @@ cp /etc/chrony.conf /etc/chrony.conf.bak
 ```bash
 nano /etc/chrony.conf
 ```
-
 Configurazione:
 ```
 # Server NTP (sostituire con i propri server aziendali)
@@ -167,7 +161,6 @@ ip addr show eth0
 ```bash
 nano /etc/hosts
 ```
-
 Aggiungere:
 ```
 10.172.2.20    uyuni-proxy-test.uyuni.internal    uyuni-proxy-test
@@ -176,7 +169,6 @@ Aggiungere:
 
 > **IMPORTANTE**: Il Proxy DEVE risolvere l'FQDN del Server UYUNI. Aggiungere anche l'entry del Server nel file hosts se non si usa Azure Private DNS Zone.
 ### Verificare la Configurazione DNS
-
 #### Test risoluzione diretta
 ```bash
 ping -c 2 $(hostname -f)
@@ -309,7 +301,7 @@ systemctl enable --now podman.socket
 ```
 ## FASE 7: Registrare l'Host Proxy come Salt Minion
 
-> **PREREQUISITO CRITICO**: L'host del Proxy DEVE essere registrato come Salt minion sul Server UYUNI **PRIMA** di generare la configurazione Proxy. Senza questo passaggio, la generazione del certificato SSL fallirà.
+> L'host del Proxy DEVE essere registrato come Salt minion sul Server UYUNI **PRIMA** di generare la configurazione Proxy. Senza questo passaggio, la generazione del certificato SSL fallirà.
 
 ### Sul Server UYUNI: Generare il Bootstrap Script
 Il bootstrap script **non è presente di default** — va generato manualmente.
@@ -330,9 +322,7 @@ Verificare che lo script sia stato creato:
 ```bash
 mgrctl exec -- ls -la /srv/www/htdocs/pub/bootstrap/bootstrap.sh
 ```
-
 ### Sul Server UYUNI: Creare Activation Key per il Proxy
-
 Dalla **Web UI** del Server UYUNI (`https://uyuni-server-test.uyuni.internal`):
 
 1. **Systems → Activation Keys → Create Key**
@@ -346,12 +336,10 @@ Dalla **Web UI** del Server UYUNI (`https://uyuni-server-test.uyuni.internal`):
 | **Add-On Entitlements** | Container Build Host                                |
 | **Contact Method**      | Default                                             |
 
-> **NOTA**: Se hai i canali openSUSE Leap 15.6 sincronizzati sul Server, puoi selezionarli esplicitamente come Base Channel. Altrimenti usa "Universal Default" e Uyuni auto-detecterà l'OS.
+> Se hai i canali openSUSE Leap 15.6 sincronizzati sul Server, puoi selezionarli esplicitamente come Base Channel. Altrimenti usa "Universal Default" e Uyuni auto-detecterà l'OS.
 
 3. **Create Activation Key**
-
 ### Sull'Host Proxy: Bootstrap via Script
-
 ```bash
 curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap.sh | /bin/bash
 ```
@@ -375,14 +363,12 @@ Oppure da CLI sul Server:
 ```bash
 mgrctl exec -- salt-key -a uyuni-proxy-test.uyuni.internal
 ```
-
 ### Verificare Registrazione
 Dalla Web UI:
 1. **Systems → System List**
 2. Verificare che `uyuni-proxy-test` appaia nella lista
 3. Cliccare sul sistema e verificare lo stato "Active"
 ## FASE 8: Generare Configurazione Proxy e Certificato SSL
-
 ### Opzione A: Via Web UI
 
 1. Sul Server UYUNI, andare su **Systems → Proxy Configuration**
@@ -397,14 +383,13 @@ Dalla Web UI:
 | **SSL Certificate**      | Generate                           |
 
 3. Per la sezione SSL, servono i **file CA del Server UYUNI**. Recuperarli dal Server:
-
 #### Recuperare i file CA dal container Server
 ```bash
 sudo podman cp uyuni-server:/root/ssl-build/RHN-ORG-TRUSTED-SSL-CERT /tmp/ca.crt
 sudo podman cp uyuni-server:/root/ssl-build/RHN-ORG-PRIVATE-SSL-KEY /tmp/ca.key
 ```
 
-> **NOTA**: Il file `ca.key` è accessibile solo da root. Se WinSCP restituisce "Permission denied", eseguire sul Server:
+> Il file `ca.key` è accessibile solo da root. Se WinSCP restituisce "Permission denied", eseguire sul Server:
 > ```bash
 > sudo chmod 644 /tmp/ca.key
 > ```
@@ -439,10 +424,9 @@ sudo podman cp uyuni-server:/root/ssl-build/RHN-ORG-PRIVATE-SSL-KEY /tmp/ca.key
 7. Cliccare **Generate**
 8. Scaricare il file `config.tar.gz` generato
 
-> **IMPORTANTE**: Il certificato generato NON è self-signed. Viene firmato dalla CA interna di Uyuni (creata durante l'installazione del Server). Tutti i client che si fidano già del Server si fideranno anche del Proxy.
+> Il certificato generato NON è self-signed. Viene firmato dalla CA interna di Uyuni (creata durante l'installazione del Server). Tutti i client che si fidano già del Server si fideranno anche del Proxy.
 
 ### Opzione B: Via spacecmd (CLI — evita il trasferimento dei file CA)
-
 Dal Server UYUNI, questo comando usa la CA già presente nel container senza bisogno di trasferire file:
 ```bash
 mgrctl exec -ti 'spacecmd proxy_container_config_generate_cert -- \
@@ -454,7 +438,7 @@ mgrctl exec -ti 'spacecmd proxy_container_config_generate_cert -- \
   -p 8022'
 ```
 
-> **PER PRODUZIONE**: Per certificati firmati dalla CA aziendale, vedere sezione "Certificati Custom per Production" in fondo.
+> Per certificati firmati dalla CA aziendale, vedere sezione "Certificati Custom per Production" in fondo.
 ## FASE 9: Installazione Container Proxy
 ### Sull'Host Proxy: Installare i Container
 ```bash
@@ -467,33 +451,27 @@ L'installazione:
 - Configura il pod `uyuni-proxy-pod`
 - Crea il servizio systemd
 - Abilita IPv4/IPv6 forwarding
-
 ### Fix Bug: Volume mount mancante per systemid
 
-> **BUG NOTO**: L'immagine `proxy-httpd` tenta di scrivere in `/etc/sysconfig/rhn/systemid` all'interno del container, ma questa directory non viene montata dal servizio systemd generato da `mgrpxy`. Senza questo fix, il container httpd crasha in loop con errore `FileNotFoundError: '/etc/sysconfig/rhn/systemid'`.
-
+> **BUG** L'immagine `proxy-httpd` tenta di scrivere in `/etc/sysconfig/rhn/systemid` all'interno del container, ma questa directory non viene montata dal servizio systemd generato da `mgrpxy`. Senza questo fix, il container httpd crasha in loop con errore `FileNotFoundError: '/etc/sysconfig/rhn/systemid'`.
 #### Creare la directory e il file sull'host
 ```bash
 mkdir -p /etc/sysconfig/rhn
 touch /etc/sysconfig/rhn/systemid
 ```
-
 #### Aggiungere il volume mount al service file
 ```bash
 sed -i 's|-v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro|-v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro \\\n-v /etc/sysconfig/rhn:/etc/sysconfig/rhn|' /etc/systemd/system/uyuni-proxy-httpd.service
 ```
-
 #### Verificare la modifica
 ```bash
 grep sysconfig /etc/systemd/system/uyuni-proxy-httpd.service
 ```
-
 Output atteso:
 ```
 -v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro \
 -v /etc/sysconfig/rhn:/etc/sysconfig/rhn \
 ```
-
 #### Ricaricare e avviare
 ```bash
 systemctl daemon-reload
@@ -501,13 +479,10 @@ systemctl start uyuni-proxy-pod
 sleep 2
 systemctl start uyuni-proxy-httpd
 ```
-
 ### Verificare Container Attivi
-
 ```bash
 podman ps
 ```
-
 Output atteso (5 container):
 ```
 CONTAINER ID  IMAGE                                          STATUS         NAMES
@@ -526,7 +501,6 @@ podman pod ps
 systemctl enable uyuni-proxy-pod uyuni-proxy-httpd uyuni-proxy-squid uyuni-proxy-tftpd uyuni-proxy-salt-broker uyuni-proxy-ssh
 ```
 ### Verificare dal Server UYUNI
-
 Dalla Web UI:
 1. **Systems → System List** → selezionare `uyuni-proxy-test`
 2. Tab **Details → Proxy**
@@ -534,25 +508,20 @@ Dalla Web UI:
 ## FASE 10: Ri-puntare i Client Esistenti al Proxy
 
 Ora i 3 client (2 Ubuntu + 1 RHEL) devono essere reindirizzati dal Server diretto al Proxy.
-
 ### Prerequisito: Configurare DNS sui Client
-
-> **IMPORTANTE**: Prima di cambiare proxy, ogni client DEVE poter risolvere l'FQDN del Proxy. Senza questo passaggio il client non riuscirà a connettersi e risulterà offline.
+> Prima di cambiare proxy, ogni client DEVE poter risolvere l'FQDN del Proxy. Senza questo passaggio il client non riuscirà a connettersi e risulterà offline.
 
 Su **ogni client**, aggiungere l'entry del Proxy in `/etc/hosts`:
 ```bash
 echo "10.172.2.20    uyuni-proxy-test.uyuni.internal    uyuni-proxy-test" >> /etc/hosts
 ```
-
 Verificare la risoluzione:
 ```bash
 ping -c 2 uyuni-proxy-test.uyuni.internal
 ```
 
-> **NOTA**: I client non hanno più bisogno di raggiungere il Server direttamente. Il flusso diventa: `Client → Proxy → Server`. L'entry del Server nel file hosts può restare ma non è più necessaria.
-
+> II client non hanno più bisogno di raggiungere il Server direttamente. Il flusso diventa: `Client → Proxy → Server`. L'entry del Server nel file hosts può restare ma non è più necessaria.
 ### Opzione A: Via Web UI
-
 Per **ogni client**:
 
 1. **Systems → System List** → cliccare sul sistema
@@ -564,13 +533,9 @@ Per **ogni client**:
 Uyuni schedula un'azione che modifica la configurazione Salt del client e riavvia il Salt minion. Verificare lo stato in **Events → History**.
 
 > Se dopo 5 minuti il client risulta offline ("Minion is down"), verificare che il DNS sia configurato correttamente sul client (prerequisito sopra).
-
 ### Opzione B: Via CLI (su ogni client manualmente)
-
 Se la Web UI non applica le modifiche, procedere manualmente:
-
 #### Modificare configurazione Salt minion
-
 Per client con `venv-salt-minion` (Ubuntu/RHEL registrati con bootstrap):
 ```bash
 sed -i 's/uyuni-server-test.uyuni.internal/uyuni-proxy-test.uyuni.internal/' /etc/venv-salt-minion/minion.d/susemanager.conf
@@ -582,20 +547,16 @@ Per client con `salt-minion` standard:
 sed -i 's/uyuni-server-test.uyuni.internal/uyuni-proxy-test.uyuni.internal/' /etc/salt/minion.d/susemanager.conf
 systemctl restart salt-minion
 ```
-
 #### Verificare connessione
 ```bash
 salt-call test.ping
 ```
-
 Output atteso:
 ```
 local:
     True
 ```
-
 ### Verificare che i Client siano Connessi via Proxy
-
 Dalla Web UI del Server:
 1. **Systems → System List** → cliccare su un client
 2. Tab **Details → Connection**
@@ -605,11 +566,7 @@ Dalla pagina del Proxy:
 1. **Systems → System List** → `uyuni-proxy-test`
 2. Tab **Details → Proxy**
 3. Deve elencare i client connessi tramite questo proxy
-
----
-
 ## Troubleshooting
-
 ### I container Proxy non si avviano
 
 ```bash
@@ -628,9 +585,7 @@ mgrpxy start
 # Oppure via systemd
 systemctl restart uyuni-proxy-pod
 ```
-
 ### Client non si connette al Proxy
-
 ```bash
 # Dal client, verificare configurazione master
 cat /etc/salt/minion.d/susemanager.conf
@@ -648,9 +603,7 @@ systemctl restart salt-minion
 # Verificare logs Salt minion
 journalctl -u salt-minion -f
 ```
-
 ### Proxy non raggiunge il Server
-
 ```bash
 # Dall'host Proxy, test connettività verso Server
 ping uyuni-server-test.uyuni.internal
@@ -664,9 +617,7 @@ host uyuni-server-test.uyuni.internal
 # Verificare firewall
 firewall-cmd --list-all
 ```
-
 ### Problemi Certificati SSL
-
 ```bash
 # Verificare certificato Proxy
 podman exec proxy-httpd openssl x509 -in /etc/pki/tls/certs/spacewalk.crt -text -noout
@@ -674,7 +625,6 @@ podman exec proxy-httpd openssl x509 -in /etc/pki/tls/certs/spacewalk.crt -text 
 # Verificare CA del Server
 openssl s_client -connect uyuni-server-test.uyuni.internal:443 </dev/null 2>/dev/null | openssl x509 -noout -dates
 ```
-
 ### Cache Squid piena
 
 ```bash
@@ -684,20 +634,14 @@ df -h /proxy_storage
 # Verificare cache Squid
 podman exec proxy-squid du -sh /var/cache/squid/
 ```
-
----
-
 ## Certificati Custom per Production
-
 Per ambienti production con CA aziendale:
-
 ### 1. Copiare certificati nel container Server
 ```bash
 podman cp ca.crt uyuni-server:/tmp/
 podman cp proxy.crt uyuni-server:/tmp/
 podman cp proxy.key uyuni-server:/tmp/
 ```
-
 ### 2. Generare configurazione con certificati custom
 ```bash
 mgrctl exec -ti 'spacecmd proxy_container_config -- \
@@ -711,11 +655,7 @@ mgrctl exec -ti 'spacecmd proxy_container_config -- \
   /tmp/proxy.key \
   -o /tmp/config.tar.gz'
 ```
-
----
-
 ## Comandi Utili - Quick Reference
-
 ### Gestione Proxy
 ```bash
 mgrpxy start               # Avvia il proxy
@@ -725,7 +665,6 @@ mgrpxy logs                # Visualizza logs
 mgrpxy upgrade             # Aggiornamento container
 mgrpxy uninstall           # Rimuovi proxy
 ```
-
 ### Container e Pod
 ```bash
 podman ps                  # Lista container attivi
@@ -733,7 +672,6 @@ podman pod ps              # Stato pod
 podman logs <container>    # Log specifico container
 podman logs -f proxy-httpd # Log in tempo reale
 ```
-
 ### Systemd
 ```bash
 systemctl status uyuni-proxy-pod    # Stato servizio
@@ -741,7 +679,6 @@ systemctl restart uyuni-proxy-pod   # Riavvia
 systemctl enable uyuni-proxy-pod    # Abilita auto-start
 journalctl -u uyuni-proxy-pod -f   # Log systemd
 ```
-
 ### Storage
 ```bash
 df -h /proxy_storage                # Spazio disco cache
@@ -750,7 +687,6 @@ podman system df                    # Uso storage container
 ```
 
 ---
-
 ## Riferimenti
 
 - [Proxy Deployment on openSUSE](https://www.uyuni-project.org/uyuni-docs/en/uyuni/installation-and-upgrade/container-deployment/uyuni/proxy-deployment-uyuni.html)

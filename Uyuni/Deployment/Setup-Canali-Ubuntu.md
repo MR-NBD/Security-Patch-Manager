@@ -73,22 +73,14 @@ Output atteso:
  ubuntu-2404-amd64-uyuni-client-devel: amd64-deb
  ubuntu-2404-pool-amd64-uyuni: amd64-deb
 ```
-
----
-
 ## FASE 2: Creazione Canali con spacewalk-common-channels
-
-> **IMPORTANTE**: I canali devono essere creati in ordine gerarchico. Prima il Pool (base), poi i child channels.
-
-### 2.1 Crea Pool Channel (Base)
-
+> I canali devono essere creati in ordine gerarchico. Prima il Pool (base), poi i child channels.
+### Crea Pool Channel (Base)
 ```bash
 # Il pool è il parent channel - DEVE essere creato per primo
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-pool-amd64-uyuni
 ```
-
-### 2.2 Crea Main Channels
-
+### Crea Main Channels
 ```bash
 # Main (base packages)
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-uyuni
@@ -99,9 +91,7 @@ spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-security
 # Main Updates (aggiornamenti generali)
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-updates-uyuni
 ```
-
-### 2.3 Crea Universe Channels (Opzionale ma consigliato)
-
+### Crea Universe Channels (Opzionale ma consigliato)
 ```bash
 # Universe (pacchetti community - necessario per OpenSCAP)
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-universe-uyuni
@@ -112,22 +102,17 @@ spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-universe-secu
 # Universe Updates
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-universe-updates-uyuni
 ```
-
-### 2.4 Crea UYUNI Client Channel (Obbligatorio per bootstrap)
-
+### Crea UYUNI Client Channel (Obbligatorio per bootstrap)
 ```bash
 # Client Tools - contiene venv-salt-minion per registrazione client
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-uyuni-client
 ```
 
-> **IMPORTANTE**: Senza questo canale, il bootstrap dei client fallirà con errore: `ERROR: package 'venv-salt-minion' not found`
-
-### 2.5 Verifica Canali Creati
-
+> Senza questo canale, il bootstrap dei client fallirà con errore: `ERROR: package 'venv-salt-minion' not found`
+### Verifica Canali Creati
 ```bash
 spacecmd -u admin -p <password> softwarechannel_list
 ```
-
 Output atteso:
 ```
 ubuntu-24.04-pool-amd64-uyuni
@@ -139,13 +124,8 @@ ubuntu-2404-amd64-universe-updates-uyuni
 ubuntu-2404-amd64-universe-uyuni
 ubuntu-2404-amd64-uyuni-client
 ```
-
----
-
 ## FASE 3: Sincronizzazione Repository
-
-### 3.1 Avvia Sync Manuale
-
+### Avvia Sync Manuale
 ```bash
 # Sync tutti i canali in sequenza
 spacewalk-repo-sync --channel ubuntu-2404-amd64-main-uyuni
@@ -156,16 +136,13 @@ spacewalk-repo-sync --channel ubuntu-2404-amd64-universe-security-uyuni
 spacewalk-repo-sync --channel ubuntu-2404-amd64-universe-updates-uyuni
 spacewalk-repo-sync --channel ubuntu-2404-amd64-uyuni-client
 ```
-
 Oppure avvia in background:
 ```bash
 spacewalk-repo-sync --channel ubuntu-2404-amd64-main-uyuni &
 spacewalk-repo-sync --channel ubuntu-2404-amd64-main-security-uyuni &
 spacewalk-repo-sync --channel ubuntu-2404-amd64-main-updates-uyuni &
 ```
-
-### 3.2 Monitoraggio Sync
-
+### Monitoraggio Sync
 ```bash
 # Processi attivi
 ps aux | grep spacewalk-repo-sync
@@ -182,8 +159,7 @@ watch -n 5 'df -h /var/spacewalk'
 # Conteggio pacchetti sincronizzati
 spacecmd -u admin -p <password> softwarechannel_listallpackages ubuntu-2404-amd64-main-uyuni | wc -l
 ```
-
-### 3.3 Tempi e Dimensioni Stimate
+### Tempi e Dimensioni Stimate
 
 | Canale | Pacchetti | Dimensione | Tempo Stimato |
 |--------|-----------|------------|---------------|
@@ -197,8 +173,7 @@ spacecmd -u admin -p <password> softwarechannel_listallpackages ubuntu-2404-amd6
 | UYUNI Client | ~50 | ~100 MB | 2-5 min |
 
 **Totale stimato**: ~100-120 GB, 5-10 ore
-
-### 3.4 Risultato Sync (Esempio Reale)
+### Risultato Sync (Esempio Reale)
 
 | Canale | Pacchetti | Errata |
 |--------|-----------|--------|
@@ -208,15 +183,9 @@ spacecmd -u admin -p <password> softwarechannel_listallpackages ubuntu-2404-amd6
 | Main Updates | 9,067 | 0 |
 | Universe | 64,755 | 0 |
 | Universe Updates | 7,384 | 73 |
-
 **Totale**: ~95,000 pacchetti, **391 errata** di sicurezza
-
----
-
 ## FASE 4: Creazione Activation Keys
-
-### 4.1 Activation Key Test
-
+### Activation Key Test
 **Systems** → **Activation Keys** → **Create Key**
 
 | Campo | Valore |
@@ -225,26 +194,19 @@ spacecmd -u admin -p <password> softwarechannel_listallpackages ubuntu-2404-amd6
 | **Key** | `1-ak-ubuntu2404-test` |
 | **Usage Limit** | (vuoto = illimitato) |
 | **Base Channel** | `ubuntu-24.04-pool-amd64-uyuni` |
-
 Dopo la creazione:
 1. Tab **Child Channels** → seleziona tutti i child channels incluso `ubuntu-2404-amd64-uyuni-client`
 2. Tab **Configuration** → Enable Configuration Management (opzionale)
 3. **Update Key**
-
-### 4.2 Activation Key Production
+### Activation Key Production
 
 | Campo | Valore |
 |-------|--------|
 | **Description** | Ubuntu 24.04 Production Systems |
 | **Key** | `1-ak-ubuntu2404-prod` |
 | **Base Channel** | `ubuntu-24.04-pool-amd64-uyuni` |
-
----
-
 ## FASE 5: Registrazione Client
-
-### 5.1 Pre-requisiti sul Client
-
+### Pre-requisiti sul Client
 ```bash
 # Sul client Ubuntu 24.04
 sudo su -
@@ -259,9 +221,7 @@ ping -c 2 uyuni-server-test.uyuni.internal
 nc -zv uyuni-server-test.uyuni.internal 4505
 nc -zv uyuni-server-test.uyuni.internal 4506
 ```
-
-### 5.2 Bootstrap Script (Consigliato)
-
+### Bootstrap Script (Consigliato)
 ```bash
 # Scarica e esegui bootstrap
 curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap.sh -o /tmp/bootstrap.sh
@@ -270,9 +230,7 @@ chmod +x /tmp/bootstrap.sh
 # Esegui con activation key (senza il prefisso "1-")
 /tmp/bootstrap.sh -a ak-ubuntu2404-test
 ```
-
-### 5.3 Accetta Salt Key
-
+### Accetta Salt Key
 Da container UYUNI:
 
 ```bash
@@ -281,38 +239,24 @@ salt-key -L          # Lista keys
 salt-key -a <minion-id>  # Accetta specifica
 salt-key -A          # Accetta tutte
 ```
-
----
-
 ## FASE 6: Verifica e Test
-
-### 6.1 Verifica Sistema Registrato
-
+### Verifica Sistema Registrato
 **Systems** → **All** → clicca sul sistema
-
 Verifica:
 - Status verde
 - Base Channel: `ubuntu-24.04-pool-amd64-uyuni`
 - Child Channels assegnati (incluso uyuni-client)
-
-### 6.2 Test Connettività Salt
-
+### Test Connettività Salt
 ```bash
 salt '<minion-id>' test.ping
 salt '<minion-id>' grains.item os osrelease
 ```
-
-### 6.3 Installazione OpenSCAP
-
+### Installazione OpenSCAP
 ```bash
 # Da client o via UYUNI
 apt-get install -y openscap-scanner ssg-base
 ```
-
----
-
 ## Canali Opzionali
-
 ### Multiverse (software non-free)
 
 ```bash
@@ -320,28 +264,19 @@ spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-multiverse-uy
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-multiverse-security-uyuni
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-multiverse-updates-uyuni
 ```
-
 ### Restricted (driver proprietari)
-
 ```bash
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-restricted-uyuni
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-restricted-security-uyuni
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-restricted-updates-uyuni
 ```
-
 ### Backports
-
 ```bash
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-backports-uyuni
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-universe-backports-uyuni
 ```
-
----
-
 ## Troubleshooting
-
 ### "No channels matching your selection"
-
 Il canale Pool deve essere creato **prima** degli altri canali:
 ```bash
 # PRIMA il pool
@@ -350,17 +285,13 @@ spacewalk-common-channels -u admin -p <password> ubuntu-2404-pool-amd64-uyuni
 # POI i child
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-uyuni
 ```
-
 ### "package 'venv-salt-minion' not found"
-
 Manca il canale UYUNI Client Tools:
 ```bash
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-uyuni-client
 spacewalk-repo-sync --channel ubuntu-2404-amd64-uyuni-client
 ```
-
 ### "No space left on device"
-
 ```bash
 # Verifica spazio
 df -h /manager_storage
@@ -371,9 +302,7 @@ sudo pvresize /dev/sdc1
 sudo lvextend -l +100%FREE /dev/vg_uyuni_repo/lv_repo
 sudo xfs_growfs /manager_storage
 ```
-
 ### Pulizia canali per ricominciare
-
 ```bash
 # Lista canali
 spacecmd -u admin -p <password> softwarechannel_list
@@ -385,17 +314,13 @@ spacecmd -u admin -p <password> softwarechannel_delete ubuntu-2404-amd64-main-uy
 rm -rf /var/spacewalk/packages/*
 rm -rf /var/cache/rhn/reposync/*
 ```
-
 ### Container UYUNI non risponde
-
 ```bash
 # Fuori dal container
 sudo systemctl restart uyuni-server-pod
 sudo podman ps
 ```
-
 ### Verifica sync in corso
-
 ```bash
 # Processi attivi
 ps aux | grep spacewalk-repo-sync
@@ -408,13 +333,10 @@ Admin → Task Schedules → vedi job Running
 ```
 
 ---
-
 ## Metodo Alternativo: Creazione Manuale (Web UI)
 
 Se preferisci creare i canali manualmente via Web UI invece di usare `spacewalk-common-channels`, consulta la sezione "Creazione Canali Manuale" nell'Appendice.
-
 ### Appendice: Import GPG Keys
-
 Ubuntu usa diverse GPG keys per firmare i pacchetti. Se necessario importarle manualmente:
 
 ```bash
@@ -429,25 +351,16 @@ curl -fsSL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x871920D1991B
 | GPG key Fingerprint | `F6EC B376 2474 EDA9 D21B 7022 8719 20D1 991B C93C` |
 
 > **NOTA**: Con `spacewalk-common-channels` le GPG keys sono gestite automaticamente.
-
----
 ## Note importanti
-
 ### Storage
-
 UYUNI **non duplica** i pacchetti fisicamente. I canali CLM usano riferimenti agli stessi file, quindi lo spazio occupato è solo quello dei pacchetti unici.
-
 Verifica spazio:
 ```bash
 du -sh /var/spacewalk/packages/
 ```
-
 ### Rinnovo certificati
-
 I certificati di entitlement Red Hat hanno una scadenza che corrisponde alla subscription. Ricordati di rinnovarli prima della scadenza ripetendo la procedura di ottenimento e caricamento.
-
 ### Espansione storage con LVM
-
 Se lo spazio disco si esaurisce durante il sync, puoi espandere a caldo con LVM:
 
 ```bash
@@ -458,9 +371,6 @@ lvextend -L +100G /dev/vg_uyuni_repo/lv_repo
 xfs_growfs /manager_storage   # per XFS
 # resize2fs /dev/vg_uyuni_repo/lv_repo   # per ext4
 ```
-
----
-
 ## Struttura canali risultante
 
 ```

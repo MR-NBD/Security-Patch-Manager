@@ -1,15 +1,9 @@
-# Configurazione RHEL 9 con UYUNI via Red Hat CDN
-
-Guida completa per la gestione di client Red Hat Enterprise Linux 9 con UYUNI Server utilizzando il Content Delivery Network (CDN) di Red Hat.
-
-**Riferimento ufficiale**: https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/clients-rh-cdn.html
-
----
+Guida per la gestione di client Red Hat Enterprise Linux 9 con UYUNI Server utilizzando il Content Delivery Network (CDN) di Red Hat.
+**Riferimento**: https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/clients-rh-cdn.html
 
 ## Registrazione del sistema RHEL e ottenimento certificati
 ### Registra il sistema con subscription-manager
 Sulla **VM RHEL**, esegui:
-
 ```bash
 subscription-manager register --username=TUO_USER --password=TUA_PASS
 ```
@@ -17,7 +11,6 @@ subscription-manager register --username=TUO_USER --password=TUA_PASS
 ```bash
 subscription-manager status
 ```
-
 Output atteso (con Simple Content Access):
 ```
 +-------------------------------------------+
@@ -38,7 +31,6 @@ name: nome-vm
 org name: xxxxxx
 ```
 ### Verifica i certificati generati
-
 ```bash
 ls -la /etc/pki/entitlement/
 ls -la /etc/rhsm/ca/
@@ -106,7 +98,6 @@ spacewalk-common-channels -l | grep rhel9
 ```
 ## Ottieni gli URL dei repository Red Hat
 Sulla **VM RHEL**:
-
 ```bash
 subscription-manager repos --list-enabled
 ```
@@ -197,8 +188,7 @@ tail -f /var/log/rhn/reposync/rhel9-baseos-cdn.log
 tail -f /var/log/rhn/reposync/rhel9-appstream-cdn.log
 ```
 **Nota**: La sincronizzazione può richiedere diverse ore. I canali RHEL 9 sono molto grandi (~50-60 GB totali).
-### Verifica spazio disco
-
+#### Verifica spazio disco
 ```bash
 df -h /var/spacewalk/
 ```
@@ -211,7 +201,6 @@ Se usi container:
 ```bash
 mgrctl exec -ti mgr-create-bootstrap-repo
 ```
-
 Seleziona `rhel9-pool-uyuni` quando richiesto.
 ## Content Lifecycle Management (CLM)
 ### Crea il progetto
