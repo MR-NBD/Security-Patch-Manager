@@ -37,11 +37,11 @@ ls -la /etc/rhsm/ca/
 ```
 ## Certificati necessari per RHEL CDN
 
-| Certificato | Path sul sistema RHEL | Tipo in UYUNI | Scopo |
-|-------------|----------------------|---------------|-------|
-| Entitlement Certificate | `/etc/pki/entitlement/<ID>.pem` | SSL | Prova la validità della subscription |
-| Entitlement Key | `/etc/pki/entitlement/<ID>-key.pem` | SSL | Chiave privata associata al certificato |
-| Red Hat CA | `/etc/rhsm/ca/redhat-uep.pem` | SSL | CA root per validare la connessione SSL al CDN |
+| Certificato             | Path sul sistema RHEL               | Tipo in UYUNI | Scopo                                          |
+| ----------------------- | ----------------------------------- | ------------- | ---------------------------------------------- |
+| Entitlement Certificate | `/etc/pki/entitlement/<ID>.pem`     | SSL           | Prova la validità della subscription           |
+| Entitlement Key         | `/etc/pki/entitlement/<ID>-key.pem` | SSL           | Chiave privata associata al certificato        |
+| Red Hat CA              | `/etc/rhsm/ca/redhat-uep.pem`       | SSL           | CA root per validare la connessione SSL al CDN |
 ## Trasferimento certificati al server UYUNI
 ### Copia i certificati dalla VM RHEL
 Dalla **VM RHEL**:
