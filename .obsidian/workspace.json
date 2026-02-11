@@ -49,8 +49,7 @@
               "title": "ASL0603"
             }
           }
-        ],
-        "currentTab": 2
+        ]
       }
     ],
     "direction": "vertical"
@@ -224,8 +223,9 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "f2b1d8d0b2f6ef0d",
+  "active": "8ca8113ad3726bba",
   "lastOpenFiles": [
+    "Utenze/ASL0603.md",
     "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
@@ -236,7 +236,6 @@
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770739832573",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770736102566",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770736042258",
-    "Utenze/ASL0603.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770722833883",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770722801409",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770716924978",

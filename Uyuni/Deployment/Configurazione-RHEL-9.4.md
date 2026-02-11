@@ -137,7 +137,7 @@ Repo URL:  https://cdn.redhat.com/content/dist/rhel9/$releasever/x86_64/appstrea
 | SSL Client Key | `RHEL9-Entitlement-Key` |
 
 **Importante**: I repository Red Hat CDN non hanno metadati firmati, quindi "Has Signed Metadata?" deve essere deselezionato.
-## Creazione canali CUSTOM
+## NON TESTATO - Creazione canali CUSTOM
 **Software → Manage → Channels → Create Channel**
 ### Canale 1: BaseOS
 
