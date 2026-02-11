@@ -1,6 +1,5 @@
 Guida per la gestione di client Red Hat Enterprise Linux 9 con UYUNI Server utilizzando il Content Delivery Network (CDN) di Red Hat.
 **Riferimento**: https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/clients-rh-cdn.html
-
 ## Registrazione del sistema RHEL e ottenimento certificati
 ### Registra il sistema con subscription-manager
 Sulla **VM RHEL**, esegui:
