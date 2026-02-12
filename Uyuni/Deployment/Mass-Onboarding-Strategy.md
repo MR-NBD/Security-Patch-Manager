@@ -246,8 +246,7 @@ mgrctl exec -- salt '*' test.ping
 
 > **Per le VM create su Azure tramite Terraform o ARM templates, questo metodo permette l'auto-registrazione al primo boot senza alcun intervento post-creazione.** È il complemento ideale al Metodo Primario per ambienti cloud.
 
-### 5.1 Come funziona
-
+### Come funziona
 Cloud-init è un servizio standard presente nelle immagini cloud (Ubuntu, RHEL, SUSE) che esegue comandi personalizzati al primo avvio della VM. Inserendo il comando di bootstrap nel `user_data` della VM, la registrazione su UYUNI avviene automaticamente.
 
 ```
@@ -270,9 +269,7 @@ Terraform / ARM Template
          ▼
    Sistema registrato automaticamente
 ```
-
-### 5.2 Implementazione con Terraform
-
+### Implementazione con Terraform
 ```hcl
 resource "azurerm_linux_virtual_machine" "client" {
   count               = 100  # Numero di VM da creare
@@ -293,9 +290,7 @@ resource "azurerm_linux_virtual_machine" "client" {
   )
 }
 ```
-
-### 5.3 Implementazione con Azure CLI
-
+### Implementazione con Azure CLI
 ```bash
 az vm create \
   --resource-group myRG \
@@ -304,7 +299,6 @@ az vm create \
   --custom-data cloud-init-bootstrap.yaml \
   --size Standard_B2s
 ```
-
 Dove `cloud-init-bootstrap.yaml`:
 ```yaml
 #cloud-config
@@ -313,8 +307,7 @@ runcmd:
   - chmod +x /tmp/bootstrap.sh
   - /tmp/bootstrap.sh
 ```
-
-### 5.4 Vantaggi e limiti
+### Vantaggi e limiti
 
 | Vantaggi | Limiti |
 |---|---|
@@ -324,15 +317,13 @@ runcmd:
 | Integrazione nativa con IaC pipeline | Non applicabile a sistemi già esistenti |
 | Ogni VM si registra indipendentemente | |
 
-### 5.5 Quando usare questo metodo
-
+### Quando usare questo metodo
 - **Nuove VM Azure** create tramite Terraform, ARM templates, o Azure CLI
 - **Scale-out automatico** (es. VMSS - Virtual Machine Scale Sets)
 - **Pipeline IaC** dove l'infrastruttura è definita come codice
 
 **Non usare** per sistemi già esistenti e in esecuzione (per quelli, usare il Metodo Primario).
-
-### 5.6 Tool ufficiale: sumaform
+### Tool ufficiale: sumaform
 
 Il progetto UYUNI mantiene [sumaform](https://github.com/uyuni-project/sumaform), un set di moduli Terraform per il deploy completo di ambienti UYUNI (server, proxy, client). Supporta backend libvirt e AWS. Usato internamente dal progetto per il CI/CD, può servire come riferimento architetturale.
 
@@ -340,15 +331,11 @@ Il progetto UYUNI mantiene [sumaform](https://github.com/uyuni-project/sumaform)
 - [Automatic Registration of Clients Created by Terraform](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/automatic-client-registration.html)
 - [Registering Clients on a Public Cloud](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/clients-pubcloud.html)
 - [sumaform su GitHub](https://github.com/uyuni-project/sumaform)
-
----
-
-## 6. METODO ALTERNATIVO: spacecmd / API XML-RPC
+## METODO ALTERNATIVO: spacecmd / API XML-RPC
 
 > **Utile quando non si ha accesso SSH diretto ai client dal proprio workstation, ma si ha accesso al server UYUNI.** Il server stesso si connette via SSH ai target.
 
-### 6.1 spacecmd (CLI)
-
+### spacecmd (CLI)
 `spacecmd` è un tool CLI Python installato di default sul server UYUNI. Wrappa l'API XML-RPC in comandi leggibili.
 
 **Bootstrap singolo host**:
@@ -370,9 +357,7 @@ while IFS=',' read -r host ak; do
   sleep 15  # Rate limiting
 done < hosts.csv
 ```
-
-### 6.2 API XML-RPC (Python)
-
+### API XML-RPC (Python)
 Per maggiore controllo, si può usare direttamente l'API XML-RPC con Python:
 
 ```python
@@ -428,9 +413,7 @@ result = client.system.bootstrapWithPrivateSshKey(
     False                 # saltSSH
 )
 ```
-
-### 6.3 API Bootstrap con Proxy
-
+### API Bootstrap con Proxy
 Se i client passano attraverso un UYUNI Proxy, usare l'overload con `proxyId`:
 
 ```python
@@ -450,8 +433,7 @@ result = client.system.bootstrap(
     False
 )
 ```
-
-### 6.4 Confronto: SSH diretto vs API Bootstrap
+### Confronto: SSH diretto vs API Bootstrap
 
 | Aspetto | Bootstrap Script via SSH | API system.bootstrap |
 |---|---|---|
@@ -461,32 +443,24 @@ result = client.system.bootstrap(
 | **Requisiti rete** | SSH dal workstation ai target | SSH dal server ai target |
 | **Effort** | Basso | Medio (scripting Python/Bash) |
 | **Uso consigliato** | Scenario principale | Quando non hai SSH diretto ai target |
-
-### 6.5 Issue nota
-
+### Issue nota
 C'è un bug storico ([#4737](https://github.com/uyuni-project/uyuni/issues/4737)) con il tipo del parametro `saltSSH`: alcune versioni richiedono `0`/`1` (int) invece di `True`/`False` (boolean). Se il bootstrap via API fallisce, provare a passare `0` invece di `False`.
 
 **Riferimenti**:
 - [Uyuni API - system namespace](https://www.uyuni-project.org/uyuni-docs-api/uyuni/api/system.html)
 - [spacecmd Reference](https://www.uyuni-project.org/uyuni-docs/en/uyuni/reference/spacecmd-intro.html)
 - [API Sample Scripts](https://documentation.suse.com/suma/4.3/api/suse-manager/api/scripts.html)
-
----
-
-## 7. Meccanismi Salt per Auto-Accept delle Chiavi
+## Meccanismi Salt per Auto-Accept delle Chiavi
 
 Quando un salt-minion si connette al master per la prima volta, genera una coppia di chiavi RSA 4096-bit e invia la chiave pubblica al master. L'amministratore deve **accettare** la chiave affinché la comunicazione cifrata venga stabilita.
 
 Con il Metodo Primario (bootstrap script + activation key), **l'accettazione è automatica** perché l'activation key autorizza il processo. Tuttavia, esistono meccanismi Salt aggiuntivi per gestire l'accettazione a livello di Salt master. Questi possono essere utili in scenari specifici ma hanno **importanti limitazioni nell'integrazione con UYUNI**.
-
-### 7.1 Autosign Grains (Shared Secret)
-
+### Autosign Grains (Shared Secret)
 Questo è l'unico meccanismo di auto-accept **ufficialmente documentato da UYUNI** (nel contesto Retail/terminali).
 
 **Come funziona**: Il master accetta automaticamente i minion che presentano un grain con un valore segreto concordato.
 
 **Configurazione master** (dentro il container: `mgrctl term`):
-
 ```yaml
 # /etc/salt/master.d/autosign_grains.conf
 autosign_grains_dir: /etc/salt/autosign_grains
@@ -498,7 +472,6 @@ mio-segreto-onboarding-2024
 ```
 
 **Configurazione minion** (pre-installazione o in golden image):
-
 ```yaml
 # /etc/salt/minion.d/autosign.conf
 autosign_grains:
@@ -515,9 +488,7 @@ grains:
 **Limitazione**: Richiede che il client abbia già `salt-minion` installato e configurato. Non sostituisce il bootstrap, ma complementa l'accettazione chiavi.
 
 **Riferimento**: [Deploy Terminals and Auto-Accept Keys](https://www.uyuni-project.org/uyuni-docs/en/uyuni/retail/retail-deploy-terminals-auto.html)
-
-### 7.2 Salt Reactor (Event-Driven)
-
+### Salt Reactor (Event-Driven)
 **Come funziona**: Il Reactor intercetta gli eventi `salt/auth` sul bus eventi e accetta condizionalmente le chiavi.
 
 **Configurazione**:
@@ -546,7 +517,7 @@ accept_key:
 
 **Riferimento**: [Salt Reactor System](https://docs.saltproject.io/en/latest/topics/reactor/index.html)
 
-### 7.3 `auto_accept: True` (sconsigliato)
+### `auto_accept: True` (Non Sicuro diciamo)
 
 ```yaml
 # /etc/salt/master.d/auth.conf
@@ -559,9 +530,7 @@ Ogni macchina che raggiunge le porte 4505/4506 viene accettata senza filtri. Ino
 - Bypassa il workflow di registrazione UYUNI
 - Quando `auto_accept: True` è attivo, gli eventi `salt/auth` **NON vengono emessi**, rendendo impossibile l'uso contemporaneo del Reactor
 - Utilizzare **solo** in ambienti di test completamente isolati
-
-### 7.4 Preseed Keys (Pre-generazione)
-
+### Preseed Keys (Pre-generazione)
 **Come funziona**: Si generano le chiavi del minion **sul master** prima che il client si connetta, poi si distribuiscono le chiavi private al client.
 
 ```bash
@@ -578,9 +547,7 @@ cp client-web-01.pub /etc/salt/pki/master/minions/client-web-01
 **Quando usare**: In pipeline di provisioning dove si ha controllo completo sulla creazione della VM e si può iniettare la chiave durante il setup.
 
 **Riferimento**: [Preseed Minion with Accepted Key](https://docs.saltproject.io/en/latest/topics/tutorials/preseed_key.html)
-
-### 7.5 Nota importante: Bootstrap Script gestisce già l'accettazione
-
+### Nota importante: Bootstrap Script gestisce già l'accettazione
 Con il **Metodo Primario** (bootstrap script + activation key), **non è necessario nessuno di questi meccanismi aggiuntivi**. Il bootstrap script, quando usato con un'activation key valida, gestisce automaticamente:
 1. Installazione salt-minion
 2. Configurazione del master
@@ -588,13 +555,9 @@ Con il **Metodo Primario** (bootstrap script + activation key), **non è necessa
 4. Registrazione e accettazione nel database UYUNI
 
 I meccanismi di questa sezione sono utili solo per scenari non standard (golden image, provisioning custom, ambienti retail).
+## Integrazioni con Tool Esterni
 
----
-
-## 8. Integrazioni con Tool Esterni
-
-### 8.1 Ansible + Bootstrap Script
-
+### Ansible + Bootstrap Script
 Se l'organizzazione utilizza già Ansible, è possibile orchestrare il bootstrap tramite playbook.
 
 **Ansible Collection community**: [stdevel.uyuni](https://github.com/stdevel/ansible-collection-uyuni) su Ansible Galaxy
@@ -647,8 +610,7 @@ Se l'organizzazione utilizza già Ansible, è possibile orchestrare il bootstrap
 - [Uyuni Ansible Integration](https://www.uyuni-project.org/uyuni-docs/en/uyuni/administration/ansible-integration.html)
 - [Uyuni Ansible Collection Blog](https://cstan.io/en/post/2023/10/uyuni-ansible-collection/)
 
-### 8.2 Cobbler / AutoYaST / Kickstart (PXE Provisioning)
-
+### Cobbler / AutoYaST / Kickstart (PXE Provisioning)
 Per il provisioning bare-metal di nuovi server tramite PXE boot.
 
 **Come funziona**:
@@ -662,39 +624,29 @@ Per il provisioning bare-metal di nuovi server tramite PXE boot.
 
 **Riferimento**: [Autoinstallation Profiles](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/autoinst-profiles.html)
 
----
-
-## 9. Metodi Scartati o di Nicchia
-
-### 9.1 Web UI Bootstrap (Systems > Bootstrapping)
-
+## Metodi Standard
+### Web UI Bootstrap (Systems > Bootstrapping)
 **Non scala**. Un host alla volta, inserimento manuale. Utile solo per test o host singoli.
-
-### 9.2 Salt SSH Push come metodo primario
+### Salt SSH Push come metodo primario
 
 La documentazione ufficiale è esplicita: *"The Push SSH method is not at all supported with large setups (1000 clients and more)."* Ogni operazione richiede una sessione SSH completa e il deploy del pacchetto Salt thin. Issue nota di starvation: [#3182](https://github.com/uyuni-project/uyuni/issues/3182).
 
 **Uso legittimo**: DMZ, sistemi in ambienti con firewall restrittivo dove le porte 4505/4506 non possono essere aperte. In questo caso, usarlo solo per quel sottoinsieme di host.
 
-### 9.3 Hub Architecture (Multi-Server)
+### Hub Architecture (Multi-Server)
 
 Architettura per **10.000+ client** con Hub che coordina più server UYUNI periferici. Eccessivo per 100-1000 client. Da considerare solo se la crescita prevista supera i 5000 sistemi.
 
 **Riferimento**: [Hub XMLRPC API Deployment](https://documentation.suse.com/suma/5.0/en/suse-manager/specialized-guides/large-deployments/hub-install.html)
-
-### 9.4 Salt Cloud
-
+### Salt Cloud
 Modulo Salt per provisioning cloud. **Non integrato con UYUNI**. UYUNI non include salt-cloud e non ha un modulo di provisioning. Il progetto UYUNI usa Terraform (sumaform), non Salt Cloud.
-
----
-
-## 10. Tuning del Server per Onboarding su Larga Scala
+## Tuning del Server per Onboarding su Larga Scala
 
 Prima di onboardare centinaia di client, è fondamentale tuning il server UYUNI. I valori di default sono dimensionati per deployment piccoli.
 
 **Riferimento principale**: [Tuning Large Scale Deployments](https://www.uyuni-project.org/uyuni-docs/en/uyuni/specialized-guides/large-deployments/tuning.html)
 
-### 10.1 Salt Master
+### Salt Master
 
 File: `/etc/salt/master.d/tuning.conf` (dentro il container)
 
@@ -707,8 +659,7 @@ File: `/etc/salt/master.d/tuning.conf` (dentro il container)
 | `minion_data_cache_events` | True | True | False | **False** |
 
 > **Nota**: Ogni `worker_thread` consuma ~70 MB di RAM. Con 32 thread = ~2.2 GB solo per i worker.
-
-### 10.2 PostgreSQL
+### PostgreSQL
 
 File: `postgresql.conf` (dentro il container database)
 
@@ -718,8 +669,7 @@ File: `postgresql.conf` (dentro il container database)
 | `effective_cache_size` | ~75% della RAM totale |
 | `work_mem` | 2-20 MB |
 | `max_connections` | 400 (default, sufficiente) |
-
-### 10.3 Java / Tomcat
+### Java / Tomcat
 
 | Parametro | Default | Large Scale |
 |---|---|---|
@@ -737,15 +687,13 @@ File: `/etc/rhn/rhn.conf`
 | `java.salt_event_thread_pool_size` | 8 | 20-100 |
 | `taskomatic.java.maxmemory` | 4096 MiB | 8.192-16.384 MiB |
 | `org.quartz.threadPool.threadCount` | 20 | 20-200 |
-
-### 10.5 Apache httpd
+### Apache httpd
 
 | Parametro | Default | Large Scale |
 |---|---|---|
 | `MaxRequestWorkers` | 150 | 150-500 |
 | `ServerLimit` | - | = MaxRequestWorkers |
-
-### 10.6 Sistema operativo
+### Sistema operativo
 
 | Parametro | Raccomandazione |
 |---|---|
@@ -753,8 +701,7 @@ File: `/etc/rhn/rhn.conf`
 | Entropy | Installare `haveged` o `rng-tools` in ambienti virtualizzati |
 | Filesystem | XFS per `/var/spacewalk` e `/var/lib/pgsql` |
 | I/O Scheduler | `none` (noop) per VM su SSD |
-
-### 10.7 Segnali di allarme (quando tuning è necessario)
+### Segnali di allarme (quando tuning è necessario)
 
 | Sintomo | Causa probabile | Parametro da aumentare |
 |---|---|---|
@@ -763,8 +710,7 @@ File: `/etc/rhn/rhn.conf`
 | Timeout Salt durante picchi | Worker insufficienti | `worker_threads`, `pub_hwm` |
 | Rigenerazione metadati canali lenta | Thread Taskomatic insufficienti | `threadPool.threadCount` |
 | Onboarding lento/fallimentare | Rate troppo alto | Aumentare intervallo tra registrazioni |
-
-### 10.8 Hardware consigliato
+### Hardware consigliato
 
 | Risorsa | 100 client | 500 client | 1000+ client |
 |---|---|---|---|
@@ -773,10 +719,7 @@ File: `/etc/rhn/rhn.conf`
 | Disco OS | 64 GB SSD | 64 GB SSD | 100 GB SSD |
 | Disco Repository | 256 GB | 500 GB | 1+ TB |
 | Disco PostgreSQL | 64 GB | 100 GB | 200+ GB |
-
----
-
-## 11. Tabella Comparativa Finale
+## Tabella Comparativa Finale
 
 | # | Metodo | 100 host | 1000 host | Effort | Sicurezza | Supporto SUSE | Caso d'uso |
 |---|--------|----------|-----------|--------|-----------|---------------|------------|
@@ -793,13 +736,9 @@ File: `/etc/rhn/rhn.conf`
 | 11 | `auto_accept: True` | ★★★★★ | ★★★★★ | Minimo | **Bassa** | Sconsigliato | Solo test isolati |
 | 12 | Hub Multi-Server | ★★★★★ | ★★★★★ | **Molto alto** | Alta | Ufficiale | 10.000+ client |
 
----
-
-## 12. Raccomandazione Finale
-
+## Raccomandazione Finale
 ### Per sistemi già esistenti (la maggior parte dei casi)
-
-**Metodo Primario: Bootstrap Script + Distribuzione SSH parallela** (Sezione 4)
+**Metodo Primario: Bootstrap Script + Distribuzione SSH parallela**
 
 1. Generare gli script bootstrap con `mgr-bootstrap` (uno per ogni OS/activation key)
 2. Preparare un file inventory con tutti gli host
@@ -808,20 +747,15 @@ File: `/etc/rhn/rhn.conf`
 5. Verificare con `salt-key -l accepted` e nella Web UI
 
 ### Per nuove VM Azure
-
 **Metodo Complementare: Terraform + Cloud-Init** (Sezione 5)
 
 Inserire il bootstrap nel `user_data`/`custom_data` della VM. Auto-registrazione al primo boot.
-
 ### Prima di iniziare
 
 1. Verificare tutti i prerequisiti (Sezione 2)
 2. Applicare il tuning appropriato al server (Sezione 10)
 3. Testare con 5-10 host prima di scalare a centinaia
-
----
-
-## 13. Fonti e Riferimenti
+## Fonti e Riferimenti
 
 ### Documentazione Ufficiale UYUNI
 
