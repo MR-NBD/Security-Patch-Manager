@@ -120,15 +120,14 @@ Lo script generato viene pubblicato in `/srv/www/htdocs/pub/bootstrap/` e divent
 ### Distribuzione parallela
 Il punto critico è **come distribuire l'esecuzione** dello script su centinaia di host contemporaneamente. Diverse opzioni, dalla più semplice alla più robusta:
 
-**Opzione A - Bash loop semplice con `xargs`** (per 10-50 host):
+**1 - Bash loop semplice con `xargs`** (per 10-50 host):
 ```bash
 # File hosts.txt: un IP/hostname per riga
 cat hosts.txt | xargs -I {} -P 10 \
   ssh -o StrictHostKeyChecking=no root@{} \
   "curl -Sks https://uyuni-server/pub/bootstrap/bootstrap-ubuntu2404.sh | bash"
 ```
-
-**Opzione B - `pssh` (parallel-ssh)** (per 50-500 host):
+**2 - `pssh` (parallel-ssh)** (per 50-500 host):
 ```bash
 # Installa pssh
 apt install pssh   # o pip install parallel-ssh
@@ -137,7 +136,6 @@ apt install pssh   # o pip install parallel-ssh
 pssh -h hosts.txt -l root -t 600 -p 20 -o /tmp/onboard-output \
   "curl -Sks https://uyuni-server/pub/bootstrap/bootstrap-ubuntu2404.sh -o /tmp/bootstrap.sh && bash /tmp/bootstrap.sh"
 ```
-
 Parametri `pssh`:
 - `-h hosts.txt` - file con lista host
 - `-l root` - utente SSH
@@ -145,14 +143,13 @@ Parametri `pssh`:
 - `-p 20` - 20 connessioni parallele
 - `-o /tmp/output` - directory per output per-host
 
-**Opzione C - `pdsh`** (per ambienti HPC/datacenter):
+**3 - `pdsh`** (per ambienti HPC/datacenter):
 ```bash
 # Con lista host
 pdsh -w ^hosts.txt -l root \
   "curl -Sks https://uyuni-server/pub/bootstrap/bootstrap-ubuntu2404.sh | bash"
 ```
-
-**Opzione D - Script Bash strutturato** (per 100-1000+ host, con logging e gestione errori):
+**4 - Script Bash strutturato** (per 100-1000+ host, con logging e gestione errori):
 
 Uno script personalizzato che gestisce:
 - Lettura da file inventory CSV (host, activation_key, ssh_user, ssh_port)
@@ -168,7 +165,7 @@ La documentazione ufficiale UYUNI per i large deployment stabilisce un guideline
 
 Questo perché ogni registrazione comporta:
 1. Handshake PKI (generazione chiavi RSA 4096-bit, scambio, accettazione)
-2. Sync iniziale dei grains
+2. Sync iniziale dei grains (metadati salt)
 3. Registrazione nel database PostgreSQL
 4. Assegnazione canali e gruppi
 5. Eventuale highstate iniziale
@@ -234,7 +231,7 @@ mgrctl exec -- salt '*' test.ping
 
 > **Terraform può gestire sia nuove VM che VM già esistenti.** Per le nuove, cloud-init esegue il bootstrap al primo boot. Per le esistenti, Azure VM Run Command e Custom Script Extension permettono di eseguire il bootstrap senza nemmeno accesso SSH diretto.
 
-### Scenario A: Nuove VM (Cloud-Init)
+### Cloud-Init
 Cloud-init è un servizio standard presente nelle immagini cloud (Ubuntu, RHEL, SUSE) che esegue comandi personalizzati al primo avvio della VM. Inserendo il comando di bootstrap nel `user_data` della VM, la registrazione su UYUNI avviene automaticamente.
 
 ```
@@ -312,7 +309,7 @@ runcmd:
 
 Per sistemi già esistenti e in esecuzione, vedere lo Scenario B qui sotto.
 
-### Scenario B: VM Già Esistenti su Azure (Terraform)
+### Scenario: VM Già Esistenti (Terraform)
 Questo è lo scenario più rilevante per chi ha già centinaia di VM in esecuzione e vuole registrarle su UYUNI senza ricrearle. Esistono **3 risorse Terraform** per eseguire script su VM Azure esistenti, tutte funzionanti tramite il **control plane Azure** (non richiedono accesso SSH diretto dalla workstation).
 
 #### B1. `azurerm_virtual_machine_run_command` (Metodo consigliato)
@@ -368,7 +365,7 @@ resource "azurerm_virtual_machine_run_command" "uyuni_bootstrap" {
 
 **Riferimento**: [azurerm_virtual_machine_run_command](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_machine_run_command)
 
-####  `azurerm_virtual_machine_extension` (Custom Script Extension)
+#### 1.  `azurerm_virtual_machine_extension` (Custom Script Extension)
 Approccio consolidato, usa la Custom Script Extension di Azure:
 
 ```hcl
@@ -396,7 +393,7 @@ resource "azurerm_virtual_machine_extension" "uyuni_bootstrap" {
 
 **Riferimento**: [azurerm_virtual_machine_extension](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_machine_extension)
 
-#### B3. `null_resource` + `remote-exec` (via SSH)
+#### 2. `null_resource` + `remote-exec` (via SSH)
 
 Per esecuzione via SSH diretto (quando si preferisce non usare l'Azure control plane):
 
@@ -426,7 +423,7 @@ resource "null_resource" "uyuni_bootstrap" {
 ```
 
 **Note**: Richiede accesso SSH diretto. Supporta bastion host nel blocco `connection`. I provisioner sono considerati "last resort" da HashiCorp.
-#### B4. Azure CLI senza Terraform (`az vm run-command invoke`)
+#### 3 Azure CLI senza Terraform (`az vm run-command invoke`)
 Per un one-shot rapido senza infrastruttura Terraform:
 
 ```bash
@@ -662,113 +659,7 @@ C'è un bug storico ([#4737](https://github.com/uyuni-project/uyuni/issues/4737)
 - [Uyuni API - system namespace](https://www.uyuni-project.org/uyuni-docs-api/uyuni/api/system.html)
 - [spacecmd Reference](https://www.uyuni-project.org/uyuni-docs/en/uyuni/reference/spacecmd-intro.html)
 - [API Sample Scripts](https://documentation.suse.com/suma/4.3/api/suse-manager/api/scripts.html)
-## Meccanismi Salt per Auto-Accept delle Chiavi
-
-Quando un salt-minion si connette al master per la prima volta, genera una coppia di chiavi RSA 4096-bit e invia la chiave pubblica al master. L'amministratore deve **accettare** la chiave affinché la comunicazione cifrata venga stabilita.
-
-Con il Metodo Primario (bootstrap script + activation key), **l'accettazione è automatica** perché l'activation key autorizza il processo. Tuttavia, esistono meccanismi Salt aggiuntivi per gestire l'accettazione a livello di Salt master. Questi possono essere utili in scenari specifici ma hanno **importanti limitazioni nell'integrazione con UYUNI**.
-### Autosign Grains (Shared Secret)
-Questo è l'unico meccanismo di auto-accept **ufficialmente documentato da UYUNI** (nel contesto Retail/terminali).
-
-**Come funziona**: Il master accetta automaticamente i minion che presentano un grain con un valore segreto concordato.
-
-**Configurazione master** (dentro il container: `mgrctl term`):
-```yaml
-# /etc/salt/master.d/autosign_grains.conf
-autosign_grains_dir: /etc/salt/autosign_grains
-```
-
-```
-# /etc/salt/autosign_grains/autosign_key
-mio-segreto-onboarding-2024
-```
-
-**Configurazione minion** (pre-installazione o in golden image):
-```yaml
-# /etc/salt/minion.d/autosign.conf
-autosign_grains:
-  - autosign_key
-
-grains:
-  autosign_key: mio-segreto-onboarding-2024
-```
-
-**Single-use grains**: UYUNI Retail supporta grains monouso che vengono cancellati dopo il primo utilizzo, migliorando significativamente la sicurezza.
-
-**Quando usare**: Se si preparano golden image (AMI, template VM) con salt-minion pre-installato e si vuole che l'accettazione sia istantanea senza passare dal bootstrap script.
-
-**Limitazione**: Richiede che il client abbia già `salt-minion` installato e configurato. Non sostituisce il bootstrap, ma complementa l'accettazione chiavi.
-
-**Riferimento**: [Deploy Terminals and Auto-Accept Keys](https://www.uyuni-project.org/uyuni-docs/en/uyuni/retail/retail-deploy-terminals-auto.html)
-### Salt Reactor (Event-Driven)
-**Come funziona**: Il Reactor intercetta gli eventi `salt/auth` sul bus eventi e accetta condizionalmente le chiavi.
-
-**Configurazione**:
-
-```yaml
-# /etc/salt/master.d/reactor.conf
-reactor:
-  - 'salt/auth':
-    - /srv/reactor/auto-accept.sls
-```
-
-```yaml
-# /srv/reactor/auto-accept.sls
-# Accetta solo minion il cui ID inizia con "prod-"
-{% if 'act' in data and data['act'] == 'pend' and data['id'].startswith('prod-') %}
-accept_key:
-  wheel.key.accept:
-    - args:
-      - match: {{ data['id'] }}
-{% endif %}
-```
-
-**Problema critico con UYUNI**: Accettare una chiave Salt tramite reactor **non completa la registrazione nel database UYUNI**. Il minion viene accettato da Salt, ma potrebbe **non apparire nella Web UI** né avere canali e gruppi assegnati. Per una registrazione completa, è necessario che il client passi attraverso il bootstrap script con activation key.
-
-**Quando usare**: Solo come strato aggiuntivo in scenari dove il bootstrap è già stato eseguito ma l'accettazione chiavi deve essere automatizzata per qualche motivo.
-
-**Riferimento**: [Salt Reactor System](https://docs.saltproject.io/en/latest/topics/reactor/index.html)
-
-### `auto_accept: True` (Non Sicuro diciamo)
-
-```yaml
-# /etc/salt/master.d/auth.conf
-auto_accept: True
-```
-
-**Sicurezza**: La documentazione Salt stessa avverte: *"Automatically accepting keys is very dangerous. It is generally not advised unless operating in a safe test environment."*
-
-Ogni macchina che raggiunge le porte 4505/4506 viene accettata senza filtri. Inoltre:
-- Bypassa il workflow di registrazione UYUNI
-- Quando `auto_accept: True` è attivo, gli eventi `salt/auth` **NON vengono emessi**, rendendo impossibile l'uso contemporaneo del Reactor
-- Utilizzare **solo** in ambienti di test completamente isolati
-### Preseed Keys (Pre-generazione)
-**Come funziona**: Si generano le chiavi del minion **sul master** prima che il client si connetta, poi si distribuiscono le chiavi private al client.
-
-```bash
-# Sul master: genera coppia chiavi per un host
-salt-key --gen-keys=client-web-01
-
-# Copia la pubblica tra le chiavi accettate
-cp client-web-01.pub /etc/salt/pki/master/minions/client-web-01
-
-# Distribuisci la privata al client (via provisioning, cloud-init, ecc.)
-# /etc/salt/pki/minion/minion.pem e minion.pub
-```
-
-**Quando usare**: In pipeline di provisioning dove si ha controllo completo sulla creazione della VM e si può iniettare la chiave durante il setup.
-
-**Riferimento**: [Preseed Minion with Accepted Key](https://docs.saltproject.io/en/latest/topics/tutorials/preseed_key.html)
-### Nota importante: Bootstrap Script gestisce già l'accettazione
-Con il **Metodo Primario** (bootstrap script + activation key), **non è necessario nessuno di questi meccanismi aggiuntivi**. Il bootstrap script, quando usato con un'activation key valida, gestisce automaticamente:
-1. Installazione salt-minion
-2. Configurazione del master
-3. Generazione chiavi
-4. Registrazione e accettazione nel database UYUNI
-
-I meccanismi di questa sezione sono utili solo per scenari non standard (golden image, provisioning custom, ambienti retail).
 ## Integrazioni con Tool Esterni
-
 ### Ansible + Bootstrap Script
 Se l'organizzazione utilizza già Ansible, è possibile orchestrare il bootstrap tramite playbook.
 
@@ -821,21 +712,6 @@ Se l'organizzazione utilizza già Ansible, è possibile orchestrare il bootstrap
 **Riferimenti**:
 - [Uyuni Ansible Integration](https://www.uyuni-project.org/uyuni-docs/en/uyuni/administration/ansible-integration.html)
 - [Uyuni Ansible Collection Blog](https://cstan.io/en/post/2023/10/uyuni-ansible-collection/)
-
-### Cobbler / AutoYaST / Kickstart (PXE Provisioning)
-Per il provisioning bare-metal di nuovi server tramite PXE boot.
-
-**Come funziona**:
-1. Si creano profili di autoinstallazione (AutoYaST per SUSE, Kickstart per RHEL)
-2. Si inserisce lo snippet `$SNIPPET('spacewalk/minion_script')` nel profilo
-3. I server fanno PXE boot, installano l'OS, e si registrano automaticamente su UYUNI
-
-**Effort**: Alto (Cobbler, DHCP, TFTP, profili). Giustificato solo per rollout data center bare-metal.
-
-**Nota**: Cobbler è tecnologia legacy. Nelle nuove versioni di UYUNI l'enfasi è ridotta.
-
-**Riferimento**: [Autoinstallation Profiles](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/autoinst-profiles.html)
-
 ## Metodi Standard
 ### Web UI Bootstrap (Systems > Bootstrapping)
 **Non scala**. Un host alla volta, inserimento manuale. Utile solo per test o host singoli.
