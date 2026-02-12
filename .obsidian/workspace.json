@@ -13,40 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
+                "file": "README.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Configurazione-RHEL-9.4"
-            }
-          },
-          {
-            "id": "7d38679748741c68",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Configurazione-RHEL-9.4"
-            }
-          },
-          {
-            "id": "7b767d49ae469e89",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Setup-Canali-Ubuntu"
+              "title": "README"
             }
           },
           {
@@ -63,8 +35,7 @@
               "title": "ASL0603"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -96,7 +67,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "n8n",
+                "query": "",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -235,38 +206,50 @@
       "templates:Inserisci modello": false,
       "command-palette:Apri riquadro comandi": false,
       "obsidian-excalidraw-plugin:New drawing": false,
-      "obsidian-git:Open Git source control": false
+      "obsidian-git:Open Git source control": false,
+      "tasknotes:Open mini calendar": false,
+      "tasknotes:Open advanced calendar": false,
+      "tasknotes:Open task list": false,
+      "tasknotes:Open agenda": false,
+      "tasknotes:Open kanban board": false,
+      "tasknotes:Open pomodoro": false,
+      "tasknotes:Open pomodoro stats": false,
+      "tasknotes:Create new task": false
     }
   },
-  "active": "fcae071421e98e82",
+  "active": "8ca8113ad3726bba",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
+    "Utenze/ASL0603.md",
+    "2026-02-12.md",
+    "Senza nome 2.canvas",
+    "Senza nome 2.base",
+    "Senza nome 1.canvas",
+    "Senza nome 1.base",
+    "Senza nome.canvas",
+    "Senza nome.base",
+    "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
+    "TaskNotes/Views/relationships.base",
+    "TaskNotes/Views/agenda-default.base",
+    "TaskNotes/Views/calendar-default.base",
+    "TaskNotes/Views/tasks-default.base",
+    "TaskNotes/Views/kanban-default.base",
+    "TaskNotes/Views/mini-calendar-default.base",
+    "TaskNotes/Views",
+    "TO-DO_ALBERTO.md",
     "Uyuni/Deployment/Configurazione-VHM-Azure.md",
     "Uyuni/Deployment/DEPLOYMENT-GUIDE.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
-    "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
-    "Uyuni/Deployment/Mass-Onboarding-Strategy.md.tmp.1664.1770889058750",
-    "Uyuni/Deployment/Mass-Onboarding-Strategy.md.tmp.1664.1770889044204",
-    "Uyuni/Deployment/Mass-Onboarding-Strategy.md.tmp.1664.1770889031807",
     "Uyuni/Deployment/Mass-Onboarding-Terraform-Update.md",
-    "Uyuni/Deployment/Mass-Onboarding-Terraform-Update.md.tmp.1664.1770888967066",
-    "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
     "GeneralDocumentation/Insecurity_score_formula.md",
-    "Utenze/ASL0603.md",
-    "Uyuni/Deployment/Configurazione-VHM-Azure.md.tmp.1960.1770743398211",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770739832573",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770736102566",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770736042258",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770722833883",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.1960.1770722801409",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-API-SPEC.md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
     "Uyuni/Documentazione-Preliminare.md",
     "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
     "README.md",
-    "TO-DO_ALBERTO.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
     "Uyuni/README.md",
@@ -275,7 +258,6 @@
     "n8n/N8N-SERVICE-REMEDIATION.md",
     "img/img2187te87r13.png",
     "Uyuni/Teoria/UYUNI.md",
-    "Foreman-Katello/Initial-Setup/CreateVM.md",
     "img/dueUntitled Diagram.drawio-1 1.png",
     "img/dueUntitled Diagram.drawio-1.png",
     "img/treUntitled Diagram.drawio.png",

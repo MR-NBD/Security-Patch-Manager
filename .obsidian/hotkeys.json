@@ -1,0 +1,10 @@
+{
+  "tasknotes:create-new-task": [
+    {
+      "modifiers": [
+        "Alt"
+      ],
+      "key": "T"
+    }
+  ]
+}
