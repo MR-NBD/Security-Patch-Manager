@@ -1,89 +1,12 @@
-# Strategia di Onboarding Massivo per UYUNI
-
-Guida completa all'analisi, selezione e implementazione della strategia ottimale per registrare automaticamente **100-1000+ client** su UYUNI Server, eliminando la necessità di registrazione manuale uno-a-uno tramite Web UI.
-
----
-
-## Indice
-
-1. [Contesto e Obiettivo](#1-contesto-e-obiettivo)
-2. [Prerequisiti Comuni a Tutti i Metodi](#2-prerequisiti-comuni-a-tutti-i-metodi)
-3. [Panoramica Completa dei Metodi Disponibili](#3-panoramica-completa-dei-metodi-disponibili)
-4. [METODO PRIMARIO: Bootstrap Script + Distribuzione SSH Parallela](#4-metodo-primario-bootstrap-script--distribuzione-ssh-parallela)
-5. [METODO COMPLEMENTARE: Terraform + Cloud-Init per Azure](#5-metodo-complementare-terraform--cloud-init-per-azure)
-6. [METODO ALTERNATIVO: spacecmd / API XML-RPC](#6-metodo-alternativo-spacecmd--api-xml-rpc)
-7. [Meccanismi Salt per Auto-Accept delle Chiavi](#7-meccanismi-salt-per-auto-accept-delle-chiavi)
-8. [Integrazioni con Tool Esterni](#8-integrazioni-con-tool-esterni)
-9. [Metodi Scartati o di Nicchia](#9-metodi-scartati-o-di-nicchia)
-10. [Tuning del Server per Onboarding su Larga Scala](#10-tuning-del-server-per-onboarding-su-larga-scala)
-11. [Tabella Comparativa Finale](#11-tabella-comparativa-finale)
-12. [Raccomandazione Finale](#12-raccomandazione-finale)
-13. [Fonti e Riferimenti](#13-fonti-e-riferimenti)
-
----
-
-## 1. Contesto e Obiettivo
-
-### Il problema
-
-La registrazione manuale dei client tramite la Web UI di UYUNI (`Systems > Bootstrapping`) richiede l'inserimento individuale di IP, credenziali SSH e activation key per **ogni singolo host**. Questo approccio:
-
-- Non scala oltre poche decine di sistemi
-- È soggetto a errori umani
-- Richiede tempo operativo elevato (5-10 minuti per host)
-- Non è ripetibile né auditabile
-
-### L'obiettivo
-
-Identificare e implementare una strategia che permetta di registrare **100-1000+ dispositivi** in modo:
-
-- **Automatico** - senza intervento manuale per ogni host
-- **Parallelo** - più host contemporaneamente
-- **Affidabile** - con gestione errori e verifica dei risultati
-- **Sicuro** - senza compromettere il modello di sicurezza PKI di Salt
-- **Ripetibile** - utilizzabile ogni volta che nuovi host devono essere onboardati
-
-### Infrastruttura di riferimento
-
-| Componente | Dettaglio |
-|---|---|
-| UYUNI Server | Container su openSUSE Leap 15.6 (Podman) |
-| Client OS | Ubuntu 24.04 LTS + RHEL 9.4 |
-| Ambiente | Azure Cloud |
-| Rete | Salt Master su porte 4505/4506, HTTPS 443 |
-| Activation Keys | `ak-ubuntu2404-test`, `1-rhel9` |
-| Proxy | UYUNI Proxy opzionale (5 container) |
-
----
-
-## 2. Prerequisiti Comuni a Tutti i Metodi
-
-Indipendentemente dal metodo scelto, **prima** di avviare qualsiasi onboarding massivo è necessario verificare che l'infrastruttura server sia pronta.
-
-### 2.1 Canali Software sincronizzati
-
+## Prerequisiti
+### Canali Software sincronizzati
 Tutti i canali associati alle Activation Key devono essere completamente sincronizzati. Verificare con:
-
 ```bash
 # Stato sincronizzazione (dentro il container UYUNI)
 mgrctl exec -- spacewalk-repo-sync --channel <nome-canale> --type deb
 ```
-
-Per Ubuntu 24.04 servono come minimo:
-- `ubuntu-2404-pool-amd64-uyuni` (parent)
-- `ubuntu-2404-amd64-main-uyuni`
-- `ubuntu-2404-amd64-main-security-uyuni`
-- `ubuntu-2404-amd64-uyuni-client` (contiene `venv-salt-minion`)
-
-Per RHEL 9:
-- `rhel9-pool-uyuni` (parent)
-- `rhel9-uyuni-client`
-- Canali CDN custom (BaseOS, AppStream)
-
-### 2.2 Bootstrap Repository generato
-
+### Bootstrap Repository generato
 Il bootstrap repository contiene i pacchetti necessari per installare `salt-minion` o `venv-salt-minion` sul client durante il bootstrap. Deve essere generato **dopo** la sincronizzazione dei canali:
-
 ```bash
 # Genera per tutte le distro sincronizzate
 mgrctl exec -- mgr-create-bootstrap-repo --auto
@@ -98,41 +21,22 @@ ls /srv/www/htdocs/pub/repositories/
 Il repo viene anche rigenerato automaticamente ogni notte dal server.
 
 **Riferimento**: [Bootstrap Repository - Uyuni Docs](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/bootstrap-repository.html)
-
-### 2.3 Activation Keys configurate
-
+### Activation Keys configurate
 Le Activation Key definiscono **cosa succede** quando un client si registra: canali assegnati, gruppi, configurazioni, metodo di contatto. Devono esistere **prima** del bootstrap.
 
 Creazione: `Systems > Activation Keys > Create Key`
-
-| Campo | Ubuntu 24.04 | RHEL 9 |
-|---|---|---|
-| Key | `ak-ubuntu2404-test` | `1-rhel9` |
-| Base Channel | `ubuntu-2404-pool-amd64-uyuni` | `rhel9-pool-uyuni` |
-| Child Channels | main, security, updates, uyuni-client | baseos-cdn, appstream-cdn, uyuni-client |
-| System Groups | A seconda del ruolo | A seconda del ruolo |
-| Contact Method | Salt Minion (default) | Salt Minion (default) |
-
 **Riferimento**: [Activation Keys - Uyuni Docs](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/activation-keys.html)
-
-### 2.4 Rete e DNS
-
-- I client devono risolvere l'FQDN del server UYUNI (o avere entry in `/etc/hosts`)
+### Rete e DNS
+- I client devono risolvere l'FQDN del server UYUNI (o entry in `/etc/hosts`)
 - Le porte **4505/tcp** e **4506/tcp** devono essere raggiungibili dai client verso il server
 - La porta **443/tcp** deve essere raggiungibile per il download del bootstrap script
 - NTP deve essere sincronizzato (critico per certificati SSL)
-
-### 2.5 Accesso SSH ai target
-
+### Accesso SSH ai target
 La maggior parte dei metodi richiede accesso SSH (root o utente con sudo) ai sistemi target. Verificare in anticipo:
 - Chiave SSH distribuita o password nota
 - Porta SSH corretta (default 22)
 - Firewall client che permette SSH in ingresso
-
----
-
-## 3. Panoramica Completa dei Metodi Disponibili
-
+## Panoramica Completa dei Metodi Disponibili
 Dalla ricerca sono emersi **12 metodi distinti**, raggruppabili in 4 categorie:
 
 | Categoria | Metodi | Descrizione |
@@ -142,73 +46,67 @@ Dalla ricerca sono emersi **12 metodi distinti**, raggruppabili in 4 categorie:
 | **C - Tool Esterni** | Ansible, Terraform + Cloud-Init | Orchestratori esterni che pilotano il bootstrap UYUNI |
 | **D - Provisioning** | Cobbler/AutoYaST/Kickstart, Hub Architecture | Per installazioni OS da zero o architetture multi-server |
 
-I capitoli successivi analizzano in dettaglio ciascun metodo, **con peso proporzionale alla sua rilevanza pratica** per il nostro caso d'uso.
+Le sezioni successive analizzano in dettaglio ciascun metodo.
 
----
-
-## 4. METODO PRIMARIO: Bootstrap Script + Distribuzione SSH Parallela
+## METODO PRIMARIO: Bootstrap Script + Distribuzione SSH Parallela
 
 > **Questo è il metodo ufficialmente raccomandato da SUSE/Uyuni per l'onboarding massivo di sistemi esistenti.** Ha il miglior rapporto effort/risultato e la massima compatibilità con il workflow di registrazione UYUNI.
-
-### 4.1 Come funziona
-
+### Come funziona
 Il flusso si compone di 3 fasi:
 
 ```
 FASE 1: Generazione (una tantum sul server)
 ┌─────────────────────────────────────────────────┐
 │ mgr-bootstrap --activation-keys=ak-ubuntu2404   │
-│            --script=bootstrap-ubuntu.sh          │
-│                                                  │
-│  Output: /srv/www/htdocs/pub/bootstrap/          │
-│          bootstrap-ubuntu.sh                     │
-│                                                  │
-│  Accessibile via:                                │
-│  https://uyuni-server/pub/bootstrap/             │
-│          bootstrap-ubuntu.sh                     │
+│            --script=bootstrap-ubuntu.sh         │
+│                                                 │
+│  Output: /srv/www/htdocs/pub/bootstrap/         │
+│          bootstrap-ubuntu.sh                    │
+│                                                 │
+│  Accessibile via:                               │
+│  https://uyuni-server/pub/bootstrap/            │
+│          bootstrap-ubuntu.sh                    │
 └─────────────────────────────────────────────────┘
                         │
                         ▼
 FASE 2: Distribuzione (parallela via SSH)
 ┌─────────────────────────────────────────────────┐
-│ Per ogni host nel file inventory:                │
-│                                                  │
+│ Per ogni host nel file inventory:               │
+│                                                 │
 │  ssh root@<host> "curl -Sks                     │
-│    https://uyuni-server/pub/bootstrap/           │
-│    bootstrap-ubuntu.sh | bash"                   │
-│                                                  │
-│  Lo script sul client:                           │
-│  1. Importa certificato SSL del server           │
-│  2. Configura i repository bootstrap             │
-│  3. Installa venv-salt-minion (o salt-minion)    │
-│  4. Configura il minion (master, activation key) │
-│  5. Avvia il servizio salt-minion                │
-│  6. Il minion si connette al master (4505/4506)  │
+│    https://uyuni-server/pub/bootstrap/          │
+│    bootstrap-ubuntu.sh | bash"                  │
+│                                                 │
+│  Lo script sul client:                          │
+│  1. Importa certificato SSL del server          │
+│  2. Configura i repository bootstrap            │
+│  3. Installa venv-salt-minion (o salt-minion)   │
+│  4. Configura il minion (master, activation key │
+│  5. Avvia il servizio salt-minion               │
+│  6. Il minion si connette al master (4505/4506) │
 └─────────────────────────────────────────────────┘
                         │
                         ▼
 FASE 3: Accettazione chiavi
 ┌─────────────────────────────────────────────────┐
-│ Il bootstrap script con activation key gestisce  │
-│ automaticamente l'accettazione della chiave.     │
-│                                                  │
-│ Il sistema appare nella Web UI con:              │
-│ - Canali assegnati (dalla activation key)        │
-│ - System Groups assegnati                        │
-│ - Configurazioni applicate                       │
+│ Il bootstrap script con activation key gestisce │
+│ automaticamente l'accettazione della chiave.    │
+│                                                 │
+│ Il sistema appare nella Web UI con:             │
+│ - Canali assegnati (dalla activation key)       │
+│ - System Groups assegnati                       │
+│ - Configurazioni applicate                      │
 └─────────────────────────────────────────────────┘
 ```
-
-### 4.2 Generazione dello script bootstrap
-
+### Generazione dello script bootstrap
 Esistono due modi per generare lo script:
 
-**Via Web UI** (consigliato per la prima volta):
+**Via Web UI**:
 1. `Admin > Manager Configuration > Bootstrap Script`
 2. Configurare i parametri (hostname, activation key, GPG keys)
 3. Cliccare `Update` per generare
 
-**Via CLI** (consigliato per automazione):
+**Via CLI**:
 ```bash
 # Dentro il container UYUNI
 mgrctl exec -- mgr-bootstrap \
@@ -231,9 +129,7 @@ Lo script generato viene pubblicato in `/srv/www/htdocs/pub/bootstrap/` e divent
 | `MGR_SERVER_HOSTNAME` | FQDN del server | Si |
 | `ORG_GPG_KEY` | Chiavi GPG per verifica pacchetti | Si |
 | `REACTIVATION_KEY` | Per ri-registrare sistemi esistenti | Si |
-
-### 4.3 Distribuzione parallela
-
+### Distribuzione parallela
 Il punto critico è **come distribuire l'esecuzione** dello script su centinaia di host contemporaneamente. Diverse opzioni, dalla più semplice alla più robusta:
 
 **Opzione A - Bash loop semplice con `xargs`** (per 10-50 host):
@@ -277,9 +173,7 @@ Uno script personalizzato che gestisce:
 - Logging per-host in file separati
 - Report finale con successi/fallimenti
 - Rate limiting per non sovraccaricare il server
-
-### 4.4 Rate limiting: la regola dei 15 secondi
-
+### Rate limiting: la regola dei 15 secondi
 La documentazione ufficiale UYUNI per i large deployment stabilisce un guideline fondamentale:
 
 > **Safe starting point: 1 client ogni 15 secondi** (4 al minuto, ~240 all'ora)
@@ -298,9 +192,7 @@ Con 20 job SSH paralleli e rate limiting, 1000 host richiedono circa **4-5 ore**
 cat /proc/sys/kernel/random/entropy_avail
 # Deve essere > 200. Se basso, installare haveged o rng-tools
 ```
-
-### 4.5 Gestione di ambienti misti (Ubuntu + RHEL)
-
+### Gestione di ambienti misti (Ubuntu + RHEL)
 Per onboarding misto, servono **script bootstrap separati** per ogni OS, ma il processo è identico. L'inventory deve specificare quale activation key (e quindi quale bootstrap script) usare per ogni host:
 
 ```csv
@@ -320,9 +212,7 @@ if os_type == "ubuntu":
 elif os_type == "rhel":
     script = "bootstrap-rhel9.sh"
 ```
-
-### 4.6 Verifica post-onboarding
-
+### Verifica post-onboarding
 Dopo il bootstrap, verificare che tutti i sistemi siano registrati correttamente:
 
 ```bash
@@ -335,28 +225,24 @@ mgrctl exec -- salt '*' test.ping
 # Verifica nella Web UI
 # Systems > System List > All - devono apparire tutti i client registrati
 ```
+### Perché questo è il metodo migliore
 
-### 4.7 Perché questo è il metodo migliore
-
-| Aspetto | Valutazione |
-|---|---|
-| **Supporto ufficiale** | Metodo #1 raccomandato da SUSE per mass onboarding |
-| **Compatibilità UYUNI** | Registrazione completa: DB, Web UI, canali, gruppi, CLM |
-| **Effort di setup** | Basso - lo script bootstrap è già generabile con un comando |
-| **Dipendenze esterne** | Nessuna - solo SSH e curl (presenti ovunque) |
-| **Sicurezza** | Alta - usa il workflow PKI standard di Salt |
-| **Flessibilità** | Funziona con qualsiasi OS supportato, con o senza proxy |
-| **Debugging** | Semplice - ogni host ha il suo output/log |
+| Aspetto                 | Valutazione                                                 |
+| ----------------------- | ----------------------------------------------------------- |
+| **Supporto ufficiale**  | Metodo raccomandato da SUSE per mass onboarding             |
+| **Compatibilità UYUNI** | Registrazione completa: DB, Web UI, canali, gruppi, CLM     |
+| **Effort di setup**     | Basso - lo script bootstrap è già generabile con un comando |
+| **Dipendenze esterne**  | Nessuna - solo SSH e curl (presenti ovunque)                |
+| **Sicurezza**           | Alta - usa il workflow PKI standard di Salt                 |
+| **Flessibilità**        | Funziona con qualsiasi OS supportato, con o senza proxy     |
+| **Debugging**           | Semplice - ogni host ha il suo output/log                   |
 
 **Riferimenti ufficiali**:
 - [Register Clients With a Bootstrap Script](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/registration-bootstrap.html)
 - [Bootstrap Script Reference](https://www.uyuni-project.org/uyuni-docs/en/uyuni/reference/admin/bootstrap-script.html)
 - [Bootstrapping CLI Tools (mgr-bootstrap)](https://www.uyuni-project.org/uyuni-docs/en/uyuni/reference/cli-bootstrap.html)
 - [Client Onboarding Workflow](https://www.uyuni-project.org/uyuni-docs/en/uyuni/common-workflows/workflow-client-onboarding.html)
-
----
-
-## 5. METODO COMPLEMENTARE: Terraform + Cloud-Init per Azure
+## METODO COMPLEMENTARE: Terraform + Cloud-Init per Azure
 
 > **Per le VM create su Azure tramite Terraform o ARM templates, questo metodo permette l'auto-registrazione al primo boot senza alcun intervento post-creazione.** È il complemento ideale al Metodo Primario per ambienti cloud.
 

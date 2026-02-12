@@ -13,12 +13,26 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "GeneralDocumentation/Insecurity_score_formula.md",
+                "file": "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Insecurity_score_formula"
+              "title": "Configurazione-RHEL-9.4"
+            }
+          },
+          {
+            "id": "7d38679748741c68",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Mass-Onboarding-Strategy"
             }
           },
           {
@@ -49,7 +63,8 @@
               "title": "ASL0603"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -223,10 +238,11 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "8ca8113ad3726bba",
+  "active": "7d38679748741c68",
   "lastOpenFiles": [
-    "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
     "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
+    "GeneralDocumentation/Insecurity_score_formula.md",
+    "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
     "Utenze/ASL0603.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
@@ -252,7 +268,6 @@
     "TO-DO_ALBERTO.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
-    "GeneralDocumentation/Insecurity_score_formula.md",
     "Uyuni/README.md",
     "Uyuni/Infrastructure-Design/HLD-Schema-Blocchi-SPM.md",
     "Foreman-Katello/Initial-Setup/Installazione.md",
