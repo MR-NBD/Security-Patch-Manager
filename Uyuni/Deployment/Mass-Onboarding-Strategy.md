@@ -120,7 +120,6 @@ mgrctl exec -- mgr-bootstrap \
 ```
 
 Lo script generato viene pubblicato in `/srv/www/htdocs/pub/bootstrap/` e diventa accessibile via HTTPS a tutti i client.
-
 **Parametri chiave dello script**:
 
 | Parametro | Descrizione | Sovrascrivibile a runtime |
