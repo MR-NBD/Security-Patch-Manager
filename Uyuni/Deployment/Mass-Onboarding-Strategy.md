@@ -36,19 +36,8 @@ La maggior parte dei metodi richiede accesso SSH (root o utente con sudo) ai sis
 - Chiave SSH distribuita o password nota
 - Porta SSH corretta (default 22)
 - Firewall client che permette SSH in ingresso
-## Panoramica Completa dei Metodi Disponibili
-Dalla ricerca sono emersi **12 metodi distinti**, raggruppabili in 4 categorie:
 
-| Categoria | Metodi | Descrizione |
-|---|---|---|
-| **A - Nativi UYUNI** | Bootstrap Script, API XML-RPC, spacecmd, Web UI, CLI, Salt SSH | Strumenti forniti direttamente da UYUNI/SUSE Manager |
-| **B - Meccanismi Salt** | auto_accept, Reactor, Autosign Grains, Preseed Keys | Funzionalità del motore Salt per automatizzare l'accettazione chiavi |
-| **C - Tool Esterni** | Ansible, Terraform + Cloud-Init | Orchestratori esterni che pilotano il bootstrap UYUNI |
-| **D - Provisioning** | Cobbler/AutoYaST/Kickstart, Hub Architecture | Per installazioni OS da zero o architetture multi-server |
-
-Le sezioni successive analizzano in dettaglio ciascun metodo.
-
-## METODO PRIMARIO: Bootstrap Script + Distribuzione SSH Parallela
+## METODO UFFICIALE: Bootstrap Script + Distribuzione SSH Parallela
 
 > **Questo è il metodo ufficialmente raccomandato da SUSE/Uyuni per l'onboarding massivo di sistemi esistenti.** Ha il miglior rapporto effort/risultato e la massima compatibilità con il workflow di registrazione UYUNI.
 ### Come funziona
@@ -241,11 +230,11 @@ mgrctl exec -- salt '*' test.ping
 - [Bootstrap Script Reference](https://www.uyuni-project.org/uyuni-docs/en/uyuni/reference/admin/bootstrap-script.html)
 - [Bootstrapping CLI Tools (mgr-bootstrap)](https://www.uyuni-project.org/uyuni-docs/en/uyuni/reference/cli-bootstrap.html)
 - [Client Onboarding Workflow](https://www.uyuni-project.org/uyuni-docs/en/uyuni/common-workflows/workflow-client-onboarding.html)
-## METODO COMPLEMENTARE: Terraform + Cloud-Init per Azure
+## METODO COMPLEMENTARE: Terraform per Onboarding su Azure
 
-> **Per le VM create su Azure tramite Terraform o ARM templates, questo metodo permette l'auto-registrazione al primo boot senza alcun intervento post-creazione.** È il complemento ideale al Metodo Primario per ambienti cloud.
+> **Terraform può gestire sia nuove VM che VM già esistenti.** Per le nuove, cloud-init esegue il bootstrap al primo boot. Per le esistenti, Azure VM Run Command e Custom Script Extension permettono di eseguire il bootstrap senza nemmeno accesso SSH diretto.
 
-### Come funziona
+### Scenario A: Nuove VM (Cloud-Init)
 Cloud-init è un servizio standard presente nelle immagini cloud (Ubuntu, RHEL, SUSE) che esegue comandi personalizzati al primo avvio della VM. Inserendo il comando di bootstrap nel `user_data` della VM, la registrazione su UYUNI avviene automaticamente.
 
 ```
@@ -321,16 +310,240 @@ runcmd:
 - **Scale-out automatico** (es. VMSS - Virtual Machine Scale Sets)
 - **Pipeline IaC** dove l'infrastruttura è definita come codice
 
-**Non usare** per sistemi già esistenti e in esecuzione (per quelli, usare il Metodo Primario).
-### Tool ufficiale: sumaform
+Per sistemi già esistenti e in esecuzione, vedere lo Scenario B qui sotto.
 
-Il progetto UYUNI mantiene [sumaform](https://github.com/uyuni-project/sumaform), un set di moduli Terraform per il deploy completo di ambienti UYUNI (server, proxy, client). Supporta backend libvirt e AWS. Usato internamente dal progetto per il CI/CD, può servire come riferimento architetturale.
+### Scenario B: VM Già Esistenti su Azure (Terraform)
+Questo è lo scenario più rilevante per chi ha già centinaia di VM in esecuzione e vuole registrarle su UYUNI senza ricrearle. Esistono **3 risorse Terraform** per eseguire script su VM Azure esistenti, tutte funzionanti tramite il **control plane Azure** (non richiedono accesso SSH diretto dalla workstation).
 
-**Riferimenti ufficiali**:
-- [Automatic Registration of Clients Created by Terraform](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/automatic-client-registration.html)
-- [Registering Clients on a Public Cloud](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/clients-pubcloud.html)
+#### B1. `azurerm_virtual_machine_run_command` (Metodo consigliato)
+Risorsa Terraform più recente e flessibile. Esegue comandi su VM esistenti tramite l'Azure Guest Agent, senza bisogno di SSH.
+
+```hcl
+# Definizione delle VM esistenti da onboardare
+locals {
+  existing_vms = {
+    "web-01"  = { name = "server-web-01",  rg = "prod-rg" }
+    "web-02"  = { name = "server-web-02",  rg = "prod-rg" }
+    "db-01"   = { name = "server-db-01",   rg = "prod-rg" }
+    "app-01"  = { name = "server-app-01",  rg = "staging-rg" }
+    # ... 
+  }
+}
+
+# Riferimento alle VM esistenti (data source, non crea nulla)
+data "azurerm_virtual_machine" "targets" {
+  for_each            = local.existing_vms
+  name                = each.value.name
+  resource_group_name = each.value.rg
+}
+
+# Esecuzione del bootstrap su tutte le VM
+resource "azurerm_virtual_machine_run_command" "uyuni_bootstrap" {
+  for_each           = data.azurerm_virtual_machine.targets
+  name               = "uyuni-bootstrap"
+  location           = each.value.location
+  virtual_machine_id = each.value.id
+
+  source {
+    script = <<-EOT
+      #!/bin/bash
+      curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap-ubuntu2404.sh -o /tmp/bootstrap.sh
+      chmod +x /tmp/bootstrap.sh
+      /tmp/bootstrap.sh
+    EOT
+  }
+
+  # Opzionale: cattura output in Azure Blob Storage
+  # output_blob_uri = azurerm_storage_blob.output.url
+  # error_blob_uri  = azurerm_storage_blob.errors.url
+}
+```
+
+**Caratteristiche**:
+- Usa il **control plane Azure** (non SSH) - funziona anche senza accesso SSH dalla workstation
+- Richiede solo che l'**Azure VM Guest Agent** sia attivo sulla VM 
+- Supporta `script` inline, `script_uri` remoto, o `command_id` predefinito
+- Output catturabile in Azure Blob Storage per debugging
+- Con `for_each` si possono onboardare centinaia di VM in un singolo `terraform apply`
+
+**Riferimento**: [azurerm_virtual_machine_run_command](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_machine_run_command)
+
+####  `azurerm_virtual_machine_extension` (Custom Script Extension)
+Approccio consolidato, usa la Custom Script Extension di Azure:
+
+```hcl
+data "azurerm_virtual_machine" "existing" {
+  name                = "server-web-01"
+  resource_group_name = "prod-rg"
+}
+
+resource "azurerm_virtual_machine_extension" "uyuni_bootstrap" {
+  name                 = "uyuni-bootstrap"
+  virtual_machine_id   = data.azurerm_virtual_machine.existing.id
+  publisher            = "Microsoft.Azure.Extensions"
+  type                 = "CustomScript"
+  type_handler_version = "2.1"
+
+  protected_settings = jsonencode({
+    commandToExecute = "curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap-ubuntu2404.sh -o /tmp/bootstrap.sh && chmod +x /tmp/bootstrap.sh && /tmp/bootstrap.sh && exit 0"
+  })
+}
+```
+
+**Note**:
+- **Una sola extension** di tipo `CustomScript` per VM (se ne esiste già una, va rimossa prima)
+- Il comando deve terminare con `exit 0` per evitare che Azure lo consideri fallito
+
+**Riferimento**: [azurerm_virtual_machine_extension](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_machine_extension)
+
+#### B3. `null_resource` + `remote-exec` (via SSH)
+
+Per esecuzione via SSH diretto (quando si preferisce non usare l'Azure control plane):
+
+```hcl
+resource "null_resource" "uyuni_bootstrap" {
+  for_each = toset(["10.172.3.10", "10.172.3.11", "10.172.3.12"])
+
+  triggers = {
+    run_once = "bootstrap-v1"
+  }
+
+  connection {
+    type        = "ssh"
+    host        = each.value
+    user        = "root"
+    private_key = file("~/.ssh/id_rsa")
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap-ubuntu2404.sh -o /tmp/bootstrap.sh",
+      "chmod +x /tmp/bootstrap.sh",
+      "/tmp/bootstrap.sh"
+    ]
+  }
+}
+```
+
+**Note**: Richiede accesso SSH diretto. Supporta bastion host nel blocco `connection`. I provisioner sono considerati "last resort" da HashiCorp.
+#### B4. Azure CLI senza Terraform (`az vm run-command invoke`)
+Per un one-shot rapido senza infrastruttura Terraform:
+
+```bash
+# Singola VM
+az vm run-command invoke \
+  --resource-group prod-rg \
+  --name server-web-01 \
+  --command-id RunShellScript \
+  --scripts "curl -Sks https://uyuni-server/pub/bootstrap/bootstrap-ubuntu2404.sh | bash"
+
+# Tutte le VM di un resource group (PowerShell 7, parallelo)
+$vms = Get-AzVM -ResourceGroupName "prod-rg"
+$vms | ForEach-Object -Parallel {
+    Invoke-AzVMRunCommand -ResourceGroupName $_.ResourceGroupName `
+        -VMName $_.Name `
+        -CommandId 'RunShellScript' `
+        -ScriptString "curl -Sks https://uyuni-server/pub/bootstrap/bootstrap-ubuntu2404.sh | bash"
+} -ThrottleLimit 10
+```
+
+**Riferimento**: [Run Command Overview - Microsoft Learn](https://learn.microsoft.com/en-us/azure/virtual-machines/run-command-overview)
+### sumaform: il tool Terraform ufficiale di UYUNI
+[sumaform](https://github.com/uyuni-project/sumaform) è il set di moduli Terraform mantenuto dal progetto UYUNI. Scoperta dalla ricerca: **sumaform supporta VM già esistenti** tramite il backend SSH.
+#### Architettura sumaform
+sumaform separa 3 livelli:
+
+1. **Backend modules** (`backend_modules/`) - infrastruttura provider-specifica
+2. **Frontend modules** (`modules/`) - componenti logici (server, minion, client, proxy) - 23 moduli
+3. **Salt states** - configurazione software applicata via Salt dopo il provisioning
+
+Il backend si seleziona con un symlink:
+```bash
+ln -sfn ../backend_modules/ssh modules/backend   # Per macchine esistenti
+ln -sfn ../backend_modules/azure modules/backend  # Per Azure
+```
+#### I 6 backend disponibili
+
+| Backend | Scopo | VM esistenti? | Stato |
+|---|---|---|---|
+| **Libvirt** | KVM locale/remoto | No (crea VM) | Raccomandato |
+| **SSH** | **Macchine già esistenti** | **Si** | Supportato |
+| **Azure** | Microsoft Azure | No (crea VM) | In manutenzione |
+| **AWS** | Amazon Web Services | No (crea VM) | In manutenzione |
+| **Feilong** | IBM z/VM mainframe | No (crea VM) | Supportato |
+| **Null** | Solo test configurazione | N/A | Supportato |
+#### Backend SSH per macchine esistenti
+Il backend SSH è **esplicitamente progettato per macchine pre-esistenti**. Dalla documentazione: *"assumes hosts already exist and can be accessed via SSH, thus configuring them for desired roles."*
+
+```hcl
+# main.tf con backend SSH
+
+module "base" {
+  source      = "./modules/base"
+  private_key = file("~/.ssh/id_rsa")
+}
+
+module "server" {
+  source             = "./modules/server"
+  base_configuration = module.base.configuration
+  name               = "uyuni-server"
+  product_version    = "5.0-released"
+  create_sample_activation_key    = true
+  create_sample_bootstrap_script  = true
+  auto_accept                     = true
+  provider_settings = {
+    host = "10.172.2.17"
+    user = "root"
+  }
+}
+
+module "ubuntu_clients" {
+  source             = "./modules/minion"
+  base_configuration = module.base.configuration
+  name               = "ubuntu-client"
+  image              = "ubuntu2404"
+  server_configuration    = module.server.configuration
+  auto_connect_to_master  = true
+  provider_settings = {
+    host = "10.172.3.10"
+    user = "root"
+  }
+}
+```
+#### Variabili chiave
+
+| Variabile | Modulo | Scopo |
+|---|---|---|
+| `auto_connect_to_master` | minion | Connette il salt-minion al master |
+| `auto_register` | client, proxy | Auto-registra il sistema (default: `true`) |
+| `auto_accept` | server | Accetta automaticamente le chiavi Salt |
+| `create_sample_activation_key` | server | Genera activation key |
+| `create_sample_bootstrap_script` | server | Genera bootstrap script |
+| `quantity` | minion, client | Numero di istanze |
+#### Limitazioni di sumaform per produzione
+
+| Limitazione | Impatto | Mitigazione |
+|---|---|---|
+| **Salt deve essere pre-installato** | Il backend SSH non installa Salt | Installare prima o usare bootstrap script |
+| **Nessun inventario dinamico** | Ogni macchina va elencata in `provider_settings` | Generare `main.tf` da CSV/CMDB |
+| **Design orientato al test** | Password default, sicurezza non prioritaria | Personalizzare credenziali |
+| **Un host per blocco** | Scalabilità limitata | Creare moduli separati per gruppi |
+#### Verdetto su sumaform
+
+Sumaform è potente per **test e sviluppo**, ma per onboarding **produttivo di 100-1000 macchine** presenta friction: inventario statico, modello "1 blocco per host", design orientato ai test.
+
+**Raccomandazione**: Usare sumaform come **riferimento architetturale**, ma per la produzione preferire `azurerm_virtual_machine_run_command` o Bootstrap Script + SSH parallelo.
+
+**Riferimenti**:
 - [sumaform su GitHub](https://github.com/uyuni-project/sumaform)
-## METODO ALTERNATIVO: spacecmd / API XML-RPC
+- [sumaform SSH Backend](https://github.com/uyuni-project/sumaform/blob/master/backend_modules/ssh/README.md)
+- [sumaform DESIGN.md](https://github.com/uyuni-project/sumaform/blob/master/DESIGN.md)
+- [Automatic Client Registration](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/automatic-client-registration.html)
+- [Clients on Public Cloud](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/clients-pubcloud.html)
+### Nota: Non esiste un Terraform Provider per UYUNI
+
+Non esiste un provider Terraform dedicato che wrappa l'API XML-RPC di UYUNI. La registrazione deve sempre passare attraverso il bootstrap script o la connessione Salt minion. L'unico provider SUSE-related (`SUSE/susepubliccloud`) serve solo a trovare immagini SUSE nei cloud.
+## METODO: spacecmd / API XML-RPC
 
 > **Utile quando non si ha accesso SSH diretto ai client dal proprio workstation, ma si ha accesso al server UYUNI.** Il server stesso si connette via SSH ai target.
 
@@ -434,14 +647,14 @@ result = client.system.bootstrap(
 ```
 ### Confronto: SSH diretto vs API Bootstrap
 
-| Aspetto | Bootstrap Script via SSH | API system.bootstrap |
-|---|---|---|
-| **Chi fa l'SSH** | Il tuo workstation/jump host | Il server UYUNI |
-| **Parallelismo** | Controllato da te (xargs, pssh) | Sequenziale (1 alla volta dal server) |
-| **Scalabilità** | Eccellente (parallelo) | Moderata (server è collo di bottiglia) |
-| **Requisiti rete** | SSH dal workstation ai target | SSH dal server ai target |
-| **Effort** | Basso | Medio (scripting Python/Bash) |
-| **Uso consigliato** | Scenario principale | Quando non hai SSH diretto ai target |
+| Aspetto             | Bootstrap Script via SSH        | API system.bootstrap                   |
+| ------------------- | ------------------------------- | -------------------------------------- |
+| **Chi fa l'SSH**    | Il tuo workstation/jump host    | Il server UYUNI                        |
+| **Parallelismo**    | Controllato da te (xargs, pssh) | Sequenziale (1 alla volta dal server)  |
+| **Scalabilità**     | Eccellente (parallelo)          | Moderata (server è collo di bottiglia) |
+| **Requisiti rete**  | SSH dal workstation ai target   | SSH dal server ai target               |
+| **Effort**          | Basso                           | Medio (scripting Python/Bash)          |
+| **Uso consigliato** | Scenario principale             | Quando non hai SSH diretto ai target   |
 ### Issue nota
 C'è un bug storico ([#4737](https://github.com/uyuni-project/uyuni/issues/4737)) con il tipo del parametro `saltSSH`: alcune versioni richiedono `0`/`1` (int) invece di `True`/`False` (boolean). Se il bootstrap via API fallisce, provare a passare `0` invece di `False`.
 
