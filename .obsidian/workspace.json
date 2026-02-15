@@ -22,6 +22,18 @@
             }
           },
           {
+            "id": "984d20bacb95e37d",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.11.7"
+              },
+              "icon": "lucide-book-up",
+              "title": "Note di rilascio 1.11.7"
+            }
+          },
+          {
             "id": "f2b1d8d0b2f6ef0d",
             "type": "leaf",
             "state": {
@@ -35,7 +47,8 @@
               "title": "ASL0603"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -205,7 +218,6 @@
       "daily-notes:Apri nota del giorno": false,
       "templates:Inserisci modello": false,
       "command-palette:Apri riquadro comandi": false,
-      "obsidian-excalidraw-plugin:New drawing": false,
       "obsidian-git:Open Git source control": false,
       "tasknotes:Open mini calendar": false,
       "tasknotes:Open advanced calendar": false,
@@ -217,7 +229,7 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "8ca8113ad3726bba",
+  "active": "984d20bacb95e37d",
   "lastOpenFiles": [
     "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
     "Utenze/ASL0603.md",
