@@ -426,7 +426,13 @@ chmod 755 /etc/sysconfig/rhn
 # Il file verrà creato automaticamente dal container con il contenuto corretto
 ```
 
-> **IMPORTANTE**: La directory DEVE avere permessi `755`. Con `750` (default di `mkdir` con alcune umask), il processo Apache all'interno del container non può accedere alla directory e restituisce l'errore `systemid has wrong permissions`.
+> **IMPORTANTE**: La directory DEVE avere permessi `755` e il file systemid (una volta creato dal container) deve avere permessi `644`. Con permessi restrittivi (`750` sulla directory o `640` sul file), il processo Apache (wwwrun) all'interno del container non può leggere il systemid e restituisce l'errore `unable to access /etc/sysconfig/rhn/systemid` o `systemid has wrong permissions`.
+> Se dopo un bootstrap Salt i permessi cambiano, correggerli con:
+> ```bash
+> chmod 755 /etc/sysconfig/rhn
+> chmod 644 /etc/sysconfig/rhn/systemid
+> podman restart uyuni-proxy-httpd
+> ```
 #### Aggiungere il volume mount al service file
 ```bash
 sed -i 's|-v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro|-v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro \\\n-v /etc/sysconfig/rhn:/etc/sysconfig/rhn|' /etc/systemd/system/uyuni-proxy-httpd.service
