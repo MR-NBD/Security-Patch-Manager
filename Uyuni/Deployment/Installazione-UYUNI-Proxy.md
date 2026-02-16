@@ -453,11 +453,15 @@ L'installazione:
 - Abilita IPv4/IPv6 forwarding
 ### Fix Bug: Volume mount mancante per systemid
 
-> **BUG** L'immagine `proxy-httpd` tenta di scrivere in `/etc/sysconfig/rhn/systemid` all'interno del container, ma questa directory non viene montata dal servizio systemd generato da `mgrpxy`. Senza questo fix, il container httpd crasha in loop con errore `FileNotFoundError: '/etc/sysconfig/rhn/systemid'`.
-#### Creare la directory e il file sull'host
+> **BUG** L'immagine `proxy-httpd` esegue all'avvio lo script `uyuni-configure.py` che legge il `system_id` dal file `httpd.yaml` (contenuto nel config.tar.gz) e lo scrive in `/etc/sysconfig/rhn/systemid`. Tuttavia la directory `/etc/sysconfig/rhn/` non viene montata dal servizio systemd generato da `mgrpxy`. Senza questo fix, il container httpd crasha con errore `FileNotFoundError: '/etc/sysconfig/rhn/systemid'`.
+
+> **ATTENZIONE**: Creare SOLO la directory, **NON** il file `systemid`. Lo script `uyuni-configure.py` controlla `if not os.path.exists("/etc/sysconfig/rhn/systemid")` prima di scrivere: se trova un file già esistente (anche vuoto), **salta la scrittura** e il systemid resta vuoto. Il file deve essere creato dallo script stesso al primo avvio del container.
+
+#### Creare SOLO la directory sull'host (NON il file)
 ```bash
 mkdir -p /etc/sysconfig/rhn
-touch /etc/sysconfig/rhn/systemid
+# NON eseguire: touch /etc/sysconfig/rhn/systemid
+# Il file verrà creato automaticamente dal container con il contenuto corretto
 ```
 #### Aggiungere il volume mount al service file
 ```bash
@@ -479,6 +483,11 @@ systemctl start uyuni-proxy-pod
 sleep 2
 systemctl start uyuni-proxy-httpd
 ```
+#### Verificare che il systemid sia stato popolato
+```bash
+cat /etc/sysconfig/rhn/systemid
+```
+Output atteso: XML contenente `<string>ID-XXXXXXXXXX</string>` con l'ID del sistema proxy. Se il file è vuoto, verificare che non sia stato creato manualmente prima dell'avvio del container.
 ### Verificare Container Attivi
 ```bash
 podman ps

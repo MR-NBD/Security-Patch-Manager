@@ -13,24 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "README.md",
+                "file": "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README"
-            }
-          },
-          {
-            "id": "984d20bacb95e37d",
-            "type": "leaf",
-            "state": {
-              "type": "release-notes",
-              "state": {
-                "currentVersion": "1.11.7"
-              },
-              "icon": "lucide-book-up",
-              "title": "Note di rilascio 1.11.7"
+              "title": "Setup-Canali-Ubuntu"
             }
           },
           {
@@ -47,8 +35,7 @@
               "title": "ASL0603"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -229,10 +216,13 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "984d20bacb95e37d",
+  "active": "8ca8113ad3726bba",
   "lastOpenFiles": [
-    "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
+    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
+    "Uyuni/Deployment/Installazione-UYUNI-Server.md",
+    "README.md",
     "Utenze/ASL0603.md",
+    "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
     "2026-02-12.md",
     "Senza nome 2.canvas",
     "Senza nome 2.base",
@@ -252,8 +242,6 @@
     "TO-DO_ALBERTO.md",
     "Uyuni/Deployment/Configurazione-VHM-Azure.md",
     "Uyuni/Deployment/DEPLOYMENT-GUIDE.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
     "Uyuni/Deployment/Mass-Onboarding-Terraform-Update.md",
     "GeneralDocumentation/Insecurity_score_formula.md",
@@ -261,7 +249,6 @@
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
     "Uyuni/Documentazione-Preliminare.md",
     "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
-    "README.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
     "Uyuni/README.md",
