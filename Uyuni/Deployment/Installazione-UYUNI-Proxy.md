@@ -299,30 +299,19 @@ UYUNI richiede Podman >= 4.5.0
 ```bash
 systemctl enable --now podman.socket
 ```
-## FASE 7: Registrare l'Host Proxy come Salt Minion
+## FASE 7: Preparare l'Host Proxy per la Comunicazione Salt
 
-> L'host del Proxy DEVE essere registrato come Salt minion sul Server UYUNI **PRIMA** di generare la configurazione Proxy. Senza questo passaggio, la generazione del certificato SSL fallirà.
+> **IMPORTANTE - ORDINE CRITICO**: NON eseguire il bootstrap Salt separatamente prima della FASE 8. Il comando `proxy_container_config_generate_cert` nella FASE 8 crea una registrazione tradizionale (systemid) con un checksum. Se si esegue il bootstrap Salt PRIMA o DOPO la generazione del config, il bootstrap modifica il checksum sul server causando un mismatch: il proxy tenta di autenticarsi con il checksum del config, ma il server si aspetta quello del bootstrap, risultando in errore `Invalid System Credentials` e HTTP 500 su ogni richiesta dei client.
 
-### Sul Server UYUNI: Generare il Bootstrap Script
-Il bootstrap script **non è presente di default** — va generato manualmente.
-
-Dalla Web UI del Server UYUNI:
-1. **Admin → Manager Configuration → Bootstrap Script**
-2. Verificare i parametri:
-
-| Campo | Valore |
-|-------|--------|
-| **UYUNI Server Hostname** | `uyuni-server-test.uyuni.internal` |
-| **SSL Cert Location** | (lascia default) |
-| **Bootstrap Using Salt** | abilitato |
-
-3. Cliccare **Generate**
-
-Verificare che lo script sia stato creato:
+### Sull'Host Proxy: Installare Salt Minion e Certificato CA
+Questa fase prepara il minion Salt sull'host proxy senza registrarlo formalmente. Il Salt minion servirà per la gestione post-installazione.
 ```bash
-mgrctl exec -- ls -la /srv/www/htdocs/pub/bootstrap/bootstrap.sh
+# Scaricare il certificato CA del Server
+curl -Sks https://uyuni-server-test.uyuni.internal/pub/RHN-ORG-TRUSTED-SSL-CERT -o /etc/pki/trust/anchors/uyuni-ca.crt
+update-ca-certificates
 ```
-### Sul Server UYUNI: Creare Activation Key per il Proxy
+
+### Sul Server UYUNI: Creare Activation Key per il Proxy (opzionale)
 Dalla **Web UI** del Server UYUNI (`https://uyuni-server-test.uyuni.internal`):
 
 1. **Systems → Activation Keys → Create Key**
@@ -339,35 +328,7 @@ Dalla **Web UI** del Server UYUNI (`https://uyuni-server-test.uyuni.internal`):
 > Se hai i canali openSUSE Leap 15.6 sincronizzati sul Server, puoi selezionarli esplicitamente come Base Channel. Altrimenti usa "Universal Default" e Uyuni auto-detecterà l'OS.
 
 3. **Create Activation Key**
-### Sull'Host Proxy: Bootstrap via Script
-```bash
-curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap.sh | /bin/bash
-```
 
-> Se il comando restituisce un errore `syntax error near unexpected token 'newline'` con `<!DOCTYPE HTML>`, significa che il bootstrap script non è stato generato. Tornare al passaggio "Generare il Bootstrap Script".
-
-> Se il certificato SSL del Server non è attendibile, scaricare prima il CA certificate:
-> ```bash
-> curl -Sks https://uyuni-server-test.uyuni.internal/pub/RHN-ORG-TRUSTED-SSL-CERT -o /etc/pki/trust/anchors/uyuni-ca.crt
-> update-ca-certificates
-> ```
-
-### Sul Server UYUNI: Accettare il Salt Key
-
-Dalla Web UI:
-1. **Salt → Keys**
-2. Trovare `uyuni-proxy-test.uyuni.internal` nella lista "Pending"
-3. Cliccare **Accept**
-
-Oppure da CLI sul Server:
-```bash
-mgrctl exec -- salt-key -a uyuni-proxy-test.uyuni.internal
-```
-### Verificare Registrazione
-Dalla Web UI:
-1. **Systems → System List**
-2. Verificare che `uyuni-proxy-test` appaia nella lista
-3. Cliccare sul sistema e verificare lo stato "Active"
 ## FASE 8: Generare Configurazione Proxy e Certificato SSL
 ### Opzione A: Via Web UI
 
@@ -460,9 +421,12 @@ L'installazione:
 #### Creare SOLO la directory sull'host (NON il file)
 ```bash
 mkdir -p /etc/sysconfig/rhn
+chmod 755 /etc/sysconfig/rhn
 # NON eseguire: touch /etc/sysconfig/rhn/systemid
 # Il file verrà creato automaticamente dal container con il contenuto corretto
 ```
+
+> **IMPORTANTE**: La directory DEVE avere permessi `755`. Con `750` (default di `mkdir` con alcune umask), il processo Apache all'interno del container non può accedere alla directory e restituisce l'errore `systemid has wrong permissions`.
 #### Aggiungere il volume mount al service file
 ```bash
 sed -i 's|-v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro|-v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro \\\n-v /etc/sysconfig/rhn:/etc/sysconfig/rhn|' /etc/systemd/system/uyuni-proxy-httpd.service
@@ -514,22 +478,46 @@ Dalla Web UI:
 1. **Systems → System List** → selezionare `uyuni-proxy-test`
 2. Tab **Details → Proxy**
 3. Verificare status: **Active**
-## FASE 10: Ri-puntare i Client Esistenti al Proxy
+4. Verificare System Type: deve mostrare **Proxy** (potrebbe mostrare anche **Foreign** se non è registrato via Salt)
 
-Ora i 3 client (2 Ubuntu + 1 RHEL) devono essere reindirizzati dal Server diretto al Proxy.
-### Prerequisito: Configurare DNS sui Client
-> Prima di cambiare proxy, ogni client DEVE poter risolvere l'FQDN del Proxy. Senza questo passaggio il client non riuscirà a connettersi e risulterà offline.
+### (Opzionale) Registrare il Proxy come Salt Minion
+Se si vuole gestire il proxy come Salt minion (consigliato per management), eseguire il bootstrap **DOPO** l'installazione container:
 
-Su **ogni client**, aggiungere l'entry del Proxy in `/etc/hosts`:
+Sull'**Host Proxy**:
 ```bash
+curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap.sh | /bin/bash
+```
+
+Sul **Server UYUNI**:
+```bash
+mgrctl exec -- salt-key -a uyuni-proxy-test.uyuni.internal -y
+mgrctl exec -- salt 'uyuni-proxy-test.uyuni.internal' test.ping
+```
+
+> **ATTENZIONE**: Il bootstrap Salt modifica il checksum delle credenziali tradizionali sul server. Se dopo il bootstrap il proxy inizia a restituire errori HTTP 500 (`Invalid System Credentials`), è necessario rigenerare il config.tar.gz e reinstallare (vedi sezione Troubleshooting → Checksum Mismatch).
+## FASE 10: Configurazione DNS per Server, Proxy e Client
+
+> **CRITICO**: Il container del Server UYUNI ha un `/etc/hosts` separato dall'host, gestito da Podman e difficile da modificare. Se il Server non riesce a risolvere l'FQDN del Proxy, operazioni come il bootstrap dei client via Proxy falliranno con `Could not resolve hostname`.
+
+### Soluzione consigliata: Azure Private DNS Zone
+Configurare una Azure Private DNS Zone con i record:
+- `uyuni-server-test.uyuni.internal` → `10.172.2.17`
+- `uyuni-proxy-test.uyuni.internal` → `10.172.2.20`
+
+### Soluzione alternativa: /etc/hosts su tutti gli host
+Aggiungere su **ogni host** (server, proxy, client):
+```bash
+echo "10.172.2.17    uyuni-server-test.uyuni.internal    uyuni-server-test" >> /etc/hosts
 echo "10.172.2.20    uyuni-proxy-test.uyuni.internal    uyuni-proxy-test" >> /etc/hosts
 ```
-Verificare la risoluzione:
-```bash
-ping -c 2 uyuni-proxy-test.uyuni.internal
-```
 
-> II client non hanno più bisogno di raggiungere il Server direttamente. Il flusso diventa: `Client → Proxy → Server`. L'entry del Server nel file hosts può restare ma non è più necessaria.
+> Il `/etc/hosts` dentro il container Podman del Server è gestito da Podman e non accetta modifiche permanenti via `echo >>` o `sed`. Le modifiche vengono ignorate o sovrascritte al restart del container. Usare Azure Private DNS Zone è l'unica soluzione affidabile per la risoluzione DNS dal container Server.
+
+## FASE 11: Ri-puntare i Client Esistenti al Proxy
+
+Ora i 3 client (2 Ubuntu + 1 RHEL) devono essere reindirizzati dal Server diretto al Proxy.
+
+> **Prerequisito**: La configurazione DNS della FASE 10 deve essere completata prima di procedere. Ogni client DEVE poter risolvere l'FQDN del Proxy.
 ### Opzione A: Via Web UI
 Per **ogni client**:
 
@@ -634,6 +622,54 @@ podman exec proxy-httpd openssl x509 -in /etc/pki/tls/certs/spacewalk.crt -text 
 # Verificare CA del Server
 openssl s_client -connect uyuni-server-test.uyuni.internal:443 </dev/null 2>/dev/null | openssl x509 -noout -dates
 ```
+### Checksum Mismatch (Invalid System Credentials / HTTP 500)
+Se i client ricevono HTTP 500 dal proxy e nei log del proxy-httpd appare `Invalid System Credentials`, e nel log del server (`/var/log/rhn/rhn_server_xmlrpc.log`) appare `Checksum check failed: XXXX != YYYY`:
+
+**Causa**: Il checksum nel systemid del proxy non corrisponde a quello nel database del server. Questo succede quando:
+1. Si esegue il bootstrap Salt PRIMA della generazione del config (il bootstrap modifica il checksum sul server)
+2. Si rigenera il config per un sistema già esistente (il comando non aggiorna il checksum server-side)
+
+**Soluzione**:
+```bash
+# 1. Sul Server: eliminare il sistema proxy dalla Web UI
+#    Systems → uyuni-proxy-test → Delete System
+#    (spacecmd system_delete ha un bug con i proxy, usare la Web UI)
+
+# 2. Sul Server: eliminare la salt key se presente
+mgrctl exec -- salt-key -d uyuni-proxy-test.uyuni.internal -y
+
+# 3. Sul Server: rigenerare il config.tar.gz FRESCO
+mgrctl exec -ti -- spacecmd proxy_container_config_generate_cert -- \
+  uyuni-proxy-test.uyuni.internal \
+  uyuni-server-test.uyuni.internal \
+  38000 \
+  admin@example.com \
+  -o /tmp/config.tar.gz \
+  -p 8022
+
+# 4. Trasferire il config al proxy e reinstallare
+mgrctl cp server:/tmp/config.tar.gz /tmp/proxy-config.tar.gz
+scp /tmp/proxy-config.tar.gz azureuser@10.172.2.20:/tmp/uyuni-proxy-test-config.tar.gz
+
+# 5. Sul Proxy: reinstallare (mgrpxy install sovrascrive)
+mgrpxy install podman /tmp/uyuni-proxy-test-config.tar.gz
+
+# 6. Applicare il fix systemid (FASE 9) e avviare
+```
+
+> **IMPORTANTE**: NON eseguire il bootstrap Salt tra la generazione del config e l'installazione. Il bootstrap modifica il checksum e invalida il systemid.
+
+### Verifica Checksum
+Per verificare se i checksum corrispondono:
+```bash
+# Checksum nel systemid del proxy
+cat /etc/sysconfig/rhn/systemid | grep -oP 'checksum.*?<string>\K[^<]+'
+
+# Checksum che il server si aspetta (dal log errori)
+mgrctl exec -- tail -5 /var/log/rhn/rhn_server_xmlrpc.log
+# Il primo valore nel "Checksum check failed: EXPECTED != RECEIVED" è quello del server
+```
+
 ### Cache Squid piena
 
 ```bash
