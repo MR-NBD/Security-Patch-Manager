@@ -167,7 +167,7 @@ Aggiungere:
 10.172.2.17    uyuni-server-test.uyuni.internal    uyuni-server-test
 ```
 
-> **IMPORTANTE**: Il Proxy DEVE risolvere l'FQDN del Server UYUNI. Aggiungere anche l'entry del Server nel file hosts se non si usa Azure Private DNS Zone.
+> Il Proxy DEVE risolvere l'FQDN del Server UYUNI. Aggiungere anche l'entry del Server nel file hosts se non si usa Azure Private DNS Zone.
 ### Verificare la Configurazione DNS
 #### Test risoluzione diretta
 ```bash
@@ -301,7 +301,7 @@ systemctl enable --now podman.socket
 ```
 ## FASE 7: Preparare l'Host Proxy per la Comunicazione Salt
 
-> **IMPORTANTE**: NON eseguire il bootstrap Salt separatamente prima della FASE 8. Il comando `proxy_container_config_generate_cert` nella FASE 8 crea una registrazione tradizionale (systemid) con un checksum. Se si esegue il bootstrap Salt PRIMA o DOPO la generazione del config, il bootstrap modifica il checksum sul server causando un mismatch: il proxy tenta di autenticarsi con il checksum del config, ma il server si aspetta quello del bootstrap, risultando in errore `Invalid System Credentials` e HTTP 500 su ogni richiesta dei client.
+> NON eseguire il bootstrap Salt separatamente prima della FASE 8. Il comando `proxy_container_config_generate_cert` nella FASE 8 crea una registrazione tradizionale (systemid) con un checksum. Se si esegue il bootstrap Salt PRIMA o DOPO la generazione del config, il bootstrap modifica il checksum sul server causando un mismatch: il proxy tenta di autenticarsi con il checksum del config, ma il server si aspetta quello del bootstrap, risultando in errore `Invalid System Credentials` e HTTP 500 su ogni richiesta dei client.
 
 ### Sull'Host Proxy: Installare Salt Minion e Certificato CA
 Questa fase prepara il minion Salt sull'host proxy senza registrarlo formalmente. Il Salt minion servirà per la gestione post-installazione.
@@ -414,9 +414,9 @@ L'installazione:
 - Abilita IPv4/IPv6 forwarding
 ### Fix Bug: Volume mount mancante per systemid
 
-> **BUG** L'immagine `proxy-httpd` esegue all'avvio lo script `uyuni-configure.py` che legge il `system_id` dal file `httpd.yaml` (contenuto nel config.tar.gz) e lo scrive in `/etc/sysconfig/rhn/systemid`. Tuttavia la directory `/etc/sysconfig/rhn/` non viene montata dal servizio systemd generato da `mgrpxy`. Senza questo fix, il container httpd crasha con errore `FileNotFoundError: '/etc/sysconfig/rhn/systemid'`.
+> L'immagine `proxy-httpd` esegue all'avvio lo script `uyuni-configure.py` che legge il `system_id` dal file `httpd.yaml` (contenuto nel config.tar.gz) e lo scrive in `/etc/sysconfig/rhn/systemid`. Tuttavia la directory `/etc/sysconfig/rhn/` non viene montata dal servizio systemd generato da `mgrpxy`. Senza questo fix, il container httpd crasha con errore `FileNotFoundError: '/etc/sysconfig/rhn/systemid'`.
 
-> **ATTENZIONE**: Creare SOLO la directory, **NON** il file `systemid`. Lo script `uyuni-configure.py` controlla `if not os.path.exists("/etc/sysconfig/rhn/systemid")` prima di scrivere: se trova un file già esistente (anche vuoto), **salta la scrittura** e il systemid resta vuoto. Il file deve essere creato dallo script stesso al primo avvio del container.
+> Creare SOLO la directory, **NON** il file `systemid`. Lo script `uyuni-configure.py` controlla `if not os.path.exists("/etc/sysconfig/rhn/systemid")` prima di scrivere: se trova un file già esistente (anche vuoto), **salta la scrittura** e il systemid resta vuoto. Il file deve essere creato dallo script stesso al primo avvio del container.
 
 #### Creare SOLO la directory sull'host (NON il file)
 ```bash
@@ -426,7 +426,7 @@ chmod 755 /etc/sysconfig/rhn
 # Il file verrà creato automaticamente dal container con il contenuto corretto
 ```
 
-> **IMPORTANTE**: La directory DEVE avere permessi `755` e il file systemid (una volta creato dal container) deve avere permessi `644`. Con permessi restrittivi (`750` sulla directory o `640` sul file), il processo Apache (wwwrun) all'interno del container non può leggere il systemid e restituisce l'errore `unable to access /etc/sysconfig/rhn/systemid` o `systemid has wrong permissions`.
+> La directory DEVE avere permessi `755` e il file systemid (una volta creato dal container) deve avere permessi `644`. Con permessi restrittivi (`750` sulla directory o `640` sul file), il processo Apache (wwwrun) all'interno del container non può leggere il systemid e restituisce l'errore `unable to access /etc/sysconfig/rhn/systemid` o `systemid has wrong permissions`.
 > Se dopo un bootstrap Salt i permessi cambiano, correggerli con:
 > ```bash
 > chmod 755 /etc/sysconfig/rhn
@@ -500,17 +500,11 @@ mgrctl exec -- salt-key -a uyuni-proxy-test.uyuni.internal -y
 mgrctl exec -- salt 'uyuni-proxy-test.uyuni.internal' test.ping
 ```
 
-> **ATTENZIONE**: Il bootstrap Salt modifica il checksum delle credenziali tradizionali sul server. Se dopo il bootstrap il proxy inizia a restituire errori HTTP 500 (`Invalid System Credentials`), è necessario rigenerare il config.tar.gz e reinstallare (vedi sezione Troubleshooting → Checksum Mismatch).
+> Il bootstrap Salt modifica il checksum delle credenziali tradizionali sul server. Se dopo il bootstrap il proxy inizia a restituire errori HTTP 500 (`Invalid System Credentials`), è necessario rigenerare il config.tar.gz e reinstallare (vedi sezione Troubleshooting → Checksum Mismatch).
 ## FASE 10: Configurazione DNS per Server, Proxy e Client
 
-> **CRITICO**: Il container del Server UYUNI ha un `/etc/hosts` separato dall'host, gestito da Podman e difficile da modificare. Se il Server non riesce a risolvere l'FQDN del Proxy, operazioni come il bootstrap dei client via Proxy falliranno con `Could not resolve hostname`.
+> Il container del Server UYUNI ha un `/etc/hosts` separato dall'host, gestito da Podman e difficile da modificare. Se il Server non riesce a risolvere l'FQDN del Proxy, operazioni come il bootstrap dei client via Proxy falliranno con `Could not resolve hostname`.
 
-### Soluzione consigliata: Azure Private DNS Zone
-Configurare una Azure Private DNS Zone con i record:
-- `uyuni-server-test.uyuni.internal` → `10.172.2.17`
-- `uyuni-proxy-test.uyuni.internal` → `10.172.2.20`
-
-### Soluzione alternativa: /etc/hosts su tutti gli host
 Aggiungere su **ogni host** (server, proxy, client):
 ```bash
 echo "10.172.2.17    uyuni-server-test.uyuni.internal    uyuni-server-test" >> /etc/hosts
@@ -663,7 +657,7 @@ mgrpxy install podman /tmp/uyuni-proxy-test-config.tar.gz
 # 6. Applicare il fix systemid (FASE 9) e avviare
 ```
 
-> **IMPORTANTE**: NON eseguire il bootstrap Salt tra la generazione del config e l'installazione. Il bootstrap modifica il checksum e invalida il systemid.
+> NON eseguire il bootstrap Salt tra la generazione del config e l'installazione. Il bootstrap modifica il checksum e invalida il systemid.
 
 ### Verifica Checksum
 Per verificare se i checksum corrispondono:

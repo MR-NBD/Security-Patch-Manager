@@ -177,9 +177,6 @@ mgrctl exec -- salt 'onbording-test-VM-RHEL9' grains.get os
 ---
 ## METODO 1: Bootstrap Script + SSH Remoto
 
-> **Stato: TESTATO CON SUCCESSO**
-> Metodo ufficialmente raccomandato da SUSE/Uyuni per l'onboarding massivo.
-
 ### Test su singolo host
 
 Eseguito **dal server UYUNI** (o da qualsiasi macchina con accesso SSH ai target):
@@ -335,11 +332,7 @@ mgrctl exec -- salt-key -a 'onbording-test-VM-*' -y
 ```
 
 ---
-
-## METODO 2: spacecmd - Bootstrap dal Server (Da Testare)
-
-> **Stato: DA TESTARE**
-> Utile quando non si ha accesso SSH diretto ai client dal proprio workstation, ma si ha accesso al server UYUNI. Il server si connette via SSH ai target.
+## METODO 2: spacecmd - Bootstrap dal Server
 
 ### Test su singolo host
 
@@ -358,14 +351,14 @@ mgrctl exec -- spacecmd -u admin -p '<ADMIN_PASS>' -- system_bootstrap \
 mgrctl exec -- spacecmd -u admin -p '<ADMIN_PASS>' -- system_bootstrap --help
 ```
 
-> **Attenzione**: `spacecmd system_bootstrap` usa il meccanismo salt-ssh del server (come la Web UI). E soggetto allo stesso problema di compatibilita `venv-salt-minion` / OpenSSL. Assicurarsi che il bootstrap repo contenga la versione compatibile (vedi Prerequisito 2).
+>`spacecmd system_bootstrap` usa il meccanismo salt-ssh del server (come la Web UI). E soggetto allo stesso problema di compatibilita `venv-salt-minion` / OpenSSL. Assicurarsi che il bootstrap repo contenga la versione compatibile (vedi Prerequisito 2).
 
 ### Scalabilita: loop con rate limiting
 
 ```bash
 #!/bin/bash
 # mass-onboard-spacecmd.sh
-# Onboarding via spacecmd (il server UYUNI fa l'SSH)
+# Onboarding via spacecmd
 
 ADMIN_USER="admin"
 ADMIN_PASS="<ADMIN_PASS>"
@@ -402,11 +395,7 @@ done < "$INVENTORY"
 
 ---
 
-## METODO 3: API XML-RPC Python (Da Testare)
-
-> **Stato: DA TESTARE**
-> Per automazione avanzata, integrazione con CMDB, o quando serve controllo programmatico.
-
+## METODO 3: API XML-RPC Python
 ### Test su singolo host
 
 Creare ed eseguire lo script seguente (dal server o da qualsiasi macchina con accesso HTTPS al server UYUNI):
@@ -490,7 +479,6 @@ result = client.system.bootstrapWithPrivateSshKey(
 ```
 
 ### Variante con Proxy
-
 Se i client devono passare attraverso il proxy:
 
 ```python
@@ -572,12 +560,7 @@ print(f"\n=== REPORT: {success} OK, {fail} ERRORI ===")
 ```
 
 ---
-
-## METODO 4: Azure VM Run Command (Da Testare)
-
-> **Stato: DA TESTARE**
-> Specifico per ambiente Azure. Non richiede accesso SSH dal workstation: usa il control plane Azure (Azure VM Guest Agent).
-
+## METODO 4: Azure VM Run Command
 ### Test su singolo host
 
 #### Via Azure CLI
@@ -714,51 +697,10 @@ resource "azurerm_virtual_machine_run_command" "uyuni_bootstrap" {
 
 ## Tabella Comparativa Metodi
 
-| # | Metodo | Testato | Via Proxy | Richiede SSH diretto | Parallelismo | Complessita | Caso d'uso |
-|---|---|---|---|---|---|---|---|
-| **1** | **Bootstrap + SSH** | **SI** | Si | Si (dal workstation) | Eccellente (xargs/pssh) | Bassa | **Scenario principale** |
-| **2** | **spacecmd** | DA TESTARE | Si (nativo) | No (dal server) | Sequenziale | Media | No SSH diretto ai target |
-| **3** | **API XML-RPC** | DA TESTARE | Si (con proxy_id) | No (dal server) | Sequenziale | Media-Alta | Automazione/integrazione |
-| **4** | **Azure Run Command** | DA TESTARE | Si | No (usa Guest Agent) | Buono (--no-wait) | Media | Ambiente Azure nativo |
+| #     | Metodo                | Via Proxy         | Richiede SSH diretto | Parallelismo      | Caso d'uso               |
+| ----- | --------------------- | ----------------- | -------------------- | ----------------- | ------------------------ |
+| **1** | **Bootstrap + SSH**   | Si                | Si (dal workstation) | Sì(xargs/pssh)    | **Scenario principale**  |
+| **2** | **spacecmd**          | Si (nativo)       | No (dal server)      | Sequenziale       | No SSH diretto ai target |
+| **3** | **API XML-RPC**       | Si (con proxy_id) | No (dal server)      | Sequenziale       | Automazione/integrazione |
+| **4** | **Azure Run Command** | Si                | No (usa Guest Agent) | Buono (--no-wait) | Ambiente Azure nativo    |
 
----
-
-## Lezioni Apprese dai Test
-
-### Problemi critici
-
-1. **Incompatibilita venv-salt-minion / OpenSSL (CRITICO)**: la versione `venv-salt-minion-3006.0-58.1` richiede OpenSSL >= 3.3.0. Le macchine RHEL 9.4 con repo EUS hanno solo OpenSSL 3.0.7. **Soluzione**: rimuovere la versione 58.1 dal bootstrap repo e tenere la 47.36 compatibile. Dopo la registrazione, il client ricevera l'aggiornamento OpenSSL dai canali UYUNI CLM e potra poi aggiornare `venv-salt-minion`.
-
-2. **Problema uovo-gallina OpenSSL/UYUNI**: per registrarsi su UYUNI serve `venv-salt-minion` (che richiede OpenSSL >= 3.3.0). Per avere OpenSSL >= 3.3.0 serve essere registrati su UYUNI (canali CLM). I repo Red Hat standard (anche non-EUS) arrivano solo fino a OpenSSL 3.0.7-28. La versione 3.5.1 e disponibile solo dai canali UYUNI.
-
-### Problemi operativi
-
-3. **`sudo bash` obbligatorio su Azure**: l'utente `azureuser` non ha privilegi root. Tutti i metodi SSH devono usare `| sudo bash` invece di `| bash`.
-
-4. **FQDN obbligatorio**: `mgr-bootstrap` rifiuta hostname non FQDN. Usare sempre il FQDN completo (es. `uyuni-proxy-test.uyuni.internal`).
-
-5. **Config actions, remote commands e monitoring**: si abilitano nella **Activation Key**, non nello script bootstrap. Lo script `mgr-bootstrap` non ha opzioni `--allow-config-actions` o `--allow-remote-commands`.
-
-6. **Bootstrap repo va creato esplicitamente**: per RHEL9 non era presente di default, serve `mgr-create-bootstrap-repo --create=RHEL9-x86_64-uyuni`.
-
-7. **SSH known_hosts stale**: se una VM viene ricreata, la vecchia chiave SSH nel known_hosts del server (sia `/root/.ssh/known_hosts` che `/var/lib/salt/.ssh/known_hosts`) blocca il bootstrap. Rimuovere con `ssh-keygen -R`.
-
-8. **Una sola sync alla volta**: `spacewalk-repo-sync` non permette istanze multiple.
-
-9. **Bug #4737 (API XML-RPC)**: il parametro `saltSSH` potrebbe richiedere `0` (int) invece di `False` (bool).
-
-10. **Chiave Salt non auto-accettata**: con il bootstrap via script + SSH (Metodo 1), la chiave del minion arriva in `Unaccepted Keys`. Va accettata manualmente con `salt-key -a` o configurando auto-accept nella AK.
-
----
-
-## Prossimi Passi
-
-1. [ ] Completare test Metodo 2 (spacecmd) sullo stesso host RHEL
-2. [ ] Completare test Metodo 3 (API XML-RPC) sullo stesso host RHEL
-3. [ ] Completare test Metodo 4 (Azure VM Run Command) sullo stesso host RHEL
-4. [ ] Ampliare test a 5-10 host RHEL9
-5. [ ] Testare rate limiting con onboarding parallelo
-6. [ ] Verificare tuning server prima del mass onboarding (vedi Mass-Onboarding-Strategy.md, sezione Tuning)
-7. [ ] Preparare inventory CSV per produzione
-8. [ ] Decidere metodo primario per produzione in base ai risultati dei test
-9. [ ] Verificare che `mgr-create-bootstrap-repo --auto` (eseguito ogni notte) non reintroduca la versione incompatibile di venv-salt-minion nel bootstrap repo

@@ -158,9 +158,11 @@ Se `000` o timeout, verificare che il server abbia connettività internet verso 
 
 ---
 
-## Sicurezza
+Cjg8Q~TEV3sJJocvkVFdva1zJhRgkr4WE33qvdt1
 
-- Il Client Secret è memorizzato nel database UYUNI
-- Usare sempre il **ruolo Reader** (minimo privilegio) — mai Contributor o Owner
-- Impostare una scadenza sul Client Secret e calendarizzare il rinnovo
-- Se il secret viene esposto, rigenerarlo immediatamente da **Entra ID → App registrations → Certificates & secrets**
+
+
+ffb6fea0-4daf-46e4-968a-561dad580b93 client ID
+fae8df93-7cf5-40da-b480-f272e15b6242 Directory ID
+
+896dd1f5-30ae-42db-a7d4-c0f8184c6b1c Subscription ID
