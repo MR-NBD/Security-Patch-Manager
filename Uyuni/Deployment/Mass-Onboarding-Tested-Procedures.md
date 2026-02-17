@@ -1,27 +1,4 @@
-# Mass Onboarding - Procedure Testate
-
-> Documento generato a seguito dei test eseguiti il 2026-02-17 su ambiente Azure.
-> Ogni metodo è stato validato su **1 host RHEL 9** (`onbording-test-VM-RHEL9` - 10.172.2.21) con onboarding **via Proxy**.
-
-## Ambiente di Test
-
-| Componente | Valore |
-|---|---|
-| UYUNI Server | `uyuni-server-test.uyuni.internal` |
-| UYUNI Proxy | `uyuni-proxy-test.uyuni.internal` |
-| Client test | `onbording-test-VM-RHEL9` (10.172.2.21) |
-| OS Client | RHEL 9 (codebase `res-9`) |
-| Activation Key | `1-rhel9` |
-| Bootstrap Script | `bootstrap-rhel9-proxy.sh` |
-| Utente SSH | `azureuser` (con sudo) |
-| UYUNI Version | 2025.10 (containerizzato, Podman) |
-
-## Prerequisiti Verificati
-
-Questi prerequisiti sono stati validati e sono **obbligatori** prima di qualsiasi metodo di onboarding.
-
-### 1. Bootstrap Repository per RHEL9
-
+### Bootstrap Repository per RHEL9
 Il bootstrap repository deve esistere per l'OS target. Di default era presente solo per Ubuntu.
 
 ```bash
@@ -40,8 +17,32 @@ mgrctl exec -- ls /srv/www/htdocs/pub/repositories/
 # Output atteso: res  ubuntu
 ```
 
-### 2. Script Bootstrap specifico per RHEL9 via Proxy
+### Compatibilita versione venv-salt-minion (HA CREATO PROBLEMI)
 
+> **PROBLEMA RISCONTRATO**: il bootstrap repository puo contenere piu versioni del pacchetto `venv-salt-minion`. La versione piu recente (3006.0-58.1) richiede **OpenSSL >= 3.3.0**, ma RHEL 9.4 con repo EUS ha solo OpenSSL 3.0.7. Il risultato e che `venv-salt-minion` crasha all'avvio con:
+> ```
+> ImportError: /lib64/libcrypto.so.3: version `OPENSSL_3.3.0' not found
+> ```
+
+**Verificare le versioni nel bootstrap repo:**
+```bash
+mgrctl exec -- ls -la /srv/www/htdocs/pub/repositories/res/9/bootstrap/x86_64/
+# Se sono presenti piu versioni (es. 47.36 e 58.1):
+# venv-salt-minion-3006.0-47.36.uyuni.x86_64.rpm  <-- compatibile con OpenSSL 3.0.x
+# venv-salt-minion-3006.0-58.1.uyuni.x86_64.rpm   <-- richiede OpenSSL >= 3.3.0
+```
+
+**Soluzione - Rimuovere la versione incompatibile e rigenerare i metadati del repo:**
+```bash
+# Rimuovere la versione che richiede OpenSSL 3.3.0
+mgrctl exec -- rm /srv/www/htdocs/pub/repositories/res/9/bootstrap/x86_64/venv-salt-minion-3006.0-58.1.uyuni.x86_64.rpm
+
+# Rigenerare i metadati del repo
+mgrctl exec -- createrepo_c /srv/www/htdocs/pub/repositories/res/9/bootstrap/
+```
+
+> Dopo la registrazione su UYUNI, il client ricevera OpenSSL aggiornato tramite i canali CLM, e successivamente potra aggiornare anche `venv-salt-minion` alla versione piu recente senza problemi.
+### Script Bootstrap specifico per RHEL9 via Proxy
 Lo script bootstrap generico (`bootstrap.sh`) punta al server diretto. Per l'onboarding via proxy serve uno script dedicato.
 
 ```bash
@@ -51,13 +52,11 @@ mgrctl exec -- mgr-bootstrap \
   --script=bootstrap-rhel9-proxy.sh
 ```
 
-**Lezioni apprese durante il test:**
+**Problemi durante il test:**
 
-| Problema riscontrato | Soluzione |
-|---|---|
-| `--allow-config-actions` non esiste in `mgr-bootstrap` | Config actions e remote commands si abilitano nella **Activation Key** (Web UI: `Systems > Activation Keys > 1-rhel9 > Details`) |
-| `--hostname=uyuni-proxy-test` rifiutato | Serve il **FQDN completo**: `uyuni-proxy-test.uyuni.internal` |
-| `--force` disponibile come fallback | Usare solo se il FQDN non è risolvibile ma è corretto |
+| Problema riscontrato                                   | Soluzione                                                              |
+| ------------------------------------------------------ | ---------------------------------------------------------------------- |
+| `--force` disponibile come fallback                    | Usare solo se il FQDN non e risolvibile ma e corretto                  |
 
 **Opzioni disponibili** (`mgr-bootstrap --help`):
 
@@ -73,19 +72,22 @@ mgrctl exec -- mgr-bootstrap \
 | `--no-gpg` | Disabilita verifica GPG (sconsigliato) |
 | `--force` | Forza generazione ignorando warning |
 
-### 3. Activation Key con permessi corretti
+### Activation Key con permessi corretti
 
 Nella Web UI (`Systems > Activation Keys > 1-rhel9 > Details`) devono essere abilitati:
 
-- [x] **Configuration File Deployment** - permette push di file di configurazione
-- [x] **Remote Commands** - permette esecuzione comandi remoti
+-  **Configuration File Deployment** - permette push di file di configurazione
+-  **Remote Commands** - permette esecuzione comandi remoti
+-  **Monitoring** (Add-On System Types) - abilita "Monitor this Host"
 
 Verifica via CLI:
 ```bash
 mgrctl exec -- spacecmd -u admin -p '<ADMIN_PASS>' -- activationkey_details 1-rhel9
 ```
 
-### 4. Connettivita di Rete
+> Le opzioni `Config actions`, `Remote commands` e `Monitoring` si configurano **esclusivamente** nella Activation Key, non nello script bootstrap. Ogni client registrato con questa AK eredita automaticamente questi permessi.
+
+#### Connettivita di Rete
 
 Verificata dal client RHEL:
 ```bash
@@ -98,7 +100,7 @@ curl -Sks https://uyuni-proxy-test.uyuni.internal/pub/bootstrap/bootstrap-rhel9-
 # echo "Uyuni Server Client bootstrap script v2025.10"
 ```
 
-### 5. Entropia (ambiente Azure virtualizzato)
+### Entropia (ambiente Azure virtualizzato)
 
 ```bash
 mgrctl exec -- cat /proc/sys/kernel/random/entropy_avail
@@ -106,14 +108,32 @@ mgrctl exec -- cat /proc/sys/kernel/random/entropy_avail
 # Se < 200: installare haveged o rng-tools
 ```
 
-### 6. Nota su utente SSH in Azure
+### Utente SSH in Azure
 
 **Criticita riscontrata durante il test**: su Azure l'accesso SSH avviene con utente `azureuser` (non `root`). Lo script bootstrap richiede privilegi root per:
 - Installare pacchetti (`venv-salt-minion`)
 - Scrivere in `/etc/yum.repos.d/`
 - Importare certificati SSL in `/usr/share/rhn/`
 
-**Soluzione**: usare `sudo bash` in tutti i metodi di distribuzione.
+**Soluzione**: usare `| sudo bash` in tutti i metodi di distribuzione via SSH.
+
+> **Eccezione**: Azure VM Run Command (Metodo 4) esegue gia come root, non serve `sudo`.
+
+### 8. SSH Known Hosts
+
+Se un host target e stato ricreato (nuova VM sullo stesso IP), la chiave SSH cambia e il bootstrap fallisce con `REMOTE HOST IDENTIFICATION HAS CHANGED`.
+
+**Soluzioni:**
+```bash
+# Rimuovere la vecchia chiave dal known_hosts del server
+ssh-keygen -R <IP> -f /root/.ssh/known_hosts
+
+# Rimuovere la vecchia chiave dal known_hosts di Salt
+mgrctl exec -- ssh-keygen -R <IP> -f /var/lib/salt/.ssh/known_hosts
+
+# Per il mass onboarding: usare -o StrictHostKeyChecking=no
+ssh -o StrictHostKeyChecking=no azureuser@<host> "..."
+```
 
 ---
 
@@ -123,18 +143,15 @@ Dopo ogni test, il client va deregistrato per poter testare il metodo successivo
 
 ```bash
 # 1. Sul client RHEL: fermare e rimuovere salt-minion
-ssh azureuser@10.172.2.21 "sudo systemctl stop venv-salt-minion && sudo rpm -e venv-salt-minion"
+ssh azureuser@10.172.2.21 "sudo systemctl stop venv-salt-minion; sudo dnf remove -y venv-salt-minion; sudo rm -rf /etc/venv-salt-minion /etc/salt"
 
 # 2. Sul server: rimuovere la chiave Salt
-mgrctl exec -- salt-key -d '<minion-id>' -y
+mgrctl exec -- salt-key -d 'onbording-test-VM-RHEL9' -y
 
 # 3. Sul server: rimuovere il sistema dalla Web UI
 #    Systems > System List > selezionare il sistema > Delete System
 #    Oppure via spacecmd:
-mgrctl exec -- spacecmd -u admin -p '<ADMIN_PASS>' -- system_delete '<system-name>'
-
-# 4. Sul client: pulizia residui (opzionale, per test pulito)
-ssh azureuser@10.172.2.21 "sudo rm -rf /etc/salt /etc/venv-salt-minion /var/log/salt"
+mgrctl exec -- spacecmd -u admin -p '<ADMIN_PASS>' -- system_delete 'onbording-test-VM-RHEL9'
 ```
 
 ---
@@ -149,25 +166,25 @@ mgrctl exec -- salt-key -l accepted
 # Il minion-id del client deve essere presente
 
 # 2. Ping Salt funzionante
-mgrctl exec -- salt '<minion-id>' test.ping
+mgrctl exec -- salt 'onbording-test-VM-RHEL9' test.ping
 # Output atteso: True
 
 # 3. Grains leggibili (informazioni sistema)
-mgrctl exec -- salt '<minion-id>' grains.get os
-# Output atteso: RedHat (o CentOS, Rocky, etc.)
+mgrctl exec -- salt 'onbording-test-VM-RHEL9' grains.get os
+# Output atteso: RedHat
 
-# 4. Web UI
-# Systems > System List > All
+# 4. Web UI - Systems > System List > All
 # Il client deve apparire con:
 #   - Canali RHEL assegnati (dalla activation key 1-rhel9)
 #   - System Group corretto (se configurato nella AK)
+#   - Properties: Monitoring abilitato
 #   - Configuration management abilitato
 #   - Remote commands abilitato
 ```
 
 ---
 
-## METODO 1: Bootstrap Script + SSH Remoto (Testato)
+## METODO 1: Bootstrap Script + SSH Remoto
 
 > **Stato: TESTATO CON SUCCESSO**
 > Metodo ufficialmente raccomandato da SUSE/Uyuni per l'onboarding massivo.
@@ -180,7 +197,23 @@ Eseguito **dal server UYUNI** (o da qualsiasi macchina con accesso SSH ai target
 ssh azureuser@10.172.2.21 "curl -Sks https://uyuni-proxy-test.uyuni.internal/pub/bootstrap/bootstrap-rhel9-proxy.sh | sudo bash"
 ```
 
-**Risultato**: Registrazione completata con successo. Il client appare nella Web UI con canali e gruppi assegnati dalla activation key `1-rhel9`.
+**Risultato**: Registrazione completata con successo.
+
+Dopo il bootstrap, il minion appare in `Unaccepted Keys`. Accettare la chiave:
+```bash
+mgrctl exec -- salt-key -a 'onbording-test-VM-RHEL9' -y
+```
+
+Poi verificare:
+```bash
+mgrctl exec -- salt 'onbording-test-VM-RHEL9' test.ping
+# Output: True
+```
+
+Il client appare nella Web UI con:
+- Canali RHEL assegnati dalla activation key `1-rhel9`
+- Properties: Monitoring abilitato
+- Configuration management e remote commands abilitati
 
 ### Scalabilita: distribuzione parallela
 
@@ -191,7 +224,6 @@ ssh azureuser@10.172.2.21 "curl -Sks https://uyuni-proxy-test.uyuni.internal/pub
 # 10.172.2.21
 # 10.172.2.22
 # 10.172.2.23
-# ...
 
 cat hosts-rhel9.txt | xargs -I {} -P 10 \
   ssh -o StrictHostKeyChecking=no azureuser@{} \
@@ -208,7 +240,7 @@ Parametri:
 
 ```bash
 # Installare pssh sul server/jump host
-# apt install pssh  oppure  pip install parallel-ssh
+# zypper install pssh  oppure  pip install parallel-ssh
 
 pssh -h hosts-rhel9.txt \
   -l azureuser \
@@ -299,6 +331,18 @@ echo "Logs:      $LOG_DIR"
 echo "==============="
 ```
 
+### Accettazione chiavi post-onboarding
+
+Con l'Activation Key, le chiavi dovrebbero essere accettate automaticamente. Se restano in `Unaccepted Keys`:
+
+```bash
+# Accettare tutte le chiavi pendenti
+mgrctl exec -- salt-key -A -y
+
+# Oppure accettare solo quelle specifiche
+mgrctl exec -- salt-key -a 'onbording-test-VM-*' -y
+```
+
 ---
 
 ## METODO 2: spacecmd - Bootstrap dal Server (Da Testare)
@@ -318,14 +362,12 @@ mgrctl exec -- spacecmd -u admin -p '<ADMIN_PASS>' -- system_bootstrap \
   --activation-key 1-rhel9
 ```
 
-**Nota**: `spacecmd system_bootstrap` potrebbe non supportare `sudo`. Se fallisce per permessi, verificare:
-1. Se esiste un'opzione `--sudo` nel comando
-2. In alternativa, abilitare temporaneamente root SSH sul client
-
-Verificare le opzioni disponibili:
+**Nota**: verificare prima le opzioni disponibili:
 ```bash
 mgrctl exec -- spacecmd -u admin -p '<ADMIN_PASS>' -- system_bootstrap --help
 ```
+
+> **Attenzione**: `spacecmd system_bootstrap` usa il meccanismo salt-ssh del server (come la Web UI). E soggetto allo stesso problema di compatibilita `venv-salt-minion` / OpenSSL. Assicurarsi che il bootstrap repo contenga la versione compatibile (vedi Prerequisito 2).
 
 ### Scalabilita: loop con rate limiting
 
@@ -429,7 +471,6 @@ try:
     print(f"Bootstrap result: {result}")
 except Exception as e:
     print(f"ERRORE bootstrap: {e}")
-    # Se fallisce con False, riprovare con 0 (bug #4737)
     print("Nota: se l'errore riguarda il tipo del parametro saltSSH,")
     print("      verificare che si stia passando 0 (int) invece di False (bool)")
 
@@ -680,7 +721,7 @@ resource "azurerm_virtual_machine_run_command" "uyuni_bootstrap" {
 
 ---
 
-## Tabella Comparativa Metodi Testati
+## Tabella Comparativa Metodi
 
 | # | Metodo | Testato | Via Proxy | Richiede SSH diretto | Parallelismo | Complessita | Caso d'uso |
 |---|---|---|---|---|---|---|---|
@@ -689,15 +730,35 @@ resource "azurerm_virtual_machine_run_command" "uyuni_bootstrap" {
 | **3** | **API XML-RPC** | DA TESTARE | Si (con proxy_id) | No (dal server) | Sequenziale | Media-Alta | Automazione/integrazione |
 | **4** | **Azure Run Command** | DA TESTARE | Si | No (usa Guest Agent) | Buono (--no-wait) | Media | Ambiente Azure nativo |
 
+---
+
 ## Lezioni Apprese dai Test
 
-1. **`sudo bash` obbligatorio su Azure**: l'utente `azureuser` non ha privilegi root. Tutti i metodi SSH devono usare `| sudo bash` invece di `| bash`
-2. **FQDN obbligatorio**: `mgr-bootstrap` rifiuta hostname non FQDN. Usare sempre `uyuni-proxy-test.uyuni.internal`
-3. **Config actions e remote commands**: si abilitano nella **Activation Key**, non nello script bootstrap
-4. **Bootstrap repo va creato esplicitamente**: per RHEL9 non era presente di default, serve `mgr-create-bootstrap-repo --create=RHEL9-x86_64-uyuni`
-5. **Una sola sync alla volta**: `spacewalk-repo-sync` non permette istanze multiple
-6. **Bug #4737 (API XML-RPC)**: il parametro `saltSSH` potrebbe richiedere `0` (int) invece di `False` (bool)
-7. **Azure VM Run Command esegue come root**: non serve `sudo` nel metodo 4
+### Problemi critici
+
+1. **Incompatibilita venv-salt-minion / OpenSSL (CRITICO)**: la versione `venv-salt-minion-3006.0-58.1` richiede OpenSSL >= 3.3.0. Le macchine RHEL 9.4 con repo EUS hanno solo OpenSSL 3.0.7. **Soluzione**: rimuovere la versione 58.1 dal bootstrap repo e tenere la 47.36 compatibile. Dopo la registrazione, il client ricevera l'aggiornamento OpenSSL dai canali UYUNI CLM e potra poi aggiornare `venv-salt-minion`.
+
+2. **Problema uovo-gallina OpenSSL/UYUNI**: per registrarsi su UYUNI serve `venv-salt-minion` (che richiede OpenSSL >= 3.3.0). Per avere OpenSSL >= 3.3.0 serve essere registrati su UYUNI (canali CLM). I repo Red Hat standard (anche non-EUS) arrivano solo fino a OpenSSL 3.0.7-28. La versione 3.5.1 e disponibile solo dai canali UYUNI.
+
+### Problemi operativi
+
+3. **`sudo bash` obbligatorio su Azure**: l'utente `azureuser` non ha privilegi root. Tutti i metodi SSH devono usare `| sudo bash` invece di `| bash`.
+
+4. **FQDN obbligatorio**: `mgr-bootstrap` rifiuta hostname non FQDN. Usare sempre il FQDN completo (es. `uyuni-proxy-test.uyuni.internal`).
+
+5. **Config actions, remote commands e monitoring**: si abilitano nella **Activation Key**, non nello script bootstrap. Lo script `mgr-bootstrap` non ha opzioni `--allow-config-actions` o `--allow-remote-commands`.
+
+6. **Bootstrap repo va creato esplicitamente**: per RHEL9 non era presente di default, serve `mgr-create-bootstrap-repo --create=RHEL9-x86_64-uyuni`.
+
+7. **SSH known_hosts stale**: se una VM viene ricreata, la vecchia chiave SSH nel known_hosts del server (sia `/root/.ssh/known_hosts` che `/var/lib/salt/.ssh/known_hosts`) blocca il bootstrap. Rimuovere con `ssh-keygen -R`.
+
+8. **Una sola sync alla volta**: `spacewalk-repo-sync` non permette istanze multiple.
+
+9. **Bug #4737 (API XML-RPC)**: il parametro `saltSSH` potrebbe richiedere `0` (int) invece di `False` (bool).
+
+10. **Chiave Salt non auto-accettata**: con il bootstrap via script + SSH (Metodo 1), la chiave del minion arriva in `Unaccepted Keys`. Va accettata manualmente con `salt-key -a` o configurando auto-accept nella AK.
+
+---
 
 ## Prossimi Passi
 
@@ -709,3 +770,4 @@ resource "azurerm_virtual_machine_run_command" "uyuni_bootstrap" {
 6. [ ] Verificare tuning server prima del mass onboarding (vedi Mass-Onboarding-Strategy.md, sezione Tuning)
 7. [ ] Preparare inventory CSV per produzione
 8. [ ] Decidere metodo primario per produzione in base ai risultati dei test
+9. [ ] Verificare che `mgr-create-bootstrap-repo --auto` (eseguito ogni notte) non reintroduca la versione incompatibile di venv-salt-minion nel bootstrap repo
