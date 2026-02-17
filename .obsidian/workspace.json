@@ -36,6 +36,20 @@
             }
           },
           {
+            "id": "4f5fc454113a06ba",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "18-2-2026.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "18-2-2026"
+            }
+          },
+          {
             "id": "50e4e9d91a75db7f",
             "type": "leaf",
             "state": {
@@ -50,7 +64,7 @@
             }
           }
         ],
-        "currentTab": 1
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -231,11 +245,12 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "944ea83384739759",
+  "active": "4f5fc454113a06ba",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
+    "18-2-2026.md",
     "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
-    "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
     "Utenze/ASL0603.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu 24.04 LTS per UYUNI.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
