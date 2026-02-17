@@ -3,7 +3,14 @@
     "allow": [
       "WebSearch",
       "WebFetch(domain:www.uyuni-project.org)",
-      "WebFetch(domain:documentation.suse.com)"
+      "WebFetch(domain:documentation.suse.com)",
+      "WebFetch(domain:azure.microsoft.com)",
+      "WebFetch(domain:costcalc.cloudoptimo.com)",
+      "WebFetch(domain:cloudprice.net)",
+      "WebFetch(domain:instances.vantage.sh)",
+      "WebFetch(domain:intercept.cloud)",
+      "WebFetch(domain:www.lucidity.cloud)",
+      "WebFetch(domain:turbo360.com)"
     ]
   }
 }
