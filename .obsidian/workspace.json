@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
+                "file": "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Setup-Canali-Ubuntu"
+              "title": "Mass-Onboarding-Strategy"
             }
           },
           {
@@ -35,7 +35,8 @@
               "title": "ASL0603"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -216,8 +217,10 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "8ca8113ad3726bba",
+  "active": "f2b1d8d0b2f6ef0d",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
+    "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.2248.1771260150095",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.2248.1771260092572",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
@@ -232,18 +235,15 @@
     "Senza nome 1.base",
     "Senza nome.canvas",
     "Senza nome.base",
-    "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
     "TaskNotes/Views/relationships.base",
     "TaskNotes/Views/agenda-default.base",
     "TaskNotes/Views/calendar-default.base",
     "TaskNotes/Views/tasks-default.base",
     "TaskNotes/Views/kanban-default.base",
-    "TaskNotes/Views/mini-calendar-default.base",
     "TO-DO_ALBERTO.md",
     "Uyuni/Deployment/Configurazione-VHM-Azure.md",
     "Uyuni/Deployment/DEPLOYMENT-GUIDE.md",
-    "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
     "Uyuni/Deployment/Mass-Onboarding-Terraform-Update.md",
     "GeneralDocumentation/Insecurity_score_formula.md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-API-SPEC.md",
