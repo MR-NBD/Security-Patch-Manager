@@ -8,41 +8,45 @@
         "type": "tabs",
         "children": [
           {
-            "id": "8ca8113ad3726bba",
+            "id": "a130f9b1b07ebed6",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Setup-Canali-Ubuntu 24.04 LTS per UYUNI.md",
+                "file": "Utenze/ASL0603.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Setup-Canali-Ubuntu 24.04 LTS per UYUNI"
+              "title": "ASL0603"
             }
           },
           {
-            "id": "60b3589790c413c2",
-            "type": "leaf",
-            "state": {
-              "type": "tasknotes-pomodoro-stats-view",
-              "state": {},
-              "icon": "bar-chart",
-              "title": "Pomodoro stats"
-            }
-          },
-          {
-            "id": "ce91615a4d981eaa",
+            "id": "944ea83384739759",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Setup-Canali-Ubuntu 24.04 LTS per UYUNI.md",
+                "file": "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Setup-Canali-Ubuntu 24.04 LTS per UYUNI"
+              "title": "Mass-Onboarding-Strategy"
+            }
+          },
+          {
+            "id": "50e4e9d91a75db7f",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Mass-Onboarding-Tested-Procedures"
             }
           }
         ],
@@ -227,18 +231,19 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "ce91615a4d981eaa",
+  "active": "50e4e9d91a75db7f",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
+    "Utenze/ASL0603.md",
+    "Uyuni/Deployment/Setup-Canali-Ubuntu 24.04 LTS per UYUNI.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Senza nome.base",
-    "Uyuni/Deployment/Setup-Canali-Ubuntu 24.04 LTS per UYUNI.md",
     "Senza nome 1.base",
     "TaskNotes/Views/mini-calendar-default.base",
     "Senza nome.canvas",
     "2026-02-17.md",
     "TaskNotes/Views/calendar-default.base",
     "README.md",
-    "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
     "TO-DO_ALBERTO.md",
     "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
@@ -248,7 +253,6 @@
     "Uyuni/README.md",
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
     "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
-    "Utenze/ASL0603.md",
     "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
     "Uyuni/Deployment/Configuration File Deployment - permette push di file di configurazione.md",
     "Uyuni/Deployment/Analisi-Risorse-Sizing-Uyuni.md.tmp.15478.1771340188577",
