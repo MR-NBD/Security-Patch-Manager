@@ -34,8 +34,23 @@
               "icon": "lucide-file",
               "title": "ASL0603"
             }
+          },
+          {
+            "id": "9da399e822e035cd",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Uyuni/Deployment/Analisi-Risorse-Sizing-Uyuni.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Analisi-Risorse-Sizing-Uyuni"
+            }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -216,14 +231,14 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "8ca8113ad3726bba",
+  "active": "9da399e822e035cd",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
     "Uyuni/Deployment/Configuration File Deployment - permette push di file di configurazione.md",
     "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/Analisi-Risorse-Sizing-Uyuni.md",
     "Utenze/ASL0603.md",
-    "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.2248.1771260150095",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.2248.1771260092572",

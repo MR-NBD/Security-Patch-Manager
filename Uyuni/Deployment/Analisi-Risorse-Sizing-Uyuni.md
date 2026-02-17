@@ -1,43 +1,17 @@
-# Analisi Risorse e Sizing — Uyuni / SUSE Manager
-
-> **Versione:** 1.0
-> **Data:** 2026-02-17
-> **Basato su:** Documentazione ufficiale Uyuni Project e SUSE Manager 4.3 / 5.0 / Multi-Linux Manager 5.1
-> **Scopo:** Definire i requisiti hardware, software e di rete per il deployment di Uyuni Server e Proxy in funzione del numero di endpoint gestiti, indipendentemente dalla piattaforma di hosting.
-
----
-
-## Indice
-
-1. [Uyuni Server — Requisiti Hardware](#1-uyuni-server--requisiti-hardware)
-2. [Uyuni Proxy — Requisiti Hardware](#2-uyuni-proxy--requisiti-hardware)
-3. [Storage Repository — Scaling per Prodotto e Canale](#3-storage-repository--scaling-per-prodotto-e-canale)
-4. [Database PostgreSQL — Requisiti e Tuning](#4-database-postgresql--requisiti-e-tuning)
-5. [Application Tuning — Parametri che Scalano con gli Endpoint](#5-application-tuning--parametri-che-scalano-con-gli-endpoint)
-6. [Rete — Requisiti Porte e Banda](#6-rete--requisiti-porte-e-banda)
-7. [Onboarding — Rate e Vincoli Operativi](#7-onboarding--rate-e-vincoli-operativi)
-8. [Vincoli Architetturali Dichiarati](#8-vincoli-architetturali-dichiarati)
-9. [Tabella Riepilogativa — Risorse per Scala di Deployment](#9-tabella-riepilogativa--risorse-per-scala-di-deployment)
-10. [Architettura Hub (oltre 10.000 Endpoint)](#10-architettura-hub-oltre-10000-endpoint)
-11. [Fonti Ufficiali](#11-fonti-ufficiali)
-
----
-
-## 1. Uyuni Server — Requisiti Hardware
+## Uyuni Server — Requisiti Hardware
 
 Il server Uyuni è il componente centrale dell'infrastruttura. Ospita il Salt Master, Taskomatic (job scheduler), Tomcat (Web UI), Apache HTTPD (repository), Cobbler (provisioning PXE) e il database PostgreSQL.
+###  Requisiti Minimi e Raccomandati
 
-### 1.1 Requisiti Minimi e Raccomandati
-
-| Risorsa | Minimo Assoluto | Produzione Raccomandata |
-|---------|-----------------|-------------------------|
-| **CPU** | 4 core dedicati 64-bit (x86-64, ARM, ppc64le, s390x) | 8+ core recenti x86-64 |
-| **RAM** | 16 GB | 32 GB (64 GB+ per migliaia di client) |
-| **Partizione root `/`** | 40 GB | 40 GB |
-| **Swap** | 3 GB (SUMA 4.3) / 8-12 GB (containerizzato) | Swap file-based raccomandato |
-| **Storage Repository** | 100-150 GB baseline | Scala per numero di prodotti (vedi sezione 3) |
-| **Storage PostgreSQL** | 50 GB | Sul dispositivo di storage più veloce disponibile (SSD locale) |
-| **Cache `/var/cache`** | 10 GB | Scala con il numero di prodotti gestiti |
+| Risorsa                 | Minimo Assoluto                             | Produzione Raccomandata                                        |
+| ----------------------- | ------------------------------------------- | -------------------------------------------------------------- |
+| **CPU**                 | 4 core dedicati 64-bit x86-64               | 8+ core recenti x86-64                                         |
+| **RAM**                 | 16 GB                                       | 32 GB                                                          |
+| **Partizione root `/`** | 40 GB                                       | 40 GB                                                          |
+| **Swap**                | 3 GB (SUMA 4.3) / 8-12 GB (containerizzato) | Swap file-based raccomandato                                   |
+| **Storage Repository**  | 100-150 GB baseline                         | Scala per numero di prodotti (vedi sezione 3)                  |
+| **Storage PostgreSQL**  | 50 GB                                       | Sul dispositivo di storage più veloce disponibile (SSD locale) |
+| **Cache `/var/cache`**  | 10 GB                                       | Scala con il numero di prodotti gestiti                        |
 
 ### 1.2 Limite Architetturale
 

@@ -110,17 +110,13 @@ mgrctl exec -- cat /proc/sys/kernel/random/entropy_avail
 
 ### Utente SSH in Azure
 
-**Criticita riscontrata durante il test**: su Azure l'accesso SSH avviene con utente `azureuser` (non `root`). Lo script bootstrap richiede privilegi root per:
+**Probleimi durante il test**: su Azure l'accesso SSH avviene con utente `azureuser` (non `root`). Lo script bootstrap richiede privilegi root per:
 - Installare pacchetti (`venv-salt-minion`)
 - Scrivere in `/etc/yum.repos.d/`
 - Importare certificati SSL in `/usr/share/rhn/`
 
 **Soluzione**: usare `| sudo bash` in tutti i metodi di distribuzione via SSH.
-
-> **Eccezione**: Azure VM Run Command (Metodo 4) esegue gia come root, non serve `sudo`.
-
-### 8. SSH Known Hosts
-
+### SSH Known Hosts
 Se un host target e stato ricreato (nuova VM sullo stesso IP), la chiave SSH cambia e il bootstrap fallisce con `REMOTE HOST IDENTIFICATION HAS CHANGED`.
 
 **Soluzioni:**
@@ -139,8 +135,6 @@ ssh -o StrictHostKeyChecking=no azureuser@<host> "..."
 
 ## Procedura di Deregistrazione Client
 
-Dopo ogni test, il client va deregistrato per poter testare il metodo successivo.
-
 ```bash
 # 1. Sul client RHEL: fermare e rimuovere salt-minion
 ssh azureuser@10.172.2.21 "sudo systemctl stop venv-salt-minion; sudo dnf remove -y venv-salt-minion; sudo rm -rf /etc/venv-salt-minion /etc/salt"
@@ -157,8 +151,6 @@ mgrctl exec -- spacecmd -u admin -p '<ADMIN_PASS>' -- system_delete 'onbording-t
 ---
 
 ## Verifica Post-Onboarding (comune a tutti i metodi)
-
-Dopo ogni metodo, eseguire questa checklist:
 
 ```bash
 # 1. Chiave Salt accettata
@@ -183,7 +175,6 @@ mgrctl exec -- salt 'onbording-test-VM-RHEL9' grains.get os
 ```
 
 ---
-
 ## METODO 1: Bootstrap Script + SSH Remoto
 
 > **Stato: TESTATO CON SUCCESSO**
