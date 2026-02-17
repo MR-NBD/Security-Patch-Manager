@@ -16,12 +16,6 @@ Azure Resource Manager
         ├── VM #3
         └── ...
 ```
-
-**Importante**: Il VHM NON comunica direttamente con le VM. Interroga le API Azure tramite Service Principal, quindi:
-- Non serve che le VM abbiano DNS verso il server UYUNI
-- Non serve che le VM abbiano route di rete verso il server
-- Non serve che le VM siano accese
-- Trova **tutte le VM** nella subscription, indipendentemente dalla configurazione di rete
 ## Prerequisiti
 
 | Requisito | Dettaglio |

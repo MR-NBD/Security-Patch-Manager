@@ -1,7 +1,6 @@
 ## Per ambiente di Test
 Installazione di **UYUNI 2025.10** su **openSUSE Leap 15.6** in ambiente **Azure** con deployment containerizzato tramite **Podman**. 
 ### Accesso alla VM
-L'accesso alla VM avviene **esclusivamente tramite Azure Bastion** (nessun IP pubblico).
 
 > UYUNI è un progetto open-source upstream di SUSE Manager. Dalla versione 2024.10, UYUNI utilizza esclusivamente il deployment containerizzato basato su Podman. La versione 2025.10 introduce un'architettura a **2 container separati** (uno per ilserver e uno per il database PostgreSQL).
 
@@ -15,8 +14,6 @@ L'accesso alla VM avviene **esclusivamente tramite Azure Bastion** (nessun IP pu
 | Disco OS         | **64 GB** SSD       | 128 GB SSD               |
 | Disco Repository | **256 GB** Standard SSD | 500+ GB Premium SSD  |
 | Disco PostgreSQL | 64 GB Standard SSD  | 100+ GB Premium SSD NVMe |
-
-> **IMPORTANTE**: Il disco OS da 30GB NON è sufficiente. I container UYUNI occupano ~25GB. Il disco repository da 128GB si riempie con i canali Ubuntu universe (~65k pacchetti). Pianificare spazio adeguato fin dall'inizio.
 ### Architettura Target
 #### UYUNI SERVER - Host Container (openSUSE Leap 15.6)
 ##### Componenti Container (UYUNI 2025.10):
@@ -147,7 +144,6 @@ zypper install -y \
   curl \
   jq
 ```
-> **PER PRODUZIONE**: Aggiungere `audit`, `fail2ban`, `rsync`, `htop`, `iotop` per monitoring e sicurezza.
 
 ---
 ## FASE 2: Configurazione NTP con Chrony
@@ -427,8 +423,6 @@ Output atteso:
 ports: 80/tcp 443/tcp 4505/tcp 4506/tcp 5432/tcp
 ```
 
-> **PER PRODUCTION**: Aggiungere rich rules per limitare l'accesso a subnet specifiche invece di accettare da qualsiasi IP.
-
 ---
 ## FASE 7: Installazione Repository UYUNI
 ### 7.1 Aggiungere Repository UYUNI Stable per openSUSE Leap 15.6
@@ -515,8 +509,8 @@ mgradm install podman $(hostname -f) \
   --ssl-server-key /path/to/server.key
 ```
 ---
-## FASE 9: Verificare dell'Installazione (Test)
-### 9.1 Verificare Servizi Interni al Container
+## Verificare dell'Installazione (Test)
+### Verificare Servizi Interni al Container
 #### Verificare Tomcat (Web UI)
 ```bash
 sudo mgrctl exec -- systemctl status tomcat.service --no-pager
@@ -529,7 +523,7 @@ sudo mgrctl exec -- systemctl status salt-master.service --no-pager
 ```bash
 sudo mgrctl exec -- systemctl status taskomatic.service --no-pager
 ```
-### 9.2 Accesso Web UI
+### Accesso Web UI
 #### Credenziali Web UI
 - **Username**: `admin`
 - **Password**: quella specificata durante l'installazione (FASE 8)

@@ -1,30 +1,3 @@
-# UYUNI Errata Manager v2.5 - Deployment Guide
-
-## Cosa È Cambiato in v2.5
-### Problemi Risolti
-
-| # | Problema | Soluzione v2.5 | Impatto |
-|---|----------|----------------|---------|
-| 1 | **Associazione pacchetti fragile** | Version matching invece di solo nome | ✅ Patch corrette sui sistemi |
-| 2 | **CVE non visibili per sistema** | Integrazione OVAL + mapping | ✅ CVE audit funzionante |
-| 4 | **Sync USN lento** | Indice temporale, stop intelligente | ✅ Da 10min a ~2min |
-| 5 | **DSA batch manuale** | Endpoint `/api/sync/dsa/full` automatico | ✅ Un comando invece di 8 |
-| 6 | **Automazione parziale** | Script con retry, logging, health check | ✅ Produzione-ready |
-
-### Nuove Features
-- **Health check dettagliato**: `/api/health/detailed` con metriche real-time
-- **Retry automatico**: Exponential backoff su tutti gli endpoint critici
-- **Logging strutturato**: Ogni operazione tracciata con timestamp
-- **Alerting via email**: Notifiche automatiche su errori critici
-- **Lock file**: Prevenzione esecuzioni concorrenti
-- **Prioritizzazione NVD**: CVE critici/high per primi
-## Prerequisiti
-
-Prima di procedere, verifica di avere:
-- ✅ PostgreSQL Azure Flexible Server con schema v2.4 (include tabelle `errata_packages`, `uyuni_package_cache`, `errata_cve_oval_map`)
-- ✅ Azure Container Registry con immagini esistenti
-- ✅ Server UYUNI funzionante e raggiungibile
-- ✅ Accesso SSH al server UYUNI (per script cron)
 ## FASE 1: Build Nuova Immagine v2.5
 ### Prepara File Locali
 
@@ -198,8 +171,7 @@ az container create \
   --environment-variables \
     DATABASE_URL="postgresql://errataadmin:ErrataSecure2024@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require"
 ```
-### Opzione B: Container Unificato (dopo approvazione NAT Gateway)
-**DOPO aver ottenuto il NAT Gateway**, deploy singolo container:
+### Opzione B: Container Unificato (DOPO aver ottenuto il NAT Gateway)
 
 ```bash
 az container create \
@@ -545,7 +517,6 @@ Dopo il deployment v2.5, dovresti vedere:
 
 ## Riferimenti
 
-- [RICHIESTA-NAT-GATEWAY-PSN.md](./RICHIESTA-NAT-GATEWAY-PSN.md) - Template richiesta NAT Gateway
 - [app-v2.5-IMPROVED.py](./app-v2.5-IMPROVED.py) - Codice sorgente API
 - [errata-sync-v2.5-IMPROVED.sh](./errata-sync-v2.5-IMPROVED.sh) - Script automazione
 - [UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md](UYUNI-ERRATA-MANAGER.md) - Documentazione base

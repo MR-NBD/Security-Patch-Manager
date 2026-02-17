@@ -1,28 +1,20 @@
-# Setup Canali Ubuntu 24.04 LTS per UYUNI
-
 Guida completa per configurare i canali Ubuntu 24.04 LTS (Noble Numbat) su UYUNI Server utilizzando i template pre-configurati di `spacewalk-common-channels`.
 
-## Obiettivo
+### Obiettivo
 
 Configurare UYUNI per gestire sistemi Ubuntu 24.04 LTS con:
 - Repository main, security, updates, universe
 - UYUNI Client Tools (venv-salt-minion)
 - Activation keys per ambienti test/production
 - Integrazione con OpenSCAP per compliance
-
----
-
 ## Pre-requisiti
 
-| Requisito | Dettaglio |
-|-----------|-----------|
-| UYUNI Server | Installato e funzionante |
+| Requisito    | Dettaglio                                                   |
+| ------------ | ----------------------------------------------------------- |
+| UYUNI Server | Installato e funzionante                                    |
 | Spazio disco | Minimo **256GB** per repository (universe = ~65k pacchetti) |
-| Connettività | Accesso a archive.ubuntu.com e security.ubuntu.com |
-| Client | VM Ubuntu 24.04 LTS da registrare |
-
----
-
+| Connettività | Accesso a archive.ubuntu.com e security.ubuntu.com          |
+| Client       | VM Ubuntu 24.04 LTS da registrare                           |
 ## Architettura Canali
 
 ```
@@ -36,10 +28,9 @@ ubuntu-24.04-pool-amd64-uyuni (Parent - Base)           ← 0 pacchetti (conteni
 └── ubuntu-2404-amd64-uyuni-client                      ← Client Tools (venv-salt-minion)
 ```
 
-> **NOTA**: Il canale Pool/Base è un contenitore gerarchico e non contiene pacchetti. I pacchetti sono nei child channels.
+> Il canale Pool/Base è un contenitore gerarchico e non contiene pacchetti. I pacchetti sono nei child channels.
 
 ---
-
 ## FASE 1: Verifica Template Disponibili
 
 Entra nel container UYUNI e verifica i template disponibili:
@@ -74,7 +65,8 @@ Output atteso:
  ubuntu-2404-pool-amd64-uyuni: amd64-deb
 ```
 ## FASE 2: Creazione Canali con spacewalk-common-channels
-> I canali devono essere creati in ordine gerarchico. Prima il Pool (base), poi i child channels.
+
+I canali devono essere creati in ordine gerarchico. Prima il Pool (base), poi i child channels.
 ### Crea Pool Channel (Base)
 ```bash
 # Il pool è il parent channel - DEVE essere creato per primo
@@ -126,6 +118,7 @@ ubuntu-2404-amd64-uyuni-client
 ```
 ## FASE 3: Sincronizzazione Repository
 ### Avvia Sync Manuale
+
 ```bash
 # Sync tutti i canali in sequenza
 spacewalk-repo-sync --channel ubuntu-2404-amd64-main-uyuni
@@ -136,7 +129,9 @@ spacewalk-repo-sync --channel ubuntu-2404-amd64-universe-security-uyuni
 spacewalk-repo-sync --channel ubuntu-2404-amd64-universe-updates-uyuni
 spacewalk-repo-sync --channel ubuntu-2404-amd64-uyuni-client
 ```
+
 Oppure avvia in background:
+
 ```bash
 spacewalk-repo-sync --channel ubuntu-2404-amd64-main-uyuni &
 spacewalk-repo-sync --channel ubuntu-2404-amd64-main-security-uyuni &
@@ -160,17 +155,6 @@ watch -n 5 'df -h /var/spacewalk'
 spacecmd -u admin -p <password> softwarechannel_listallpackages ubuntu-2404-amd64-main-uyuni | wc -l
 ```
 ### Tempi e Dimensioni Stimate
-
-| Canale | Pacchetti | Dimensione | Tempo Stimato |
-|--------|-----------|------------|---------------|
-| Pool (Base) | 0 | - | Immediato |
-| Main | ~6,000 | ~8-10 GB | 30-60 min |
-| Main Security | ~7,600 | ~2-3 GB | 15-30 min |
-| Main Updates | ~9,000 | ~3-5 GB | 20-40 min |
-| Universe | ~65,000 | ~80-100 GB | 4-8 ore |
-| Universe Security | ~500 | ~500 MB | 5-10 min |
-| Universe Updates | ~7,400 | ~2-3 GB | 15-30 min |
-| UYUNI Client | ~50 | ~100 MB | 2-5 min |
 
 **Totale stimato**: ~100-120 GB, 5-10 ore
 ### Risultato Sync (Esempio Reale)
@@ -231,6 +215,7 @@ chmod +x /tmp/bootstrap.sh
 /tmp/bootstrap.sh -a ak-ubuntu2404-test
 ```
 ### Accetta Salt Key
+
 Da container UYUNI:
 
 ```bash
@@ -241,21 +226,26 @@ salt-key -A          # Accetta tutte
 ```
 ## FASE 6: Verifica e Test
 ### Verifica Sistema Registrato
+
 **Systems** → **All** → clicca sul sistema
 Verifica:
 - Status verde
 - Base Channel: `ubuntu-24.04-pool-amd64-uyuni`
 - Child Channels assegnati (incluso uyuni-client)
 ### Test Connettività Salt
+
 ```bash
 salt '<minion-id>' test.ping
 salt '<minion-id>' grains.item os osrelease
 ```
 ### Installazione OpenSCAP
+
 ```bash
 # Da client o via UYUNI
 apt-get install -y openscap-scanner ssg-base
 ```
+
+---
 ## Canali Opzionali
 ### Multiverse (software non-free)
 
@@ -265,19 +255,24 @@ spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-multiverse-se
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-multiverse-updates-uyuni
 ```
 ### Restricted (driver proprietari)
+
 ```bash
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-restricted-uyuni
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-restricted-security-uyuni
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-restricted-updates-uyuni
 ```
 ### Backports
+
 ```bash
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-backports-uyuni
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-universe-backports-uyuni
 ```
+
+---
 ## Troubleshooting
 ### "No channels matching your selection"
 Il canale Pool deve essere creato **prima** degli altri canali:
+
 ```bash
 # PRIMA il pool
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-pool-amd64-uyuni
@@ -287,11 +282,13 @@ spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-main-uyuni
 ```
 ### "package 'venv-salt-minion' not found"
 Manca il canale UYUNI Client Tools:
+
 ```bash
 spacewalk-common-channels -u admin -p <password> ubuntu-2404-amd64-uyuni-client
 spacewalk-repo-sync --channel ubuntu-2404-amd64-uyuni-client
 ```
 ### "No space left on device"
+
 ```bash
 # Verifica spazio
 df -h /manager_storage
@@ -303,6 +300,7 @@ sudo lvextend -l +100%FREE /dev/vg_uyuni_repo/lv_repo
 sudo xfs_growfs /manager_storage
 ```
 ### Pulizia canali per ricominciare
+
 ```bash
 # Lista canali
 spacecmd -u admin -p <password> softwarechannel_list
@@ -315,12 +313,14 @@ rm -rf /var/spacewalk/packages/*
 rm -rf /var/cache/rhn/reposync/*
 ```
 ### Container UYUNI non risponde
+
 ```bash
 # Fuori dal container
 sudo systemctl restart uyuni-server-pod
 sudo podman ps
 ```
 ### Verifica sync in corso
+
 ```bash
 # Processi attivi
 ps aux | grep spacewalk-repo-sync

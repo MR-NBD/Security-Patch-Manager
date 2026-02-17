@@ -269,7 +269,7 @@ ln -s /proxy_storage/containers /var/lib/containers
 systemctl start podman.socket
 ```
 
-> Eseguire questa operazione PRIMA di installare il Proxy.
+Eseguire questa operazione PRIMA di installare il Proxy.
 ### Verificare Configurazione Storage
 ```bash
 df -hP /proxy_storage

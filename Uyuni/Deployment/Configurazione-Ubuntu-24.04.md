@@ -8,77 +8,35 @@ Questa guida descrive la configurazione completa di UYUNI per gestire client **U
 - Activation Keys per registrazione automatizzata
 - Registrazione client Ubuntu
 - Preparazione al Patch Management
-
----
-## Indice
-
-1. [Prerequisiti e Problemi Noti](#1-prerequisiti-e-problemi-noti)
-2. [FASE 1: Importazione Chiavi GPG](#fase-1-importazione-chiavi-gpg)
-3. [FASE 2: Creazione Canali Software](#fase-2-creazione-canali-software)
-4. [FASE 3: Configurazione GPG nei Canali](#fase-3-configurazione-gpg-nei-canali)
-5. [FASE 4: Sincronizzazione Repository](#fase-4-sincronizzazione-repository)
-6. [FASE 5: Bootstrap Repository](#fase-5-bootstrap-repository)
-7. [FASE 6: Content Lifecycle Management](#fase-6-content-lifecycle-management-clm)
-8. [FASE 7: System Groups](#fase-7-system-groups)
-9. [FASE 8: Activation Keys](#fase-8-activation-keys)
-10. [FASE 9: Registrazione Client Ubuntu](#fase-9-registrazione-client-ubuntu)
-11. [FASE 10: Preparazione Patch Management](#fase-10-preparazione-patch-management)
-12. [Troubleshooting](#troubleshooting)
-13. [Quick Reference](#quick-reference)
-
 ---
 ## 1. Prerequisiti e Problemi Noti
 ### 1.1 Prerequisiti
 
 Prima di iniziare, assicurarsi che:
-- UYUNI Server sia installato e funzionante (vedi guida installazione)
-- Web UI accessibile su https://uyuni-server-fqdn
-- Utente admin configurato **senza PAM** (vedi sotto)
 - Spazio disco sufficiente su `/manager_storage` (minimo 200GB consigliati per Ubuntu)
 - Connettività verso archive.ubuntu.com e security.ubuntu.com
 
-### 1.2 Problemi Noti e Soluzioni
+### 1.2 Problematiche Noti e Soluzioni
+Problematiche riscontrate durante la procedura di configurazione:
+#### Problematica 1: spacewalk-common-channels richiede TTY
+- **Problema**: Eseguendo `mgrctl exec -- spacewalk-common-channels` senza credenziali, si ottiene errore "OSError: No such device or address: '/dev/tty'"
+- **Causa**: Il comando cerca di chiedere la password interattivamente, ma dentro il container non c'è un terminale.
+- **Soluzione**: Specificare **sempre** le credenziali con `-u` e `-p`:
 
-Durante l'implementazione sono stati riscontrati i seguenti problemi:
-
-#### Problema 1: Autenticazione API fallisce con PAM abilitato
-
-**Sintomo**: Il comando `spacewalk-common-channels` restituisce "Either the password or username is incorrect" anche con credenziali corrette.
-
-**Causa**: L'utente admin ha **Usa PAM** abilitato. L'autenticazione PAM non funziona correttamente con le API XML-RPC usate dai tool CLI.
-
-**Soluzione**:
-1. Web UI → **Utenti** → **Elenco utenti** → **admin**
-2. **Deselezionare** la checkbox **Usa PAM**
-3. Inserire una nuova password
-4. Cliccare **Aggiorna**
-
-#### Problema 2: spacewalk-common-channels richiede TTY
-
-**Sintomo**: Eseguendo `mgrctl exec -- spacewalk-common-channels` senza credenziali, si ottiene errore "OSError: No such device or address: '/dev/tty'"
-
-**Causa**: Il comando cerca di chiedere la password interattivamente, ma dentro il container non c'è un terminale.
-
-**Soluzione**: Specificare **sempre** le credenziali con `-u` e `-p`:
 ```bash
 mgrctl exec -- spacewalk-common-channels -u admin -p 'PASSWORD' <canali>
 ```
 
-#### Problema 3: Web UI mostra solo Repository Type "yum"
+#### Problematica 2: Web UI mostra solo Repository Type "yum"
+- **Problema**: Nella creazione manuale repository, il dropdown mostra solo "yum", non "deb".
+- **Causa**: La Web UI ha limitazioni per i repository deb.
+- **Soluzione**: Usare `spacewalk-common-channels` che crea automaticamente canali e repository con tipo corretto.
 
-**Sintomo**: Nella creazione manuale repository, il dropdown mostra solo "yum", non "deb".
+#### Problematica 3: Nome Bootstrap Repository diverso
+- **Problema**: `mgr-create-bootstrap-repo --create ubuntu-2404-amd64` restituisce "'ubuntu-2404-amd64' not found"
+- **Causa**: Il nome del bootstrap usa il punto nel numero versione.
+- **Soluzione**: Usare il comando `--list` per trovare il nome esatto:
 
-**Causa**: La Web UI ha limitazioni per i repository deb.
-
-**Soluzione**: Usare `spacewalk-common-channels` che crea automaticamente canali e repository con tipo corretto.
-
-#### Problema 4: Nome Bootstrap Repository diverso
-
-**Sintomo**: `mgr-create-bootstrap-repo --create ubuntu-2404-amd64` restituisce "'ubuntu-2404-amd64' not found"
-
-**Causa**: Il nome del bootstrap usa il punto nel numero versione.
-
-**Soluzione**: Usare il comando `--list` per trovare il nome esatto:
 ```bash
 mgrctl exec -- mgr-create-bootstrap-repo --list
 # Output: ubuntu-24.04-amd64-uyuni
@@ -87,17 +45,13 @@ mgrctl exec -- mgr-create-bootstrap-repo --create ubuntu-24.04-amd64-uyuni
 ```
 
 ---
-
 ## FASE 1: Importazione Chiavi GPG
-
 ### 1.1 Informazioni sulle Chiavi GPG Ubuntu
-
 Ubuntu utilizza questa chiave principale per firmare i pacchetti:
 
 | Chiave | Key ID | Fingerprint |
 |--------|--------|-------------|
 | Ubuntu Archive (2018) | `871920D1991BC93C` | `F6ECB3762474EDA9D21B7022871920D1991BC93C` |
-
 ### 1.2 Scarica e Importa la Chiave GPG
 
 ```bash
@@ -120,11 +74,8 @@ gpg:               imported: 1
 ```
 
 ---
-
 ## FASE 2: Creazione Canali Software
-
 ### 2.1 Struttura Canali Ubuntu
-
 UYUNI organizza i canali in una struttura gerarchica:
 
 ```
@@ -152,7 +103,6 @@ mgrctl exec -- spacewalk-common-channels \
 ```
 
 ### 2.3 Verifica Creazione Canali
-
 **Via CLI**:
 ```bash
 mgrctl exec -- spacecmd -u admin -p 'password' softwarechannel_list | grep ubuntu
@@ -163,11 +113,9 @@ mgrctl exec -- spacecmd -u admin -p 'password' softwarechannel_list | grep ubunt
 2. Verifica presenza dei 5 canali Ubuntu
 
 ---
-
 ## FASE 3: Configurazione GPG nei Canali
 
 Dopo l'importazione della chiave nel keyring, configurare i riferimenti GPG in ogni canale per la verifica sui client.
-
 ### 3.1 Configura GPG nel Canale Padre
 
 1. **Software** → **Manage** → **Channels**
@@ -191,11 +139,10 @@ Applica la stessa configurazione GPG a:
 - ubuntu-2404-amd64-main-security-uyuni
 - ubuntu-2404-amd64-uyuni-client
 
-> **Nota**: Tutti i canali Ubuntu usano la stessa chiave GPG.
+> Tutti i canali Ubuntu usano la stessa chiave GPG.
 
 ---
 ## FASE 4: Sincronizzazione Repository
-
 ### 4.1 Avvia Sincronizzazione
 La sincronizzazione parte automaticamente alla creazione dei canali. Per avviarla manualmente:
 
@@ -208,8 +155,8 @@ mgrctl exec -- spacewalk-repo-sync -p ubuntu-2404-pool-amd64-uyuni
 1. **Software** → **Manage** → **Channels**
 2. Clicca sul canale child (es. ubuntu-2404-amd64-main-uyuni)
 3. Tab **Repositories** → **Sync** → **Sync Now**
-
 ### 4.2 Monitora Progresso
+
 ```bash
 # Verifica processi sync attivi
 mgrctl exec -- ps aux | grep spacewalk-repo-sync
@@ -226,14 +173,7 @@ mgrctl exec -- tail -20 /var/log/rhn/reposync/ubuntu-2404-amd64-main-security-uy
 
 ### 4.3 Tempistiche Attese
 
-| Repository | Dimensione stimata | Tempo prima sync |
-|------------|-------------------|------------------|
-| main | ~3-5 GB | 2-4 ore |
-| main-updates | ~2-3 GB | 1-3 ore |
-| main-security | ~1-2 GB | 1-2 ore |
-| uyuni-client | ~100 MB | 5-10 minuti |
-
-> ⚠️ **ATTENZIONE**: La prima sincronizzazione richiede **diverse ore** e spazio disco significativo (~150-200GB). Monitorare `/manager_storage` per evitare esaurimento spazio.
+> **ATTENZIONE**: La prima sincronizzazione richiede **diverse ore** e spazio disco significativo (~150-200GB). Monitorare `/manager_storage` per evitare esaurimento spazio.
 
 ### 4.4 Verifica Completamento
 
@@ -273,8 +213,7 @@ drwxr-xr-x 3 root root 16 Dec 17 17:29 ubuntu
 
 ## FASE 6: Content Lifecycle Management (CLM)
 
-Il Content Lifecycle Management permette di gestire la promozione dei contenuti attraverso ambienti (Dev → Test → Prod), simile a Katello.
-
+Il Content Lifecycle Management permette di gestire la promozione dei contenuti attraverso ambienti (Dev → Test → Prod).
 ### 6.1 Concetti Chiave
 
 | Termine | Descrizione |
@@ -285,7 +224,6 @@ Il Content Lifecycle Management permette di gestire la promozione dei contenuti 
 | **Build** | Snapshot dei contenuti in un momento specifico |
 
 ### 6.2 Crea un Progetto CLM
-
 **Via Web UI**:
 
 1. **Content Lifecycle** → **Projects** → **Create Project**
@@ -300,19 +238,17 @@ Il Content Lifecycle Management permette di gestire la promozione dei contenuti 
 3. Clicca **Create**
 
 ### 6.3 Aggiungi Canali Sorgente
-
 1. Nel progetto appena creato, sezione **Sources**
 2. Clicca **Attach/Detach Sources**
 3. Seleziona:
-   - ☑ ubuntu-2404-pool-amd64-uyuni
-   - ☑ ubuntu-2404-amd64-main-uyuni
-   - ☑ ubuntu-2404-amd64-main-updates-uyuni
-   - ☑ ubuntu-2404-amd64-main-security-uyuni
-   - ☑ ubuntu-2404-amd64-uyuni-client
-4. Clicca **Save**
+   -  ubuntu-2404-pool-amd64-uyuni
+   -  ubuntu-2404-amd64-main-uyuni
+   -  ubuntu-2404-amd64-main-updates-uyuni
+   -  ubuntu-2404-amd64-main-security-uyuni
+   -  ubuntu-2404-amd64-uyuni-client
+1. Clicca **Save**
 
 ### 6.4 Crea gli Ambienti
-
 Crea gli ambienti in ordine di promozione:
 
 **Ambiente 1: TEST**
@@ -341,7 +277,6 @@ Crea gli ambienti in ordine di promozione:
 3. Clicca **Save**
 
 ### 6.5 Crea Filtri (Opzionale)
-
 I filtri permettono di controllare quali pacchetti vengono promossi.
 
 **Esempio: Filtro per escludere pacchetti specifici**
@@ -374,7 +309,6 @@ ubuntu-2404-pool-amd64-uyuni-prod-ubuntu-2404-lifecycle
 ```
 
 ### 6.7 Promozione tra Ambienti
-
 Per promuovere contenuti da DEV a PROD:
 
 1. **Content Lifecycle** → **Projects** → **Ubuntu-24.04-Lifecycle**
@@ -382,16 +316,12 @@ Per promuovere contenuti da DEV a PROD:
 3. Seleziona la versione da promuovere
 4. Clicca **Promote**
 
-> **Best Practice**: Testare sempre in DEV prima di promuovere a PROD.
-
 ---
-
 ## FASE 7: System Groups
 
 I System Groups permettono di organizzare i client per ambiente, funzione o location.
 
 ### 7.1 Struttura Consigliata
-
 Per un ambiente con macchine Test e Produzione:
 
 ```
@@ -403,7 +333,6 @@ System Groups
 ```
 
 ### 7.2 Crea System Groups
-
 **Via Web UI**:
 
 1. **Systems** → **System Groups** → **Create Group**
@@ -415,7 +344,6 @@ System Groups
 | **Description** | Client Ubuntu 24.04 ambiente Test |
 
 3. Clicca **Create Group**
-
 4. Ripeti per PROD:
 
 | Campo           | Valore                                  |
@@ -424,7 +352,6 @@ System Groups
 | **Description** | Client Ubuntu 24.04 ambiente Produzione |
 
 ### 7.3 Associa System Group a Canali CLM
-
 Dopo aver creato i gruppi, puoi configurare l'associazione automatica:
 
 1. **Systems** → **System Groups** → **Ubuntu-24.04-Test**
@@ -434,13 +361,10 @@ Dopo aver creato i gruppi, puoi configurare l'associazione automatica:
 > **Nota**: L'associazione può anche essere fatta automaticamente tramite Activation Key.
 
 ---
-
 ## FASE 8: Activation Keys
 
 Le Activation Keys automatizzano la configurazione dei client durante la registrazione.
-
 ### 8.1 Crea Activation Key per TEST
-
 1. **Systems** → **Activation Keys** → **Create Key**
 2. Compila:
 
@@ -457,17 +381,15 @@ Le Activation Keys automatizzano la configurazione dei client durante la registr
 3. Clicca **Create Activation Key**
 
 4. Tab **Child Channels**, seleziona tutti i child dell'ambiente dev:
-   - ☑ ubuntu-2404-amd64-main-uyuni-dev-ubuntu-2404-lifecycle
-   - ☑ ubuntu-2404-amd64-main-updates-uyuni-dev-ubuntu-2404-lifecycle
-   - ☑ ubuntu-2404-amd64-main-security-uyuni-dev-ubuntu-2404-lifecycle
-   - ☑ ubuntu-2404-amd64-uyuni-client-dev-ubuntu-2404-lifecycle
+   - ubuntu-2404-amd64-main-uyuni-dev-ubuntu-2404-lifecycle
+   - ubuntu-2404-amd64-main-updates-uyuni-dev-ubuntu-2404-lifecycle
+   - ubuntu-2404-amd64-main-security-uyuni-dev-ubuntu-2404-lifecycle
+   - ubuntu-2404-amd64-uyuni-client-dev-ubuntu-2404-lifecycle
 
-5. Tab **Groups** → seleziona **Ubuntu-24.04-Test**
-
-6. Clicca **Update Key**
+3. Tab **Groups** → seleziona **Ubuntu-24.04-Test**
+4. Clicca **Update Key**
 
 ### 8.2 Crea Activation Key per PROD
-
 Ripeti il processo con:
 
 | Campo            | Valore                                                  |
@@ -477,7 +399,6 @@ Ripeti il processo con:
 | **Base Channel** | ubuntu-2404-pool-amd64-uyuni-prod-ubuntu-2404-lifecycle |
 
 E associa al gruppo **Ubuntu-24.04-Prod**.
-
 ### 8.3 Riepilogo Activation Keys
 
 | Key | Ambiente CLM | System Group | Uso |
@@ -486,9 +407,7 @@ E associa al gruppo **Ubuntu-24.04-Prod**.
 | ubuntu-2404-prod | prod | Ubuntu-24.04-Prod | Macchine produzione |
 
 ---
-
 ## FASE 9: Registrazione Client Ubuntu
-
 ### 9.1 Prerequisiti sul Client
 
 Sul client Ubuntu 24.04, verificare:
@@ -507,7 +426,6 @@ nc -zv uyuni-server-test.uyuni.internal 4506
 ```
 
 ### 9.2 Metodo 1: Bootstrap Script (Consigliato)
-
 **Sul server UYUNI**, genera lo script di bootstrap:
 
 1. **Systems** → **Bootstrapping**
@@ -531,11 +449,8 @@ curl -Sks https://uyuni-server-test.uyuni.internal/pub/bootstrap/bootstrap.sh | 
 ```
 
 Dopo il bootstrap, configurare l'activation key:
-
-```bash
-# Sul server UYUNI, accetta il minion e assegna activation key
-# Via Web UI: Systems → Minion Keys → Accept
-```
+- Sul server UYUNI, accettare il minion e assegna activation key
+- Via Web UI: **Salt** → **Keys** → **Accept**
 
 ### 9.3 Metodo 2: Registrazione Manuale
 
@@ -632,7 +547,7 @@ Il flusso di patch management con CLM:
 
 ### 10.3 Verifica Errata/Advisory
 
-> **Nota**: UYUNI/SUSE Manager non hanno supporto nativo per Ubuntu Security Notices (USN) come per RHEL/SUSE. I pacchetti vengono sincronizzati, ma gli errata devono essere gestiti diversamente.
+> UYUNI/SUSE Manager non hanno supporto nativo per Ubuntu Security Notices (USN) come per RHEL/SUSE. I pacchetti vengono sincronizzati, ma gli errata devono essere gestiti diversamente.
 
 Per visualizzare pacchetti con aggiornamenti disponibili:
 
@@ -674,24 +589,7 @@ mgrctl exec -- salt 'ubuntu-test01*' cmd.run 'shutdown -r +5'
 ```
 
 ---
-
 ## Troubleshooting
-
-### Errore: "Either the password or username is incorrect"
-
-**Causa**: PAM abilitato sull'utente admin.
-**Soluzione**: Disabilitare PAM in **Utenti** → **admin** → deseleziona **Usa PAM**.
-
-### Errore: "OSError: No such device or address: '/dev/tty'"
-
-**Causa**: Comando eseguito senza credenziali.
-**Soluzione**: Aggiungere sempre `-u admin -p 'PASSWORD'`.
-
-### Errore: Bootstrap repo "not found"
-
-**Causa**: Nome errato.
-**Soluzione**: Usare `--list` per trovare il nome corretto (con punto: `ubuntu-24.04-amd64-uyuni`).
-
 ### Sync fallisce o si blocca
 
 ```bash
@@ -723,7 +621,6 @@ mgrctl exec -- salt-key -L
 ```
 
 ---
-
 ## Quick Reference
 
 ### Comandi Creazione Canali
@@ -731,7 +628,7 @@ mgrctl exec -- salt-key -L
 ```bash
 # Crea tutti i canali Ubuntu 24.04
 mgrctl exec -- spacewalk-common-channels \
-  -u admin -p 'PASSWORD' \
+  -u admin -p 'password' \
   ubuntu-2404-pool-amd64-uyuni \
   ubuntu-2404-amd64-main-uyuni \
   ubuntu-2404-amd64-main-updates-uyuni \
