@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.uyuni-project.org)",
+      "WebFetch(domain:documentation.suse.com)"
+    ]
+  }
+}

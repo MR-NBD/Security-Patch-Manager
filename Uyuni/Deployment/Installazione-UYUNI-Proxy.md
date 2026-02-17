@@ -301,7 +301,7 @@ systemctl enable --now podman.socket
 ```
 ## FASE 7: Preparare l'Host Proxy per la Comunicazione Salt
 
-> **IMPORTANTE - ORDINE CRITICO**: NON eseguire il bootstrap Salt separatamente prima della FASE 8. Il comando `proxy_container_config_generate_cert` nella FASE 8 crea una registrazione tradizionale (systemid) con un checksum. Se si esegue il bootstrap Salt PRIMA o DOPO la generazione del config, il bootstrap modifica il checksum sul server causando un mismatch: il proxy tenta di autenticarsi con il checksum del config, ma il server si aspetta quello del bootstrap, risultando in errore `Invalid System Credentials` e HTTP 500 su ogni richiesta dei client.
+> **IMPORTANTE**: NON eseguire il bootstrap Salt separatamente prima della FASE 8. Il comando `proxy_container_config_generate_cert` nella FASE 8 crea una registrazione tradizionale (systemid) con un checksum. Se si esegue il bootstrap Salt PRIMA o DOPO la generazione del config, il bootstrap modifica il checksum sul server causando un mismatch: il proxy tenta di autenticarsi con il checksum del config, ma il server si aspetta quello del bootstrap, risultando in errore `Invalid System Credentials` e HTTP 500 su ogni richiesta dei client.
 
 ### Sull'Host Proxy: Installare Salt Minion e Certificato CA
 Questa fase prepara il minion Salt sull'host proxy senza registrarlo formalmente. Il Salt minion servirà per la gestione post-installazione.
