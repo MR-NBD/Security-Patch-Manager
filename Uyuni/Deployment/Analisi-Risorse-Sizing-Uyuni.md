@@ -3,54 +3,46 @@
 Il server Uyuni è il componente centrale dell'infrastruttura. Ospita il Salt Master, Taskomatic (job scheduler), Tomcat (Web UI), Apache HTTPD (repository), Cobbler (provisioning PXE) e il database PostgreSQL.
 ###  Requisiti Minimi e Raccomandati
 
-| Risorsa                 | Minimo Assoluto                             | Produzione Raccomandata                                        |
-| ----------------------- | ------------------------------------------- | -------------------------------------------------------------- |
-| **CPU**                 | 4 core dedicati 64-bit x86-64               | 8+ core recenti x86-64                                         |
-| **RAM**                 | 16 GB                                       | 32 GB                                                          |
-| **Partizione root `/`** | 40 GB                                       | 40 GB                                                          |
-| **Swap**                | 3 GB (SUMA 4.3) / 8-12 GB (containerizzato) | Swap file-based raccomandato                                   |
-| **Storage Repository**  | 100-150 GB baseline                         | Scala per numero di prodotti (vedi sezione 3)                  |
-| **Storage PostgreSQL**  | 50 GB                                       | Sul dispositivo di storage più veloce disponibile (SSD locale) |
-| **Cache `/var/cache`**  | 10 GB                                       | Scala con il numero di prodotti gestiti                        |
+| Risorsa                 | Minimo Assoluto                             | Produzione Raccomandata                       |
+| ----------------------- | ------------------------------------------- | --------------------------------------------- |
+| **CPU**                 | 4 core dedicati 64-bit x86-64               | 8+ core recenti x86-64                        |
+| **RAM**                 | 16 GB                                       | 32 GB                                         |
+| **Partizione root `/`** | 40 GB                                       | 40 GB                                         |
+| **Swap**                | 3 GB (SUMA 4.3) / 8-12 GB (containerizzato) | Swap file-based raccomandato                  |
+| **Storage Repository**  | 100-150 GB baseline                         | Scala per numero di prodotti (vedi sezione 3) |
+| **Storage PostgreSQL**  | 50 GB                                       |                                               |
+| **Cache `/var/cache`**  | 10 GB                                       | Scala con il numero di prodotti gestiti       |
 
-### 1.2 Limite Architetturale
+### Limite Architetturale
 
 > **Il server singolo non deve superare 10.000 client.** Oltre questa soglia è obbligatoria un'architettura Hub con server periferici multipli. SUSE raccomanda un engagement consulenziale per deployment di questa scala.
 
-### 1.3 Architetture CPU Supportate
-
-- x86-64 (raccomandata per performance)
-- ARM (aarch64)
-- IBM POWER (ppc64le)
-- IBM Z (s390x)
-
 ---
-
-## 2. Uyuni Proxy — Requisiti Hardware
+## Uyuni Proxy — Requisiti Hardware
 
 Il proxy agisce come nodo intermedio tra client e server. Fornisce cache locale dei pacchetti (Squid), broker delle comunicazioni Salt, serving HTTP/HTTPS dei repository, tunneling SSH per client push-based e TFTP per PXE boot.
 
-### 2.1 Requisiti Minimi e Raccomandati
+### Requisiti Minimi e Raccomandati
 
-| Risorsa | Minimo | Produzione Raccomandata |
-|---------|--------|-------------------------|
-| **CPU** | 2 core dedicati 64-bit | 2+ core moderni |
-| **RAM** | 2 GB | 8 GB (16 GB per deployment grandi) |
-| **Partizione root `/`** | 40 GB | 40 GB |
-| **Storage `/srv`** | 100 GB | Uguale alla dimensione del repository sul server |
-| **Cache Squid `/var/cache`** | 100 GB | 60-80% dello spazio disco disponibile |
+| Risorsa                      | Minimo                 | Produzione Raccomandata                          |
+| ---------------------------- | ---------------------- | ------------------------------------------------ |
+| **CPU**                      | 2 core dedicati 64-bit | 2+ core                                          |
+| **RAM**                      | 2 GB                   | 8 GB (16 GB per deployment grandi)               |
+| **Partizione root `/`**      | 40 GB                  | 40 GB                                            |
+| **Storage `/srv`**           | 100 GB                 | Uguale alla dimensione del repository sul server |
+| **Cache Squid `/var/cache`** | 100 GB                 | 60-80% dello spazio disco disponibile            |
 
-### 2.2 Capacita Dichiarata
+### Capacita Dichiarata
 
 > **Un singolo proxy gestisce 500 - 1.000 client**, in funzione della banda di rete disponibile. Non esiste un hard limit, ma superare 1.000 client per proxy degrada le performance di distribuzione pacchetti.
 
-### 2.3 Ottimizzazione Cache
+### Ottimizzazione Cache
 
 La cache Squid del proxy dovrebbe idealmente eguagliare la dimensione di `/var/spacewalk` sul server. In questo modo, dopo la prima sincronizzazione completa, tutto il traffico successivo dei client viene servito dalla cache locale senza coinvolgere il server.
 
 Per deployment containerizzati: configurare la cache Squid al massimo **80% dello spazio disponibile** sul volume dedicato.
 
-### 2.4 Componenti Containerizzati del Proxy
+### Componenti Containerizzati del Proxy
 
 In Uyuni 2025.10+ il proxy viene deployato come Pod Podman con 5 container:
 
@@ -63,28 +55,25 @@ In Uyuni 2025.10+ il proxy viene deployato come Pod Podman con 5 container:
 | `proxy-tftpd` | TFTP per PXE boot provisioning | 69 |
 
 ---
-
-## 3. Storage Repository — Scaling per Prodotto e Canale
+## Storage Repository — Scaling per Prodotto e Canale
 
 Lo storage dei repository e il fattore di scala piu direttamente correlato al numero e alla tipologia di sistemi operativi gestiti. Ogni prodotto/canale sincronizzato consuma spazio in modo significativo.
 
-### 3.1 Spazio Disco per Tipo di Prodotto
+### Spazio Disco per Tipo di Prodotto
 
 | Tipo di Prodotto | Spazio Disco per Prodotto | Cache Aggiuntiva |
 |------------------|--------------------------|------------------|
 | Ogni prodotto SUSE + Package Hub | **~50 GB** | +100 MB |
 | Ogni prodotto Red Hat | **~360 GB** | +1 GB |
 
-### 3.2 Esempi di Dimensionamento
+### Esempi di Dimensionamento
 
-| Scenario | Canali Tipici | Storage Repo Necessario |
-|----------|---------------|------------------------|
-| Solo Ubuntu (main, universe, security, updates) | ~17 canali | 100-150 GB |
-| Ubuntu + RHEL 9 | + canali RH | 400-500 GB |
-| Ubuntu + RHEL + SLES | + canali SUSE | 550-700 GB |
-| Multi-OS completo (Ubuntu, RHEL, SLES, Debian) | Tutti | 1-2 TB |
-
-### 3.3 Vincoli Critici
+| Scenario                                        | Canali Tipici | Storage Repo Necessario |
+| ----------------------------------------------- | ------------- | ----------------------- |
+| Solo Ubuntu (main, universe, security, updates) | ~17 canali    | 150-200 GB              |
+| Ubuntu + RHEL 9                                 | + canali RH   | 400-500 GB              |
+| Ubuntu + RHEL + SLES                            | + canali SUSE | 550-700 GB              |
+### Vincoli Critici
 
 - **La sincronizzazione dei repository FALLISCE se lo spazio disco si esaurisce.** Non esiste graceful degradation o sync parziale.
 - **Filesystem raccomandato:** XFS per tutti i volumi.
@@ -92,10 +81,9 @@ Lo storage dei repository e il fattore di scala piu direttamente correlato al nu
 - I volumi repository, database e sistema operativo **devono risiedere su dispositivi di storage separati** per prevenire degradazione delle performance e perdita dati incrociata.
 
 ---
+## Database PostgreSQL — Requisiti e Tuning
 
-## 4. Database PostgreSQL — Requisiti e Tuning
-
-### 4.1 Vincoli Architetturali
+### Vincoli Architetturali
 
 - PostgreSQL e l'**unico database supportato** (no MySQL, MariaDB, Oracle, SQL Server)
 - Database remoti **non sono supportati** — PostgreSQL deve risiedere sulla stessa macchina del server Uyuni (o nello stesso pod containerizzato)
@@ -103,7 +91,7 @@ Lo storage dei repository e il fattore di scala piu direttamente correlato al nu
 - **Deve risiedere sul dispositivo di storage piu veloce disponibile** — SSD locale obbligatorio, RAID-0 per deployment grandi
 - Partizione minima dedicata: **50 GB**
 
-### 4.2 Parametri di Tuning per Scaling
+### Parametri di Tuning per Scaling
 
 | Parametro PostgreSQL | Default | Range Raccomandato per Scale |
 |---------------------|---------|------------------------------|
@@ -116,7 +104,7 @@ Lo storage dei repository e il fattore di scala piu direttamente correlato al nu
 |----------------------|---------|------------------------------|
 | `hibernate.c3p0.max_size` (connection pool) | 20 | **100-200** |
 
-### 4.3 Considerazioni sulle Performance
+### Considerazioni sulle Performance
 
 - Con l'aumento degli endpoint, il numero di query al database cresce linearmente (stato dei sistemi, errata applicabili, inventario pacchetti)
 - Le operazioni piu pesanti sono: `errata.listAffectedSystems`, `system.listLatestUpgradablePackages`, e le query di matching CVE-pacchetto
@@ -124,38 +112,38 @@ Lo storage dei repository e il fattore di scala piu direttamente correlato al nu
 
 ---
 
-## 5. Application Tuning — Parametri che Scalano con gli Endpoint
+## Application Tuning — Parametri che Scalano con gli Endpoint
 
 Questi parametri determinano quante risorse il server Uyuni alloca ai vari sotto-sistemi. Devono essere incrementati proporzionalmente al numero di endpoint gestiti.
 
-### 5.1 Tomcat (Web UI e API XML-RPC)
+### Tomcat (Web UI e API XML-RPC)
 
 | Parametro | Default | Large Scale (>1.000 client) |
 |-----------|---------|------------------------------|
 | **`-Xmx`** (heap Java max) | 1 GB | **4-8 GB** |
 
-### 5.2 Java Application (Spacewalk)
+### 5Java Application (Spacewalk)
 
-| Parametro | Default | Large Scale |
-|-----------|---------|-------------|
-| `java.message_queue_thread_pool_size` | 5 | **50-150** |
-| `java.salt_batch_size` | 200 | **200-500** |
-| `java.salt_event_thread_pool_size` | 8 | **20-100** |
+| Parametro                             | Default | Large Scale |
+| ------------------------------------- | ------- | ----------- |
+| `java.message_queue_thread_pool_size` | 5       | **50-150**  |
+| `java.salt_batch_size`                | 200     | **200-500** |
+| `java.salt_event_thread_pool_size`    | 8       | **20-100**  |
 
-### 5.3 Taskomatic (Job Scheduler)
+### Taskomatic (Job Scheduler)
 
 | Parametro | Default | Large Scale |
 |-----------|---------|-------------|
 | `taskomatic.java.maxmemory` | 4096 MB | **4096-16384 MB** |
 | `org.quartz.threadPool.threadCount` | 20 | **20-200** |
 
-### 5.4 Apache HTTPD
+### Apache HTTPD
 
-| Parametro | Default | Large Scale |
-|-----------|---------|-------------|
-| `MaxRequestWorkers` | 150 | **150-500** |
+| Parametro           | Default | Large Scale |
+| ------------------- | ------- | ----------- |
+| `MaxRequestWorkers` | 150     | **150-500** |
 
-### 5.5 Salt Master
+### Salt Master
 
 | Parametro | Default | Large Scale |
 |-----------|---------|-------------|
@@ -342,20 +330,20 @@ La documentazione ufficiale stabilisce i seguenti vincoli non negoziabili:
 
 ---
 
-## 9. Tabella Riepilogativa — Risorse per Scala di Deployment
+## Tabella Riepilogativa — Risorse per Scala di Deployment
 
-### 9.1 Server — Scaling
+### Server — Scaling
 
-| Scala Endpoint | CPU | RAM | Storage DB | Storage Repo | Swap | Tuning |
-|---------------|-----|-----|------------|--------------|------|--------|
-| **< 100** | 4 core | 16 GB | 50 GB SSD | 150 GB | 3-8 GB | Default |
-| **100 - 500** | 4-8 core | 16-32 GB | 50 GB SSD | 150-300 GB | 8-12 GB | Consigliato |
-| **500 - 1.000** | 8 core | 32 GB | 50-100 GB SSD | 300-500 GB | 8-12 GB | Consigliato |
-| **1.000 - 5.000** | 8+ core | 32-64 GB | 100+ GB SSD | 500 GB - 2 TB | 12 GB | Obbligatorio |
-| **5.000 - 10.000** | 8+ core (top-tier) | 64+ GB | SSD RAID-0 | 2+ TB | 12+ GB | Tutti i parametri al massimo |
-| **> 10.000** | Hub: multi-server | 64 GB+ per nodo | SSD RAID-0 per nodo | Per nodo | Per nodo | Architettura Hub |
+| Scala Endpoint     | CPU                | RAM             | Storage DB          | Storage Repo  | Swap     | Tuning                       |
+| ------------------ | ------------------ | --------------- | ------------------- | ------------- | -------- | ---------------------------- |
+| **< 100**          | 4 core             | 16 GB           | 50 GB SSD           | 150 GB        | 3-8 GB   | Default                      |
+| **100 - 500**      | 4-8 core           | 16-32 GB        | 50 GB SSD           | 150-300 GB    | 8-12 GB  | Consigliato                  |
+| **500 - 1.000**    | 8 core             | 32 GB           | 50-100 GB SSD       | 300-500 GB    | 8-12 GB  | Consigliato                  |
+| **1.000 - 5.000**  | 8+ core            | 32-64 GB        | 100+ GB SSD         | 500 GB - 2 TB | 12 GB    | Obbligatorio                 |
+| **5.000 - 10.000** | 8+ core (top-tier) | 64+ GB          | SSD RAID-0          | 2+ TB         | 12+ GB   | Tutti i parametri al massimo |
+| **> 10.000**       | Hub: multi-server  | 64 GB+ per nodo | SSD RAID-0 per nodo | Per nodo      | Per nodo | Architettura Hub             |
 
-### 9.2 Proxy — Scaling
+### Proxy — Scaling
 
 | Scala Endpoint | N. Proxy | CPU/Proxy | RAM/Proxy | Cache Squid/Proxy | Note |
 |---------------|----------|-----------|-----------|-------------------|------|
@@ -367,12 +355,12 @@ La documentazione ufficiale stabilisce i seguenti vincoli non negoziabili:
 
 ### 9.3 Rete — Scaling
 
-| Scala Endpoint | Banda Minima Server-Proxy | Banda Minima Proxy-Client | Porte Firewall |
-|---------------|--------------------------|--------------------------|----------------|
-| **< 500** | 100 Mbps | 100 Mbps | Standard (vedi sezione 6) |
-| **500 - 1.000** | 1 Gbps | 100 Mbps - 1 Gbps | Standard |
-| **1.000 - 5.000** | 1 Gbps | 1 Gbps per proxy | Standard |
-| **5.000 - 10.000** | 10 Gbps o multipli 1 Gbps | 1 Gbps per proxy | Standard |
+| Scala Endpoint     | Banda Minima Server-Proxy | Banda Minima Proxy-Client | Porte Firewall            |
+| ------------------ | ------------------------- | ------------------------- | ------------------------- |
+| **< 500**          | 100 Mbps                  | 100 Mbps                  | Standard (vedi sezione 6) |
+| **500 - 1.000**    | 1 Gbps                    | 100 Mbps - 1 Gbps         | Standard                  |
+| **1.000 - 5.000**  | 1 Gbps                    | 1 Gbps per proxy          | Standard                  |
+| **5.000 - 10.000** | 10 Gbps o multipli 1 Gbps | 1 Gbps per proxy          | Standard                  |
 
 ---
 
