@@ -10,7 +10,9 @@
       "WebFetch(domain:instances.vantage.sh)",
       "WebFetch(domain:intercept.cloud)",
       "WebFetch(domain:www.lucidity.cloud)",
-      "WebFetch(domain:turbo360.com)"
+      "WebFetch(domain:turbo360.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh search:*)"
     ]
   }
 }

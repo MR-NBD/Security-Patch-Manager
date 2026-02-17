@@ -13,13 +13,13 @@ UYUNI Proxy (10.172.2.20)
 ```
 ### Componenti Container (Proxy 2025.10)
 
-| Container | Funzione |
-|-----------|----------|
-| **proxy-httpd** | HTTP/HTTPS - repository pacchetti e Web forwarding |
-| **proxy-salt-broker** | Broker Salt events tra client e Server |
-| **proxy-squid** | Cache proxy per pacchetti (riduce traffico verso Server) |
-| **proxy-ssh** | SSH tunneling per push clients |
-| **proxy-tftpd** | TFTP per PXE boot (provisioning automatico) |
+| Container             | Funzione                                                 |
+| --------------------- | -------------------------------------------------------- |
+| **proxy-httpd**       | HTTP/HTTPS - repository pacchetti e Web forwarding       |
+| **proxy-salt-broker** | Broker Salt events tra client e Server                   |
+| **proxy-squid**       | Cache proxy per pacchetti (riduce traffico verso Server) |
+| **proxy-ssh**         | SSH tunneling per push clients                           |
+| **proxy-tftpd**       | TFTP per PXE boot (provisioning automatico)              |
 
 > La dimensione del disco cache Squid determina quanti pacchetti vengono serviti localmente senza contattare il Server. Più grande è, meno traffico di rete tra Proxy e Server. Impostare Squid cache al massimo **60% dello spazio disponibile** sul disco cache.
 ## DEPLOYMENT
