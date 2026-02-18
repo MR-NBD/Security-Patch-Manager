@@ -4,67 +4,11 @@
     "type": "split",
     "children": [
       {
-        "id": "90f58b31d387dee1",
+        "id": "da3a8a896f2e8a47",
         "type": "tabs",
         "children": [
           {
-            "id": "a130f9b1b07ebed6",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Utenze/ASL0603.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "ASL0603"
-            }
-          },
-          {
-            "id": "98ceb255df852b34",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "18-2-2026.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "18-2-2026"
-            }
-          },
-          {
-            "id": "944ea83384739759",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Mass-Onboarding-Tested-Procedures"
-            }
-          },
-          {
-            "id": "4f5fc454113a06ba",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "Analisi-Risorse-Sizing-Uyuni"
-            }
-          },
-          {
-            "id": "50e4e9d91a75db7f",
+            "id": "eedfd32991834803",
             "type": "leaf",
             "state": {
               "type": "markdown",
@@ -77,8 +21,7 @@
               "title": "Installazione-UYUNI-Proxy"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "vertical"
@@ -135,8 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 300
   },
   "right": {
     "id": "2e443e30fb5653f7",
@@ -261,16 +203,22 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "4f5fc454113a06ba",
+  "active": "eedfd32991834803",
   "lastOpenFiles": [
-    "18-2-2026.md",
+    "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
+    "Uyuni/Teoria/BUG-MGRPXY.md",
+    "TaskNotes/Views/agenda-default.base",
+    "TaskNotes/Views/kanban-default.base",
+    "Update/25-2-2026.md",
+    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
+    "Update",
+    "Uyuni/Deployment/Installazione-UYUNI-Server.md",
+    "Utenze/ASL0603.md",
+    "Update/18-2-2026.md",
     "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
     "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
     "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
-    "Utenze/ASL0603.md",
     "Uyuni/Deployment/Setup-Canali-Ubuntu 24.04 LTS per UYUNI.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Senza nome.base",
     "Senza nome 1.base",
     "TaskNotes/Views/mini-calendar-default.base",
@@ -279,7 +227,6 @@
     "TaskNotes/Views/calendar-default.base",
     "README.md",
     "TO-DO_ALBERTO.md",
-    "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
     "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
     "Uyuni/Deployment/Configurazione-VHM-Azure.md",
     "Uyuni/README.md",
@@ -291,17 +238,11 @@
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md.tmp.2248.1771260092572",
     "2026-02-12.md",
     "Senza nome 2.canvas",
-    "Senza nome 2.base",
     "Senza nome 1.canvas",
-    "TaskNotes/Views/relationships.base",
-    "TaskNotes/Views/agenda-default.base",
     "Uyuni/Deployment/Mass-Onboarding-Terraform-Update.md",
     "GeneralDocumentation/Insecurity_score_formula.md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-API-SPEC.md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
-    "Uyuni/Documentazione-Preliminare.md",
-    "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
-    "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
     "img/img2187te87r13.png",
     "img/dueUntitled Diagram.drawio-1 1.png",
     "img/dueUntitled Diagram.drawio-1.png",
