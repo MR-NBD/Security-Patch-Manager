@@ -34,13 +34,13 @@ Il punto di svolta è intorno a **1.000–2.000 client**: a quella scala Taskoma
 
 ## Proxy — Quanti e Come (scala con i client)
 
-| Fascia client | N. Proxy | RAM/Proxy | Cache Squid/Proxy | Note |
-|--------------|----------|-----------|------------------|------|
-| **≤ 500** | 1 | 8 GB | ≥ 100 GB | 1 proxy è sufficiente |
-| **500 – 1.000** | 1–2 | 8 GB | ≥ dim. repo server | 2 per ridondanza |
-| **1.000 – 2.000** | 2–4 | 8–16 GB | ≥ dim. repo server | |
-| **2.000 – 5.000** | 4–10 | 16 GB | ≥ dim. repo server | |
-| **5.000 – 10.000** | 10–20 | 16 GB | ≥ dim. repo server | |
+| Fascia client      | N. Proxy | RAM/Proxy | Cache Squid/Proxy  | Note                  |
+| ------------------ | -------- | --------- | ------------------ | --------------------- |
+| **≤ 500**          | 1        | 8 GB      | ≥ 100 GB           | 1 proxy è sufficiente |
+| **500 – 1.000**    | 1–2      | 8 GB      | ≥ dim. repo server | 2 per ridondanza      |
+| **1.000 – 2.000**  | 2–4      | 8–16 GB   | ≥ dim. repo server |                       |
+| **2.000 – 5.000**  | 4–10     | 16 GB     | ≥ dim. repo server |                       |
+| **5.000 – 10.000** | 10–20    | 16 GB     | ≥ dim. repo server |                       |
 
 **Formula:** `N_proxy = ⌈N_client / 700⌉` (700 = valore medio conservativo nel range documentato 500–1.000) 
 
