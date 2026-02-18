@@ -14,7 +14,9 @@ mgrctl exec -- mgr-create-bootstrap-repo --create=RHEL9-x86_64-uyuni
 
 # Verificare la creazione
 mgrctl exec -- ls /srv/www/htdocs/pub/repositories/
-# Output atteso: res  ubuntu
+# Output atteso: 
+# res  
+# ubuntu
 ```
 
 ### Compatibilita versione venv-salt-minion (HA CREATO PROBLEMI)
