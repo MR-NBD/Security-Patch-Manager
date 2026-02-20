@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "da3a8a896f2e8a47",
+        "id": "358144c5a7066897",
         "type": "tabs",
         "children": [
           {
-            "id": "eedfd32991834803",
+            "id": "c0b08d57e6e8fd92",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "UYUNI Errata Manager - Setup & Deployment"
+              "title": "Nuova scheda"
             }
           }
         ]
@@ -202,8 +198,12 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "eedfd32991834803",
+  "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
+    "TaskNotes/Views/kanban-default.base",
+    "TaskNotes/Views/calendar-default.base",
+    "TaskNotes/Views/agenda-default.base",
+    "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
     "Orchestrator/README.md",
     "Orchestrator/README.md.tmp.8961.1771605396375",
     "Orchestrator/scripts/install.sh",
@@ -213,9 +213,6 @@
     "Orchestrator/tests/test_health.py",
     "Orchestrator/app/main.py",
     "Orchestrator/app/api/health.py",
-    "Orchestrator/app/utils/logger.py",
-    "Orchestrator/app/services/db.py",
-    "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
@@ -242,7 +239,6 @@
     "2026-02-12.md",
     "Senza nome 2.canvas",
     "Senza nome 1.canvas",
-    "Uyuni/Deployment/Mass-Onboarding-Terraform-Update.md",
     "img/img2187te87r13.png",
     "img/dueUntitled Diagram.drawio-1 1.png",
     "img/dueUntitled Diagram.drawio-1.png",
