@@ -1,13 +1,39 @@
 -- ============================================================
 -- SPM ORCHESTRATOR DATABASE SCHEMA
--- Version: 1.0
--- Date: 2026-02-05
+-- Version: 1.1
+-- Date: 2026-02-20
+-- ============================================================
+-- Database separato da SPM-SYNC.
+-- errata_cache replica localmente i dati da SPM-SYNC via polling.
 -- ============================================================
 
--- Questo schema estende il database SPM esistente con le tabelle
--- necessarie per l'orchestrazione dei test e approvazioni.
-
 BEGIN;
+
+-- ============================================================
+-- 0. ERRATA CACHE (replica locale da SPM-SYNC via polling)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS errata_cache (
+    errata_id VARCHAR(50) PRIMARY KEY,
+    synopsis TEXT,
+    description TEXT,
+    severity VARCHAR(20),
+    type VARCHAR(50),
+    issued_date TIMESTAMP,
+    target_os VARCHAR(20),              -- 'ubuntu', 'rhel'
+    packages JSONB,                     -- [{name, version, size_kb}]
+    cves TEXT[],                        -- ['CVE-2026-1234', ...]
+    source_url TEXT,
+    synced_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_errata_cache_severity ON errata_cache(severity);
+CREATE INDEX IF NOT EXISTS idx_errata_cache_os ON errata_cache(target_os);
+CREATE INDEX IF NOT EXISTS idx_errata_cache_issued ON errata_cache(issued_date DESC);
+CREATE INDEX IF NOT EXISTS idx_errata_cache_synced ON errata_cache(synced_at DESC);
+
+COMMENT ON TABLE errata_cache IS 'Cache locale errata copiati da SPM-SYNC via polling';
 
 -- ============================================================
 -- 1. PATCH RISK PROFILE (Success Score)
@@ -16,7 +42,6 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS patch_risk_profile (
     errata_id VARCHAR(50) PRIMARY KEY,
 
-    -- Fattori di rischio (calcolati dall'analisi pacchetti)
     affects_kernel BOOLEAN DEFAULT FALSE,
     requires_reboot BOOLEAN DEFAULT FALSE,
     modifies_config BOOLEAN DEFAULT FALSE,
@@ -24,17 +49,14 @@ CREATE TABLE IF NOT EXISTS patch_risk_profile (
     package_count INTEGER DEFAULT 1,
     total_size_kb INTEGER DEFAULT 0,
 
-    -- Storico test (aggiornato dopo ogni test)
     times_tested INTEGER DEFAULT 0,
     times_failed INTEGER DEFAULT 0,
     last_failure_reason TEXT,
     last_test_date TIMESTAMP,
     last_test_result VARCHAR(20),
 
-    -- Success Score (0-100, più alto = più sicuro)
     success_score INTEGER DEFAULT 50 CHECK (success_score >= 0 AND success_score <= 100),
 
-    -- Metadata
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -44,38 +66,27 @@ CREATE INDEX IF NOT EXISTS idx_risk_profile_kernel ON patch_risk_profile(affects
 CREATE INDEX IF NOT EXISTS idx_risk_profile_reboot ON patch_risk_profile(requires_reboot);
 
 COMMENT ON TABLE patch_risk_profile IS 'Profilo di rischio e Success Score per ogni errata';
-COMMENT ON COLUMN patch_risk_profile.success_score IS 'Score 0-100: più alto = patch più sicura da testare prima';
 
 -- ============================================================
--- 2. PATCH TEST QUEUE (Coda ordinata per test)
+-- 2. PATCH TEST QUEUE
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS patch_test_queue (
     id SERIAL PRIMARY KEY,
     errata_id VARCHAR(50) NOT NULL,
-    errata_version VARCHAR(20),          -- Per tracking nuove versioni
-    target_os VARCHAR(20) NOT NULL,      -- 'ubuntu' o 'rhel'
+    errata_version VARCHAR(20),
+    target_os VARCHAR(20) NOT NULL,
 
-    -- Priorità
-    success_score INTEGER DEFAULT 50,    -- Cached from risk_profile
-    priority_override INTEGER DEFAULT 0, -- Override manuale (0 = usa score)
+    success_score INTEGER DEFAULT 50,
+    priority_override INTEGER DEFAULT 0,
 
-    -- Stato workflow
     status VARCHAR(30) DEFAULT 'queued',
-    -- Stati possibili:
-    -- queued, testing, passed, failed, needs_reboot, rebooting,
-    -- pending_approval, approved, rejected, snoozed,
-    -- promoting, prod_pending, prod_applied, completed, rolled_back
 
-    -- Timestamps
     queued_at TIMESTAMP DEFAULT NOW(),
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
 
-    -- Riferimento al test eseguito
     test_id INTEGER,
-
-    -- Metadata
     created_by VARCHAR(100),
     notes TEXT,
 
@@ -96,7 +107,7 @@ CREATE INDEX IF NOT EXISTS idx_queue_queued_at ON patch_test_queue(queued_at);
 COMMENT ON TABLE patch_test_queue IS 'Coda test patch ordinata per Success Score';
 
 -- ============================================================
--- 3. PATCH TESTS (Risultati test)
+-- 3. PATCH TESTS
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS patch_tests (
@@ -104,46 +115,37 @@ CREATE TABLE IF NOT EXISTS patch_tests (
     queue_id INTEGER REFERENCES patch_test_queue(id) ON DELETE SET NULL,
     errata_id VARCHAR(50) NOT NULL,
 
-    -- Sistema di test utilizzato
-    test_system_id INTEGER,              -- UYUNI system ID
+    test_system_id INTEGER,
     test_system_name VARCHAR(100),
     test_system_ip VARCHAR(45),
 
-    -- Snapshot
     snapshot_id VARCHAR(100),
-    snapshot_type VARCHAR(20),           -- 'snapper', 'lvm', 'azure'
+    snapshot_type VARCHAR(20),
     snapshot_size_mb INTEGER,
 
-    -- Timing
     started_at TIMESTAMP DEFAULT NOW(),
     completed_at TIMESTAMP,
     duration_seconds INTEGER,
 
-    -- Risultato
-    result VARCHAR(20),                  -- 'passed', 'failed', 'error', 'aborted'
+    result VARCHAR(20),
     failure_reason TEXT,
-    failure_phase VARCHAR(50),           -- Fase in cui è fallito
+    failure_phase VARCHAR(50),
 
-    -- Reboot
     required_reboot BOOLEAN DEFAULT FALSE,
     reboot_performed BOOLEAN DEFAULT FALSE,
     reboot_successful BOOLEAN,
 
-    -- Metriche (JSONB per flessibilità)
     baseline_metrics JSONB,
     post_patch_metrics JSONB,
     metrics_delta JSONB,
     metrics_evaluation JSONB,
 
-    -- Servizi
     services_baseline JSONB,
     services_post_patch JSONB,
     failed_services TEXT[],
 
-    -- Configurazione test usata
     test_config JSONB,
 
-    -- Rollback (se eseguito durante test)
     rollback_performed BOOLEAN DEFAULT FALSE,
     rollback_type VARCHAR(20),
     rollback_at TIMESTAMP,
@@ -155,11 +157,9 @@ CREATE INDEX IF NOT EXISTS idx_tests_errata ON patch_tests(errata_id);
 CREATE INDEX IF NOT EXISTS idx_tests_queue ON patch_tests(queue_id);
 CREATE INDEX IF NOT EXISTS idx_tests_result ON patch_tests(result);
 CREATE INDEX IF NOT EXISTS idx_tests_started ON patch_tests(started_at);
-CREATE INDEX IF NOT EXISTS idx_tests_system ON patch_tests(test_system_id);
 
 COMMENT ON TABLE patch_tests IS 'Risultati dettagliati dei test patch';
 
--- Aggiorna foreign key in queue dopo creazione patch_tests
 ALTER TABLE patch_test_queue
     DROP CONSTRAINT IF EXISTS fk_queue_test;
 ALTER TABLE patch_test_queue
@@ -167,24 +167,17 @@ ALTER TABLE patch_test_queue
     FOREIGN KEY (test_id) REFERENCES patch_tests(id) ON DELETE SET NULL;
 
 -- ============================================================
--- 4. PATCH TEST PHASES (Fasi del test per tracking)
+-- 4. PATCH TEST PHASES
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS patch_test_phases (
     id SERIAL PRIMARY KEY,
     test_id INTEGER NOT NULL REFERENCES patch_tests(id) ON DELETE CASCADE,
-
     phase_name VARCHAR(50) NOT NULL,
-    -- Fasi: snapshot_create, baseline_collect, patch_apply,
-    --       stabilization_wait, reboot_wait, post_metrics_collect, evaluation
-
     status VARCHAR(20) DEFAULT 'pending',
-    -- pending, in_progress, completed, failed, skipped
-
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
     duration_seconds INTEGER,
-
     error_message TEXT,
     output JSONB,
 
@@ -192,31 +185,22 @@ CREATE TABLE IF NOT EXISTS patch_test_phases (
 );
 
 CREATE INDEX IF NOT EXISTS idx_phases_test ON patch_test_phases(test_id);
-CREATE INDEX IF NOT EXISTS idx_phases_status ON patch_test_phases(status);
 
 COMMENT ON TABLE patch_test_phases IS 'Tracking fasi individuali di ogni test';
 
 -- ============================================================
--- 5. PATCH APPROVALS (Workflow approvazione)
+-- 5. PATCH APPROVALS
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS patch_approvals (
     id SERIAL PRIMARY KEY,
     queue_id INTEGER REFERENCES patch_test_queue(id) ON DELETE SET NULL,
     errata_id VARCHAR(50) NOT NULL,
-
-    -- Azione
-    action VARCHAR(20) NOT NULL,         -- 'approved', 'rejected', 'snoozed'
-
-    -- Chi e quando
+    action VARCHAR(20) NOT NULL,
     action_by VARCHAR(100) NOT NULL,
     action_at TIMESTAMP DEFAULT NOW(),
-
-    -- Dettagli
     reason TEXT,
-    snooze_until TIMESTAMP,              -- Se snoozed
-
-    -- Audit
+    snooze_until TIMESTAMP,
     ip_address VARCHAR(45),
     user_agent TEXT,
 
@@ -226,48 +210,32 @@ CREATE TABLE IF NOT EXISTS patch_approvals (
 CREATE INDEX IF NOT EXISTS idx_approvals_errata ON patch_approvals(errata_id);
 CREATE INDEX IF NOT EXISTS idx_approvals_queue ON patch_approvals(queue_id);
 CREATE INDEX IF NOT EXISTS idx_approvals_action ON patch_approvals(action);
-CREATE INDEX IF NOT EXISTS idx_approvals_date ON patch_approvals(action_at);
 
 COMMENT ON TABLE patch_approvals IS 'Storico approvazioni/rifiuti patch';
 
 -- ============================================================
--- 6. PATCH DEPLOYMENTS (Deployment in produzione)
+-- 6. PATCH DEPLOYMENTS
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS patch_deployments (
     id SERIAL PRIMARY KEY,
     approval_id INTEGER REFERENCES patch_approvals(id) ON DELETE SET NULL,
     errata_id VARCHAR(50) NOT NULL,
-    errata_ids TEXT[],                   -- Se deployment batch
-
-    -- Sistemi target
-    target_system_ids INTEGER[],         -- UYUNI system IDs
+    errata_ids TEXT[],
+    target_system_ids INTEGER[],
     total_systems INTEGER NOT NULL,
-
-    -- Stato
     status VARCHAR(20) DEFAULT 'pending',
-    -- pending, scheduled, in_progress, completed, partial_failure, rolled_back
-
-    -- Timing
     scheduled_at TIMESTAMP,
     started_at TIMESTAMP,
     completed_at TIMESTAMP,
-
-    -- Risultati
     systems_succeeded INTEGER DEFAULT 0,
     systems_failed INTEGER DEFAULT 0,
     failed_system_ids INTEGER[],
-
-    -- Dettagli per sistema (JSONB)
     system_results JSONB,
-
-    -- Rollback
     rollback_performed BOOLEAN DEFAULT FALSE,
     rollback_type VARCHAR(20),
     rollback_id INTEGER,
     rollback_at TIMESTAMP,
-
-    -- Metadata
     created_by VARCHAR(100),
     notes TEXT,
 
@@ -278,46 +246,29 @@ CREATE TABLE IF NOT EXISTS patch_deployments (
 
 CREATE INDEX IF NOT EXISTS idx_deployments_status ON patch_deployments(status);
 CREATE INDEX IF NOT EXISTS idx_deployments_errata ON patch_deployments(errata_id);
-CREATE INDEX IF NOT EXISTS idx_deployments_scheduled ON patch_deployments(scheduled_at);
-CREATE INDEX IF NOT EXISTS idx_deployments_approval ON patch_deployments(approval_id);
 
 COMMENT ON TABLE patch_deployments IS 'Deployment patch in produzione';
 
 -- ============================================================
--- 7. PATCH ROLLBACKS (Storico rollback)
+-- 7. PATCH ROLLBACKS
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS patch_rollbacks (
     id SERIAL PRIMARY KEY,
     deployment_id INTEGER REFERENCES patch_deployments(id) ON DELETE SET NULL,
     errata_id VARCHAR(50) NOT NULL,
-
-    -- Tipo rollback
-    rollback_type VARCHAR(20) NOT NULL,  -- 'package', 'system'
-
-    -- Target
+    rollback_type VARCHAR(20) NOT NULL,
     target_system_ids INTEGER[],
     total_systems INTEGER NOT NULL,
-
-    -- Chi e perché
     initiated_by VARCHAR(100) NOT NULL,
     reason TEXT NOT NULL,
-
-    -- Stato
     status VARCHAR(20) DEFAULT 'in_progress',
-    -- in_progress, completed, failed, partial
-
-    -- Timing
     started_at TIMESTAMP DEFAULT NOW(),
     completed_at TIMESTAMP,
     duration_seconds INTEGER,
-
-    -- Risultati
     systems_succeeded INTEGER DEFAULT 0,
     systems_failed INTEGER DEFAULT 0,
     failed_system_ids INTEGER[],
-
-    -- Dettagli
     system_results JSONB,
     error_details JSONB,
 
@@ -328,11 +279,9 @@ CREATE TABLE IF NOT EXISTS patch_rollbacks (
 CREATE INDEX IF NOT EXISTS idx_rollbacks_deployment ON patch_rollbacks(deployment_id);
 CREATE INDEX IF NOT EXISTS idx_rollbacks_errata ON patch_rollbacks(errata_id);
 CREATE INDEX IF NOT EXISTS idx_rollbacks_status ON patch_rollbacks(status);
-CREATE INDEX IF NOT EXISTS idx_rollbacks_date ON patch_rollbacks(started_at);
 
 COMMENT ON TABLE patch_rollbacks IS 'Storico operazioni di rollback';
 
--- Aggiorna riferimento in deployments
 ALTER TABLE patch_deployments
     DROP CONSTRAINT IF EXISTS fk_deployment_rollback;
 ALTER TABLE patch_deployments
@@ -340,33 +289,20 @@ ALTER TABLE patch_deployments
     FOREIGN KEY (rollback_id) REFERENCES patch_rollbacks(id) ON DELETE SET NULL;
 
 -- ============================================================
--- 8. NOTIFICATIONS (Notifiche inviate)
+-- 8. NOTIFICATIONS
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS orchestrator_notifications (
     id SERIAL PRIMARY KEY,
-
-    -- Tipo notifica
     notification_type VARCHAR(50) NOT NULL,
-    -- test_started, test_passed, test_failed, pending_approval,
-    -- approval_reminder, deployment_started, deployment_completed,
-    -- deployment_failed, rollback_initiated, daily_digest
-
-    -- Riferimenti
     errata_id VARCHAR(50),
     queue_id INTEGER,
     test_id INTEGER,
     deployment_id INTEGER,
-
-    -- Destinazione
-    channel VARCHAR(20) NOT NULL,        -- 'email', 'webhook'
+    channel VARCHAR(20) NOT NULL,
     recipient VARCHAR(200) NOT NULL,
-
-    -- Contenuto
     subject VARCHAR(200),
     body TEXT,
-
-    -- Stato
     sent_at TIMESTAMP DEFAULT NOW(),
     delivered BOOLEAN DEFAULT FALSE,
     delivered_at TIMESTAMP,
@@ -379,12 +315,11 @@ CREATE TABLE IF NOT EXISTS orchestrator_notifications (
 CREATE INDEX IF NOT EXISTS idx_notifications_type ON orchestrator_notifications(notification_type);
 CREATE INDEX IF NOT EXISTS idx_notifications_sent ON orchestrator_notifications(sent_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_delivered ON orchestrator_notifications(delivered);
-CREATE INDEX IF NOT EXISTS idx_notifications_errata ON orchestrator_notifications(errata_id);
 
 COMMENT ON TABLE orchestrator_notifications IS 'Log notifiche inviate';
 
 -- ============================================================
--- 9. ORCHESTRATOR CONFIGURATION
+-- 9. CONFIGURATION
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS orchestrator_config (
@@ -397,7 +332,6 @@ CREATE TABLE IF NOT EXISTS orchestrator_config (
 
 COMMENT ON TABLE orchestrator_config IS 'Configurazione orchestrator';
 
--- Inserisci configurazione di default
 INSERT INTO orchestrator_config (key, value, description) VALUES
 
 ('score_weights', '{
@@ -470,7 +404,7 @@ INSERT INTO orchestrator_config (key, value, description) VALUES
 ('uyuni_config', '{
     "url": "https://uyuni.example.com",
     "user": "",
-    "verify_ssl": true
+    "verify_ssl": false
 }', 'Configurazione connessione UYUNI'),
 
 ('workflow_config', '{
@@ -487,10 +421,9 @@ INSERT INTO orchestrator_config (key, value, description) VALUES
 ON CONFLICT (key) DO NOTHING;
 
 -- ============================================================
--- 10. VIEWS UTILI
+-- 10. VIEWS (usano errata_cache locale)
 -- ============================================================
 
--- Vista: Coda test con dettagli errata
 CREATE OR REPLACE VIEW v_queue_details AS
 SELECT
     q.id AS queue_id,
@@ -515,13 +448,12 @@ SELECT
     t.result AS test_result,
     t.duration_seconds AS test_duration
 FROM patch_test_queue q
-LEFT JOIN errata e ON q.errata_id = e.errata_id
+LEFT JOIN errata_cache e ON q.errata_id = e.errata_id
 LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id
 LEFT JOIN patch_tests t ON q.test_id = t.id;
 
 COMMENT ON VIEW v_queue_details IS 'Coda test con dettagli errata e profilo rischio';
 
--- Vista: Pending approvals
 CREATE OR REPLACE VIEW v_pending_approvals AS
 SELECT
     q.id AS queue_id,
@@ -537,14 +469,13 @@ SELECT
     t.metrics_evaluation,
     EXTRACT(EPOCH FROM (NOW() - q.completed_at))/3600 AS hours_pending
 FROM patch_test_queue q
-JOIN errata e ON q.errata_id = e.errata_id
+LEFT JOIN errata_cache e ON q.errata_id = e.errata_id
 LEFT JOIN patch_tests t ON q.test_id = t.id
 WHERE q.status = 'pending_approval'
 ORDER BY e.severity DESC, q.completed_at ASC;
 
 COMMENT ON VIEW v_pending_approvals IS 'Patch in attesa di approvazione';
 
--- Vista: Statistiche giornaliere
 CREATE OR REPLACE VIEW v_daily_stats AS
 SELECT
     DATE(queued_at) AS date,
@@ -563,10 +494,9 @@ ORDER BY date DESC;
 COMMENT ON VIEW v_daily_stats IS 'Statistiche giornaliere ultimi 30 giorni';
 
 -- ============================================================
--- 11. FUNCTIONS
+-- 11. FUNCTIONS & TRIGGERS
 -- ============================================================
 
--- Funzione: Aggiorna timestamp updated_at
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -575,21 +505,21 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger per patch_risk_profile
 DROP TRIGGER IF EXISTS trg_risk_profile_updated ON patch_risk_profile;
 CREATE TRIGGER trg_risk_profile_updated
     BEFORE UPDATE ON patch_risk_profile
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- Trigger per orchestrator_config
 DROP TRIGGER IF EXISTS trg_config_updated ON orchestrator_config;
 CREATE TRIGGER trg_config_updated
     BEFORE UPDATE ON orchestrator_config
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at();
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- Funzione: Aggiorna storico in risk_profile dopo test
+DROP TRIGGER IF EXISTS trg_errata_cache_updated ON errata_cache;
+CREATE TRIGGER trg_errata_cache_updated
+    BEFORE UPDATE ON errata_cache
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 CREATE OR REPLACE FUNCTION update_risk_profile_history()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -610,33 +540,12 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS trg_update_risk_history ON patch_tests;
 CREATE TRIGGER trg_update_risk_history
     AFTER UPDATE ON patch_tests
-    FOR EACH ROW
-    EXECUTE FUNCTION update_risk_profile_history();
-
--- Funzione: Calcola posizione in coda
-CREATE OR REPLACE FUNCTION get_queue_position(p_queue_id INTEGER)
-RETURNS INTEGER AS $$
-DECLARE
-    v_position INTEGER;
-BEGIN
-    SELECT position INTO v_position
-    FROM (
-        SELECT id, ROW_NUMBER() OVER (ORDER BY success_score DESC, priority_override DESC, queued_at ASC) AS position
-        FROM patch_test_queue
-        WHERE status = 'queued'
-    ) ranked
-    WHERE id = p_queue_id;
-
-    RETURN v_position;
-END;
-$$ LANGUAGE plpgsql;
-
-COMMENT ON FUNCTION get_queue_position IS 'Restituisce posizione in coda per un queue_id';
+    FOR EACH ROW EXECUTE FUNCTION update_risk_profile_history();
 
 COMMIT;
 
 -- ============================================================
--- VERIFICA INSTALLAZIONE
+-- VERIFICA
 -- ============================================================
 
 DO $$
@@ -647,14 +556,14 @@ BEGIN
     FROM information_schema.tables
     WHERE table_schema = 'public'
     AND table_name IN (
-        'patch_risk_profile', 'patch_test_queue', 'patch_tests',
+        'errata_cache', 'patch_risk_profile', 'patch_test_queue', 'patch_tests',
         'patch_test_phases', 'patch_approvals', 'patch_deployments',
         'patch_rollbacks', 'orchestrator_notifications', 'orchestrator_config'
     );
 
-    IF table_count = 9 THEN
-        RAISE NOTICE 'SPM Orchestrator schema installed successfully. Tables created: %', table_count;
+    IF table_count = 10 THEN
+        RAISE NOTICE 'SPM Orchestrator schema v1.1 installed successfully. Tables: %', table_count;
     ELSE
-        RAISE WARNING 'Schema installation may be incomplete. Expected 9 tables, found %', table_count;
+        RAISE WARNING 'Schema incomplete. Expected 10 tables, found %', table_count;
     END IF;
 END $$;
