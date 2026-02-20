@@ -24,7 +24,17 @@ SERVICE_GROUP="spm"
 LOG_DIR="/var/log/spm-orchestrator"
 DB_NAME="spm_orchestrator"
 DB_USER="spm_orch"
-PYTHON_VERSION="python3.11"
+
+# Rileva versione Python disponibile (3.12 su Ubuntu 24.04, 3.10 su 22.04)
+if command -v python3.12 &>/dev/null; then
+    PYTHON_VERSION="python3.12"
+elif command -v python3.11 &>/dev/null; then
+    PYTHON_VERSION="python3.11"
+elif command -v python3.10 &>/dev/null; then
+    PYTHON_VERSION="python3.10"
+else
+    PYTHON_VERSION="python3"
+fi
 
 # ============================================================
 log "=== SPM Orchestrator Installation ==="
@@ -47,18 +57,18 @@ log "Installing system dependencies..."
 
 apt-get update -qq
 apt-get install -y \
-    python3.11 \
-    python3.11-venv \
+    python3 \
+    python3-venv \
     python3-pip \
+    python3-dev \
     postgresql \
     postgresql-contrib \
     libpq-dev \
-    python3.11-dev \
     curl \
     git \
     jq
 
-log "System dependencies installed"
+log "System dependencies installed (Python: $(python3 --version))"
 
 # ============================================================
 # STEP 2: Utente di servizio
