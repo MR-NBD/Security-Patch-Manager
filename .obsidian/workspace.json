@@ -200,6 +200,7 @@
   },
   "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
+    "Orchestrator/app/config.py.tmp.8961.1771607557061",
     "Orchestrator/sql/migrations/001_orchestrator_schema.sql",
     "Orchestrator/README.md.tmp.8961.1771606980004",
     "Orchestrator/scripts/install.sh.tmp.8961.1771606970641",
@@ -212,7 +213,6 @@
     "Orchestrator/README.md.tmp.8961.1771605396375",
     "Orchestrator/scripts/install.sh",
     "Orchestrator/scripts/install.sh.tmp.8961.1771605357036",
-    "Orchestrator/systemd/spm-orchestrator.service",
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",

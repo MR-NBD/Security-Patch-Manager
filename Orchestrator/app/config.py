@@ -12,6 +12,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _to_int(value) -> int | None:
+    """Converte stringa in int, None se vuota"""
+    if value is None or str(value).strip() == "":
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
 class Config:
     """Configurazione centralizzata dell'applicazione"""
 
@@ -112,11 +122,3 @@ class Config:
     APP_VERSION = "1.0.0"
 
 
-def _to_int(value: str | None) -> int | None:
-    """Converte stringa in int, None se vuota"""
-    if value is None or value.strip() == "":
-        return None
-    try:
-        return int(value)
-    except ValueError:
-        return None
