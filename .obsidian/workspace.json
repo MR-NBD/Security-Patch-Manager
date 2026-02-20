@@ -200,6 +200,8 @@
   },
   "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
+    "Orchestrator/sql/migrations/002_fix_errata_cache.sql",
+    "Orchestrator/sql/migrations/002_fix_errata_cache.sql.tmp.8961.1771608811568",
     "Orchestrator/sql/migrations/001_orchestrator_schema.sql.tmp.8961.1771608291209",
     "Orchestrator/app/config.py.tmp.8961.1771607557061",
     "Orchestrator/sql/migrations/001_orchestrator_schema.sql",
@@ -211,8 +213,6 @@
     "TaskNotes/Views/agenda-default.base",
     "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
     "Orchestrator/README.md",
-    "Orchestrator/README.md.tmp.8961.1771605396375",
-    "Orchestrator/scripts/install.sh",
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
