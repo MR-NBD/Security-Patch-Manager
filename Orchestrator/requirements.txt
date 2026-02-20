@@ -1,0 +1,31 @@
+# SPM Orchestrator - Dependencies
+# Python 3.11+
+
+# Web framework
+Flask==3.0.0
+Flask-CORS==4.0.0
+
+# Database
+psycopg2-binary==2.9.9
+
+# HTTP client (per polling SPM-SYNC e UYUNI)
+requests==2.31.0
+
+# Scheduler interno (sync periodico errata)
+APScheduler==3.10.4
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Logging strutturato
+python-json-logger==2.0.7
+
+# Validazione input
+marshmallow==3.20.1
+
+# UYUNI XML-RPC (built-in Python, no extra package)
+# xmlrpc.client - stdlib
+
+# Test
+pytest==7.4.3
+pytest-cov==4.1.0

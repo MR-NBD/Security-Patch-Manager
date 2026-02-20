@@ -1,0 +1,37 @@
+[Unit]
+Description=SPM Orchestrator - Patch Management Orchestration API
+Documentation=https://github.com/your-org/Security-Patch-Manager
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=spm
+Group=spm
+WorkingDirectory=/opt/spm-orchestrator
+
+# Environment
+EnvironmentFile=/opt/spm-orchestrator/.env
+
+# Avvio
+ExecStart=/opt/spm-orchestrator/venv/bin/python -m app.main
+
+# Restart automatico
+Restart=on-failure
+RestartSec=10
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+# Sicurezza
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/log/spm-orchestrator
+PrivateTmp=true
+
+# Logging via journald (stdout viene catturato)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=spm-orchestrator
+
+[Install]
+WantedBy=multi-user.target
