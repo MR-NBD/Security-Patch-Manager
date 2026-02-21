@@ -34,6 +34,10 @@ def init_db() -> bool:
             maxconn=10,
             dsn=Config.db_dsn(),
             cursor_factory=psycopg2.extras.RealDictCursor,
+            keepalives=1,
+            keepalives_idle=60,
+            keepalives_interval=10,
+            keepalives_count=5,
         )
 
         # Verifica connessione
@@ -74,14 +78,31 @@ def get_db():
         raise RuntimeError("Database not initialized. Call init_db() first.")
 
     conn = _pool.getconn()
+    returned = False
     try:
+        # Reconnect if connection was closed by server (idle timeout)
+        if conn.closed:
+            _pool.putconn(conn, close=True)
+            conn = _pool.getconn()
         yield conn
         conn.commit()
+    except (psycopg2.OperationalError, psycopg2.InterfaceError):
+        # Stale connection - discard it from pool
+        try:
+            _pool.putconn(conn, close=True)
+        except Exception:
+            pass
+        returned = True
+        raise
     except Exception:
-        conn.rollback()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         raise
     finally:
-        _pool.putconn(conn)
+        if not returned:
+            _pool.putconn(conn)
 
 
 def check_db_health() -> dict:

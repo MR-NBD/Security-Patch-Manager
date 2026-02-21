@@ -11,10 +11,14 @@
             "id": "c0b08d57e6e8fd92",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "Thesys/cap3/capitolo3.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "Nuova scheda"
+              "title": "capitolo3"
             }
           }
         ]
@@ -198,19 +202,25 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "f76e3691fbfccb78",
+  "active": "c0b08d57e6e8fd92",
   "lastOpenFiles": [
-    "Orchestrator/sql/migrations/002_fix_errata_cache.sql",
-    "Orchestrator/sql/migrations/002_fix_errata_cache.sql.tmp.8961.1771608811568",
-    "Orchestrator/sql/migrations/001_orchestrator_schema.sql.tmp.8961.1771608291209",
-    "Orchestrator/app/config.py.tmp.8961.1771607557061",
-    "Orchestrator/sql/migrations/001_orchestrator_schema.sql",
-    "Orchestrator/README.md.tmp.8961.1771606980004",
-    "Orchestrator/scripts/install.sh.tmp.8961.1771606970641",
-    "Orchestrator/scripts/install.sh.tmp.8961.1771606966380",
-    "TaskNotes/Views/kanban-default.base",
-    "TaskNotes/Views/calendar-default.base",
-    "TaskNotes/Views/agenda-default.base",
+    "Orchestrator/app/services/db.py.tmp.8961.1771699030008",
+    "Thesys/cap4/cap4_draft.md",
+    "Thesys/cap4/A_cross-site_patch_management_model_and_architecture_design_for_large_scale_heterogeneous_environment.pdf",
+    "Thesys/cap4/PROPOSED ARCHITECTURE OF MULTI-TENANT’S.pdf",
+    "Thesys/cap4/Multi-Cloud Environments - Reducing Security Risks in Distributed Architectures.pdf",
+    "Thesys/cap4",
+    "Thesys/New folder",
+    "Thesys/cap2/cap2_draft.md",
+    "GeneralDocumentation/TESI/CAP2/Capitolo 2 Background on Patch Management.md",
+    "GeneralDocumentation/TESI/CAP2/Senza nome.md",
+    "Thesys/cap3/capitolo3.md",
+    "Thesys/cap3/Insecurity_score_formula.md",
+    "Thesys/cap3/Evaluating+Cybersecurity+Patch+Management+through+QA+Performance+Indicators+(1).pdf",
+    "Thesys/cap3",
+    "Thesys/cap2/NIST.SP.800-40r4.pdf",
+    "Thesys/cap2/Survey_on_international_standards_and_best_practic.pdf",
+    "Thesys/cap2/Reducing_Internet-based_intrusions_Effective_security_patch_management.pdf",
     "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
     "Orchestrator/README.md",
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
@@ -231,12 +241,6 @@
     "Senza nome.canvas",
     "2026-02-17.md",
     "README.md",
-    "TO-DO_ALBERTO.md",
-    "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
-    "Uyuni/Deployment/Configurazione-VHM-Azure.md",
-    "Uyuni/README.md",
-    "Uyuni/Deployment/Configuration File Deployment - permette push di file di configurazione.md",
-    "2026-02-12.md",
     "Senza nome 2.canvas",
     "Senza nome 1.canvas",
     "img/img2187te87r13.png",

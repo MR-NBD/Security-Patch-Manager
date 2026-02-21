@@ -1,0 +1,260 @@
+Background on Patch
+Management
+Cybersecurity focuses on protecting assets from intentional actions that could
+compromise their integrity, availability or confidentiality. These assets have intrinsic
+value that makes protecting them necessary. However, they may be exposed to
+malicious activity due to vulnerabilities, i.e. weaknesses in the systems that manage
+them or even in the mechanisms that are supposed to protect them.
+Such vulnerabilities can be exploited by adversaries, who pose a threat to the
+system. Threats play a key role in determining security risk, which depends not
+only on the presence of threats and vulnerabilities, but also on the value of the asset
+involved. An increase in the number or severity of threats leads to a proportional
+increase in risk, which is further influenced by the specific nature of the threat
+itself.
+To mitigate these risks, security controls are introduced. Security controls are
+measures designed to protect systems by preventing, detecting or responding to
+threats. Their implementation reduces security risk and helps to meet security
+requirements, which define the acceptable level of residual risk based on the risks
+that have been identified.
+As previously announced, a software vulnerability is a weakness or flaw in the
+code, design, implementation or configuration of the system in question that can
+be exploited by an attacker to compromise its security. The National Institute of
+Standards and Technology (NIST) formally defines a vulnerability as ‘a weakness
+in an information system, security procedures, internal controls, or implementation
+that could be exploited by a threat source’ (NIST, 2012).
+It is therefore important to distinguish between vulnerability and weakness. A
+vulnerability refers to a specific instance of a flaw in a system, such as a particular
+version of software affected by a known flaw. A weakness, on the other hand, is
+3
+Background on Patch Management
+a broader concept that describes a general class of security issues, such as buffer
+overflows. In this sense, a vulnerability is an instance of a weakness and can be
+exploited through an exploit, typically a script or programme designed to take
+advantage of the flaw. Vulnerabilities can be introduced at different stages of the
+software lifecycle:
+• Design phase: when software is developed based on inaccurate or incomplete
+specifications, or when specifications are not translated correctly.
+• Implementation phase: when programming errors or bugs are introduced
+into the source code.
+• Configuration phase: when the chosen system configurations compromise
+its security.
+• Third-party libraries: when external components introduce vulnerabilities
+beyond the developer’s direct control.
+It is important to note that a weakness is not necessarily a bug. For example,
+storing passwords in plain text is not a functional error; the system may still
+function as intended, but it represents a serious vulnerability due to inadequate
+or non-existent security requirements. Ultimately, vulnerabilities are dangerous
+because they allow attackers to compromise the security of the system. If a flaw
+cannot be exploited, it is not considered a vulnerability.
+The lifecycle of a vulnerability includes several key stages:
+1. Creation: The vulnerability is introduced during the design, implementation,
+or operation of the system.
+2. Discovery: The vulnerability remains unknown until it is identified by a
+researcher, attacker, or developer.
+3. Disclosure: Information about the vulnerability is communicated to the
+vendor or made public.
+4. Exploit development: An exploit is developed to take advantage of the
+vulnerability.
+5. Patch creation: A patch is developed to fix the vulnerability.
+6. Closure: The vulnerability is mitigated once the patch has been widely
+distributed.
+During this lifecycle, several scenarios can occur. In the best-case scenario, deve-
+lopers discover the vulnerability before any type of exploit is produced, allowing
+4
+Background on Patch Management
+for the proactive development and release of a patch. In the most critical case,
+a hypothetical attacker discovers the vulnerability first and develops an exploit
+before the defenders are aware of it, resulting in a zero-day vulnerability that leaves
+security teams with no time to react.
+Disclosure refers to the process by which information about a vulnerability is shared.
+Three main disclosure models are commonly adopted:
+• Responsible disclosure: A researcher privately informs the vendor of a
+system and allows a set period of time for patch development before public
+disclosure. Necessary even in the absence of a patch.
+• Full disclosure: Details of the vulnerability are immediately made public.
+• Coordinated vulnerability disclosure (CVD): A structured approach
+involving researchers, vendors, and coordinating bodies such as CERT/CC.
+Disclosure triggers a race against time: vendors must quickly develop and distribute
+patches, while attackers simultaneously work on developing an exploit. This
+dynamic puts significant pressure on organisations, which must apply patches
+before exploits spread (Dissanayake et al., 2021b).
+Information about vulnerabilities is collected in specialised repositories, which can
+be divided into two broad categories as follows:
+• Public repositories (freely accessible):
+– MITRE Common Vulnerabilities and Exposures (CVE)
+– NIST National Vulnerability Database (NVD), which enriches CVE entries
+with additional metadata
+• Private repositories (subscription based):
+– Exodus Intelligence
+– Zerodium
+MITRE also manages the Common Weakness Enumeration (CWE) repository,
+which provides a standardised taxonomy for classifying software vulnerabilities.
+The NVD also introduces important metrics such as the Common Vulnerability
+Scoring System (CVSS), which assesses vulnerabilities based on multiple factors,
+including Access Vector (the level of access required to exploit the vulnerability)
+and Access Complexity (the difficulty associated with exploitation).
+5
+Background on Patch Management
+2.1 Security Patches
+Software security patches are defined as “pieces of code developed to address
+security issues identified in software” (Mell et al., 2005). Unlike functional patches,
+which introduce new features or fix non security related bugs, security patches are
+specifically designed to eliminate or mitigate vulnerabilities that could be exploited
+by malicious actors.
+Security patches are always prioritized by industry professionals, as they aim to
+address vulnerabilities that present exploitable opportunities for malicious entities
+(Mell et al., 2005; Brykczynski & Small, 2003). However, applying them is not
+a trivial task: it may require system reboots, introduce incompatibilities with
+existing software, alter the behavior of critical applications, and, in extreme cases,
+even cause malfunctions due to defects in the patch itself.
+Li and Paxson (2017), in a large scale empirical study, analyzed the characteristics
+of security patches and found significant variation in terms of complexity, size,
+and type of changes. Some patches consist of simple code updates, while others
+require substantial restructuring. While some patches only require the installation
+of updated code, others may involve changes to system registries, the installation
+of preparatory packages, or specific configurations.
+A critical concept in this context is the “window of exposure,” which refers to the
+period during which a system remains vulnerable to attack. This window begins
+when the vulnerability becomes exploitable and ends when the patch is applied.
+Marconato et al. (2013) proposed a security model illustrating how reducing this
+window is the primary goal of Security Patch Management, and how any delay at
+any stage of the patching process extends the period of risk.
+Despite timely patch releases from vendors, the majority of real world cyberattacks
+exploit known vulnerabilities for which patches were already available (Dissanayake
+et al., 2021a; Accenture Security, 2020). This apparent contradiction highlights the
+depth of the problem. According to a 2020 industry report, over 50% of organiza-
+tions fail to apply patches for critical vulnerabilities within the recommended 72
+hours, and around 15% remain unpatched even after 30 days (Automox, 2020).
+Delays in applying patches have consequences that go far beyond theoretical risks:
+The Equifax case (2017): One of the most serious data breaches in history
+was caused by the failure to patch a known vulnerability (CVE-2017-5638) in the
+Apache Struts framework. The patch had been available for two months when
+attackers exploited the vulnerability, exposing the personal data of 143 million
+American citizens. The former CEO attributed the breach to “a single person who
+failed to deploy the patch,” highlighting how a single point of failure can have
+catastrophic consequences.
+Ransomware attack on German hospital (2020): A cyberattack on a uni-
+versity hospital in Germany resulted in the death of a patient who had to be
+6
+Background on Patch Management
+transferred to another facility due to system unavailability. The attack exploited a
+vulnerability for which a patch was already available, demonstrating how delays in
+patching can have lethal consequences in the healthcare sector.
+2.2 The Challenges of Security Patch Manage-
+ment
+A fundamental challenge in Security Patch Management arises from the inherent
+conflict between security and availability. Applying patches often requires system
+reboots or service restarts, which result in temporary service interruptions. In
+mission critical environments such as hospitals, critical infrastructure, or financial
+services, even brief outages can have severe operational and societal consequences.
+Dissanayake et al. (2021b) document how professionals are constantly required to
+balance the risk of leaving vulnerabilities unpatched against the risk of disrupting
+critical services. At the core of this issue lies a structural tension: security teams
+are incentivized to minimize breach risk through timely patching, operational teams
+prioritize service continuity, and business stakeholders seek to maximize overall
+system availability. This tension cannot be resolved through technological solutions
+alone; it requires effective governance, clearly defined decision making processes,
+and an organizational culture capable of balancing these competing objectives.
+Tiefenau et al. (2020) further highlight how practitioners often face conflicting
+compliance requirements: on the one hand, security standards mandate timely
+patch deployment, while on the other, service level agreements (SLAs) impose
+penalties for unplanned downtime. At the same time, the rapid growth in both
+the number and diversity of cyberattacks has led to an accelerated pace of patch
+releases, significantly increasing the operational burden on IT teams (Dissanayake
+et al., 2021a). Several key factors contribute to this challenge:
+• Heterogeneity: Modern organizations operate highly heterogeneous environ-
+ments, including multiple operating systems (e.g., Windows, Linux, macOS),
+numerous versions of each, and hundreds of distinct software applications. As
+one study participant noted: “We have about 15/16 versions of Windows 10.
+Before patching, we have to identify which version is running on which server,
+check the build number, and verify whether it is up to date. It’s a lot!”
+• Growing volume: The number of disclosed vulnerabilities and released
+patches continues to increase year after year. Practitioners frequently describe
+the situation as unmanageable: “There’s just too much to check. We’re
+managing 1,500 servers, and we simply do not have the time to review every
+patch for every system.”
+7
+Background on Patch Management
+• Extended attack surface: Large and geographically distributed organiza-
+tions, hybrid and multi cloud architectures, and remote work models signi-
+ficantly expand the attack surface, further complicating patch management
+activities.
+The limitations of existing tools represent another major obstacle to achieving effec-
+tive Security Patch Management (Dissanayake et al., 2021a). The most significant
+shortcomings include:
+• Lack of standardization: There is no unified platform capable of integra-
+ting the heterogeneous tools used across the different stages of the patch
+management process.
+• Accuracy issues: Many tools fail to account for the dynamic organizational
+context, resulting in false positives or, conversely, in the failure to identify real
+vulnerabilities.
+• Scalability limitations: A large portion of available tools is not designed to
+operate efficiently in large scale enterprise environments.
+• Dependency management limitations: Existing solutions often focus on
+individual components in isolation, without adequately considering complex
+interdependencies between systems and software modules.
+Due to this increasing complexity and the limitations of current technologies,
+human intervention remains unavoidable throughout the patch management lifecycle
+(Dissanayake et al., 2021a). As observed by Maurer and Brumley (2012): “Because
+patches can change the semantics of a program, a human will probably always
+need to be in the loop to determine whether semantic changes are meaningful.”
+However, human involvement inevitably introduces latency: decision making takes
+time, inter team communication introduces delays, and approval workflows further
+slow the process. Each manual step therefore represents a potential source of delay
+that extends the window of exposure.
+The risk of such delays is further exacerbated by structural resource constraints,
+including a shortage of specialized skills in the labor market, the absence of well
+documented guidelines and standardized processes, and insufficient automation
+due to limited investment or lack of expertise.
+2.3 Dependencies as Obstacles
+Interdependencies among software, hardware, and firmware introduce additional
+layers of complexity that significantly complicate the patching process (Dissanayake
+et al., 2021b):
+8
+Background on Patch Management
+• Dependencies between operating systems and applications: Patches
+applied to the operating system may impact the functionality or compatibility
+of installed applications, and conversely, application updates may rely on
+specific operating system versions.
+• Circular dependencies: Situations in which system A depends on system
+B, while system B simultaneously depends on system A, potentially leading
+to operational deadlocks.
+• Installation prerequisites: Some patches require prior registry modifica-
+tions, the installation of prerequisite packages, or the application of specific
+configuration settings.
+• Dependencies with legacy systems: Many mission critical systems operate
+on outdated or unsupported software versions, creating rigid dependencies
+that prevent other interconnected components from being updated.
+In addition to purely technical dependencies, dependencies between stakeholders
+further exacerbate the challenges of Security Patch Management (Dissanayake et
+al., 2021b):
+• Internal dependencies: Approval workflows, communication processes, and
+the coordination of maintenance windows require tight synchronization among
+multiple internal teams.
+• Vendor dependencies: Organizations rely on vendors for the release of
+patches and must align the patch cycles of multiple suppliers and service
+providers.
+• Customer dependencies: Maintenance windows often need to be negotiated
+with customers, who may not fully perceive or prioritize the security benefits
+of patch deployment.
+Security Patch Management is inherently a socio technical endeavor, characteri-
+zed by the close coupling of human and technological factors. As a result, several
+organizational challenges emerge:
+• Administrative overhead: Coordinating stakeholders with divergent or
+conflicting interests requires substantial managerial effort.
+• Delegation issues: The absence of clearly defined roles and accountability
+mechanisms can result in situations where responsibility for patching is diffuse
+or entirely unclaimed.
+9
+Background on Patch Management
+• Conflicts of interest: Security teams typically advocate for immediate patch
+deployment, whereas operational teams may resist changes to avoid service
+disruptions.
+• Lack of visibility: Undocumented assets, shadow IT, and non standard
+configurations create blind spots that hinder effective patch identification and
+deployment.
+• Fragmentation of responsibilities: In large and complex organizations,
+responsibilities are often distributed across multiple teams, increasing the risk
+that certain patches fall through organizational gaps.
+2.4 Standards and Best Practices for Security
+Patch Management
