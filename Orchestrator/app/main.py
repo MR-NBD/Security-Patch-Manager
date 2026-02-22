@@ -12,7 +12,10 @@ from flask_cors import CORS
 from app.config import Config
 from app.utils.logger import setup_logging
 from app.services.db import init_db, close_db
+from app.services.poller import init_scheduler
 from app.api.health import health_bp
+from app.api.sync import sync_bp
+from app.api.queue import queue_bp
 
 # Setup logging prima di tutto
 setup_logging()
@@ -32,6 +35,8 @@ def create_app() -> Flask:
 
     # Registra blueprints
     app.register_blueprint(health_bp)
+    app.register_blueprint(sync_bp)
+    app.register_blueprint(queue_bp)
 
     # Handler errori globali
     @app.errorhandler(404)
@@ -73,6 +78,9 @@ def main():
         raise SystemExit(1)
 
     logger.info("Database connected successfully")
+
+    # Avvia scheduler poller SPM-SYNC
+    init_scheduler()
 
     # Crea e avvia app
     app = create_app()
