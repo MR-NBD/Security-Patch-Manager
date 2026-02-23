@@ -84,12 +84,14 @@ class Config:
     # ----------------------------------------------------------
     TEST_SYSTEMS = {
         "ubuntu": {
-            "system_id": _to_int(os.getenv("TEST_SYSTEM_UBUNTU_ID")),
+            "system_id":   _to_int(os.getenv("TEST_SYSTEM_UBUNTU_ID")),
             "system_name": os.getenv("TEST_SYSTEM_UBUNTU_NAME", "test-ubuntu-01"),
+            "system_ip":   os.getenv("TEST_SYSTEM_UBUNTU_IP", ""),
         },
         "rhel": {
-            "system_id": _to_int(os.getenv("TEST_SYSTEM_RHEL_ID")),
+            "system_id":   _to_int(os.getenv("TEST_SYSTEM_RHEL_ID")),
             "system_name": os.getenv("TEST_SYSTEM_RHEL_NAME", "test-rhel-01"),
+            "system_ip":   os.getenv("TEST_SYSTEM_RHEL_IP", ""),
         },
     }
     SNAPSHOT_TYPE = os.getenv("SNAPSHOT_TYPE", "snapper")

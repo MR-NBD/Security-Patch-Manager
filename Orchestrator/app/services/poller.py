@@ -448,3 +448,4 @@ def init_scheduler() -> None:
         f"workers={Config.UYUNI_SYNC_WORKERS}, "
         f"initial sync in ~15s"
     )
+    return _scheduler
