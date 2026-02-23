@@ -281,10 +281,35 @@ class UyuniPatchClient:
         Applica errata tramite system.scheduleApplyErrata.
         Polling fino a completamento (timeout 30 min).
 
-        Ritorna {pkg_name: {old: '', new: 'patched'}} per compatibilità
-        con il meccanismo di rollback package del test engine.
+        Ritorna {pkg_name: {old: <versione_pre_patch>, new: 'patched'}}
+        per abilitare il rollback package con versioni specifiche.
         Raises: RuntimeError se applicazione fallisce o timeout.
         """
+        # Versioni installate PRIMA della patch (per rollback)
+        old_versions: dict = {}
+        try:
+            all_pkgs = self._proxy.system.listPackages(
+                self._key, self._system_id
+            )
+            pkg_names_set = set(pkg_names)
+            for p in all_pkgs:
+                name = p.get("name", "")
+                if name in pkg_names_set:
+                    # UYUNI restituisce version + release separati
+                    ver  = p.get("version", "")
+                    rel  = p.get("release", "")
+                    arch = p.get("arch", "")
+                    old_versions[name] = f"{ver}-{rel}" if rel else ver
+            logger.debug(
+                f"UyuniPatchClient: captured {len(old_versions)} old versions "
+                f"before applying {advisory_name!r}"
+            )
+        except Exception as e:
+            logger.warning(
+                f"UyuniPatchClient: could not get old package versions "
+                f"for {advisory_name!r}: {e}"
+            )
+
         # Ottieni ID numerico dall'advisory name (es. "USN-7412-2")
         try:
             details = self._proxy.errata.getDetails(self._key, advisory_name)
@@ -331,9 +356,10 @@ class UyuniPatchClient:
             f"({len(pkg_names)} packages) on {self._system_name!r}"
         )
 
-        # Rollback package non disponibile senza versioni precedenti:
-        # il rollback userà lo snapshot quando possibile.
-        return {name: {"old": "", "new": "patched"} for name in pkg_names}
+        return {
+            name: {"old": old_versions.get(name, ""), "new": "patched"}
+            for name in pkg_names
+        }
 
     def reboot(self) -> None:
         """

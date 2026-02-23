@@ -376,12 +376,27 @@ def _phase_services(
 ) -> None:
     """
     Fase SERVICES: verifica servizi critici post-patch via systemctl script.
-    Raises: RuntimeError se uno o più servizi sono DOWN.
+    Retry 3×10s per tollerare servizi in riavvio (es. openssh-server dopo patch).
+    Raises: RuntimeError se uno o più servizi sono DOWN dopo tutti i tentativi.
     """
+    _SERVICE_RETRIES    = 3
+    _SERVICE_RETRY_WAIT = 10  # secondi tra tentativi
+
     phase_id = _create_phase(test_id, "services")
     try:
         services = get_critical_services(target_os)
-        failed = uyuni.get_failed_services(uyuni._system_name, services)
+        failed = []
+
+        for attempt in range(1, _SERVICE_RETRIES + 1):
+            failed = uyuni.get_failed_services(uyuni._system_name, services)
+            if not failed:
+                break
+            if attempt < _SERVICE_RETRIES:
+                logger.info(
+                    f"TestEngine: services check attempt {attempt}/{_SERVICE_RETRIES} — "
+                    f"DOWN: {failed} — retrying in {_SERVICE_RETRY_WAIT}s"
+                )
+                time.sleep(_SERVICE_RETRY_WAIT)
 
         _update_test_record(
             test_id,
