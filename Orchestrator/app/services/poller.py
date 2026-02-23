@@ -7,20 +7,32 @@ ogni UYUNI_POLL_INTERVAL minuti (default 30).
 Recupera solo le patch applicabili ai sistemi nei gruppi "test-*",
 eliminando il download di decine di migliaia di errata irrilevanti.
 
+Ottimizzazioni:
+- Sessione singola (1 login/logout per ciclo)
+- ThreadPoolExecutor per fetch parallelo di sistemi, errata e CVE
+- execute_values per batch upsert in un'unica transazione DB
+
 Stato globale: thread-safe, letto via get_sync_status().
 """
 
+import calendar
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from psycopg2.extras import execute_values
 
 from app.config import Config
 from app.services.db import get_db
-from app.services import uyuni_client
+from app.services.uyuni_client import (
+    UyuniSession,
+    os_from_group,
+    _severity_from_advisory_type,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,51 +52,143 @@ _state = {
 
 
 # ─────────────────────────────────────────────
-# Upsert singolo errata → errata_cache
+# Date parsing
 # ─────────────────────────────────────────────
 
-_UPSERT_SQL = """
+def _parse_uyuni_date(date_val) -> Optional[str]:
+    """
+    Converte data UYUNI in ISO 8601 UTC string.
+
+    Gestisce:
+    - xmlrpc.client.DateTime  (ha .timetuple() ma non è un datetime)
+    - datetime nativo
+    - stringa ISO 8601
+    Ritorna None se non parsabile.
+    """
+    if not date_val:
+        return None
+    # xmlrpc.client.DateTime ha .timetuple() ma non è un'istanza di datetime
+    if hasattr(date_val, "timetuple") and not isinstance(date_val, datetime):
+        ts = calendar.timegm(date_val.timetuple())
+        return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+    if isinstance(date_val, datetime):
+        if date_val.tzinfo is None:
+            date_val = date_val.replace(tzinfo=timezone.utc)
+        return date_val.astimezone(timezone.utc).isoformat()
+    if isinstance(date_val, str):
+        try:
+            dt = datetime.fromisoformat(date_val.replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.astimezone(timezone.utc).isoformat()
+        except (ValueError, AttributeError):
+            pass
+    return None
+
+
+# ─────────────────────────────────────────────
+# Build cache row (senza get_errata_details)
+# ─────────────────────────────────────────────
+
+def _build_cache_row(
+    advisory_name: str,
+    base: dict,
+    cves: list,
+    target_os: str,
+) -> dict:
+    """
+    Costruisce la riga errata_cache dai dati UYUNI.
+
+    base: dict da getRelevantErrata (advisory_name, advisory_type, synopsis, date)
+    description = "" (fetchabile on-demand se necessario)
+    """
+    advisory_type = base.get("advisory_type", "")
+    synopsis = base.get("synopsis", "")
+    issue_date = _parse_uyuni_date(base.get("date"))
+    severity = _severity_from_advisory_type(advisory_type)
+
+    return {
+        "errata_id":   advisory_name,
+        "synopsis":    synopsis,
+        "description": "",
+        "severity":    severity,
+        "type":        advisory_type,
+        "issued_date": issue_date,
+        "target_os":   target_os,
+        "packages":    [],   # fetchati on-demand al momento dell'accodamento
+        "cves":        cves,
+        "source_url":  None,
+    }
+
+
+# ─────────────────────────────────────────────
+# Batch upsert → errata_cache (execute_values)
+# ─────────────────────────────────────────────
+
+_BULK_SQL = """
     INSERT INTO errata_cache (
         errata_id, synopsis, description, severity,
         type, issued_date, target_os, packages,
         cves, source_url, synced_at, updated_at
-    ) VALUES (
-        %(errata_id)s, %(synopsis)s, %(description)s,
-        %(severity)s, %(type)s, %(issued_date)s,
-        %(target_os)s, %(packages)s::jsonb,
-        %(cves)s, %(source_url)s, NOW(), NOW()
-    )
+    ) VALUES %s
     ON CONFLICT (errata_id) DO UPDATE SET
         synopsis     = EXCLUDED.synopsis,
-        description  = EXCLUDED.description,
         severity     = EXCLUDED.severity,
         type         = EXCLUDED.type,
         issued_date  = EXCLUDED.issued_date,
         target_os    = EXCLUDED.target_os,
-        packages     = EXCLUDED.packages,
         cves         = EXCLUDED.cves,
         source_url   = EXCLUDED.source_url,
         synced_at    = NOW(),
         updated_at   = NOW()
-    RETURNING (xmax = 0) AS is_insert
 """
+# description non aggiornata in UPDATE: preserva descrizioni già fetchate
+
+_TEMPLATE = "(%s, %s, %s, %s, %s, %s, %s, %s::jsonb, %s, %s, NOW(), NOW())"
 
 
-def _upsert(row: dict) -> str:
+def _batch_upsert(rows: list) -> tuple:
     """
-    Inserisce o aggiorna una riga in errata_cache.
-    Ritorna 'inserted' oppure 'updated'.
+    Inserisce/aggiorna righe in errata_cache in un'unica transazione.
+    Ritorna (inserted, updated).
     """
-    params = dict(row)
-    params["packages"] = json.dumps(row.get("packages", []))
+    if not rows:
+        return 0, 0
+
+    ids = [r["errata_id"] for r in rows]
+    values = [
+        (
+            r["errata_id"],
+            r["synopsis"],
+            r["description"],
+            r["severity"],
+            r["type"],
+            r["issued_date"],
+            r["target_os"],
+            json.dumps(r.get("packages", [])),
+            r["cves"],
+            r["source_url"],
+        )
+        for r in rows
+    ]
 
     with get_db() as conn:
         cur = conn.cursor()
-        cur.execute(_UPSERT_SQL, params)
-        result = cur.fetchone()
+        cur.execute(
+            "SELECT COUNT(*) AS n FROM errata_cache WHERE errata_id = ANY(%s)",
+            (ids,),
+        )
+        existing = cur.fetchone()["n"]
+        execute_values(cur, _BULK_SQL, values, template=_TEMPLATE, page_size=200)
 
-    return "inserted" if result and result["is_insert"] else "updated"
+    inserted = len(rows) - existing
+    updated = existing
+    return inserted, updated
 
+
+# ─────────────────────────────────────────────
+# Persist last sync timestamp
+# ─────────────────────────────────────────────
 
 def _save_last_sync(ts: datetime) -> None:
     """Persiste timestamp ultimo sync in orchestrator_config."""
@@ -110,87 +214,20 @@ def _save_last_sync(ts: datetime) -> None:
 
 
 # ─────────────────────────────────────────────
-# Build cache row da dati UYUNI
-# ─────────────────────────────────────────────
-
-def _parse_uyuni_date(date_val) -> Optional[str]:
-    """
-    Converte data UYUNI (datetime o string) in ISO 8601 UTC string.
-    Ritorna None se non parsabile.
-    """
-    if not date_val:
-        return None
-    if isinstance(date_val, datetime):
-        if date_val.tzinfo is None:
-            date_val = date_val.replace(tzinfo=timezone.utc)
-        return date_val.astimezone(timezone.utc).isoformat()
-    if isinstance(date_val, str):
-        try:
-            dt = datetime.fromisoformat(date_val.replace("Z", "+00:00"))
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt.astimezone(timezone.utc).isoformat()
-        except (ValueError, AttributeError):
-            pass
-    return None
-
-
-def _build_cache_row(
-    advisory_name: str,
-    base: dict,
-    details: dict,
-    cves: list,
-    target_os: str,
-) -> dict:
-    """
-    Costruisce la riga errata_cache dai dati UYUNI.
-
-    base: dict minimo da getRelevantErrata (advisory_name, advisory_type, synopsis, date)
-    details: dict da errata.getDetails (description, issue_date, ecc.)
-    """
-    advisory_type = (
-        base.get("advisory_type")
-        or details.get("type", "")
-    )
-    synopsis = (
-        base.get("synopsis")
-        or details.get("synopsis", "")
-    )
-    description = details.get("description", "")
-    issue_date = _parse_uyuni_date(
-        details.get("issue_date") or base.get("date")
-    )
-    severity = uyuni_client._severity_from_advisory_type(advisory_type)
-
-    return {
-        "errata_id":   advisory_name,
-        "synopsis":    synopsis,
-        "description": description,
-        "severity":    severity,
-        "type":        advisory_type,
-        "issued_date": issue_date,
-        "target_os":   target_os,
-        "packages":    [],   # fetchati on-demand al momento dell'accodamento
-        "cves":        cves,
-        "source_url":  None,
-    }
-
-
-# ─────────────────────────────────────────────
-# Job principale
+# Job principale (ottimizzato)
 # ─────────────────────────────────────────────
 
 def sync_errata_cache() -> dict:
     """
     Sincronizza errata da UYUNI → errata_cache (locale).
 
-    Logica:
-      1. Recupera gruppi test-* da UYUNI
-      2. Per ogni gruppo → sistemi → errata applicabili
-      3. Deduplica advisory_name (un errata può riguardare più sistemi)
-      4. Per ogni errata unico → get details + CVEs → upsert cache
-
-    Ritorna dict con statistiche del run.
+    Flusso ottimizzato:
+      ① Una sessione UYUNI (1 login/logout totale)
+      ② Fetch gruppi test-* → sistemi per gruppo (parallelo)
+      ③ Fetch errata per sistema (parallelo) → dedup in errata_map
+      ④ Fetch CVEs (parallelo, solo Security Advisory)
+      ⑤ Build righe cache
+      ⑥ Batch upsert in un'unica transazione DB
     """
     global _state
 
@@ -200,100 +237,118 @@ def sync_errata_cache() -> dict:
 
     _state["running"] = True
     started_at = datetime.now(timezone.utc)
-    inserted = updated = errors = 0
+    workers = Config.UYUNI_SYNC_WORKERS
 
-    logger.info("UYUNI errata sync started")
+    logger.info("UYUNI errata sync started (optimized)")
 
     try:
-        # 1. Recupera gruppi test-*
-        try:
-            groups = uyuni_client.get_test_groups()
-        except Exception as e:
-            logger.error(f"get_test_groups failed: {e}")
-            _state["last_error_msg"] = str(e)
-            return {"status": "error", "error": str(e)}
+        with UyuniSession() as session:
 
-        _state["last_groups_found"] = len(groups)
-        logger.info(
-            f"UYUNI: {len(groups)} test groups found: "
-            f"{[g.get('name') for g in groups]}"
-        )
+            # ① Recupera gruppi test-*
+            try:
+                groups = session.get_test_groups()
+            except Exception as e:
+                logger.error(f"get_test_groups failed: {e}")
+                _state["last_error_msg"] = str(e)
+                return {"status": "error", "error": str(e)}
 
-        if not groups:
-            logger.warning(
-                f"No groups with prefix "
-                f"{Config.UYUNI_TEST_GROUP_PREFIX!r} found in UYUNI"
+            _state["last_groups_found"] = len(groups)
+            logger.info(
+                f"UYUNI: {len(groups)} test groups found: "
+                f"{[g.get('name') for g in groups]}"
             )
 
-        # 2. Accumula errata unici: advisory_name → {base, target_os}
-        # advisory_name usato come chiave per deduplicare
-        errata_map: dict = {}
-
-        for group in groups:
-            group_name = group.get("name", "")
-            target_os = uyuni_client.os_from_group(group_name)
-
-            try:
-                systems = uyuni_client.get_systems_in_group(group_name)
-            except Exception as e:
+            if not groups:
                 logger.warning(
-                    f"get_systems_in_group({group_name!r}) failed: {e}"
+                    f"No groups with prefix "
+                    f"{Config.UYUNI_TEST_GROUP_PREFIX!r} found in UYUNI"
                 )
-                continue
 
-            for system in systems:
-                system_id = system.get("id")
-                if not system_id:
-                    continue
+            # ② Fetch sistemi per gruppo (parallelo)
+            def _fetch_systems(group):
+                group_name = group.get("name", "")
+                target_os = os_from_group(group_name)
+                systems = session.get_systems_in_group(group_name)
+                return group_name, target_os, systems
 
-                errata_list = uyuni_client.get_relevant_errata(system_id)
-                for e in errata_list:
-                    name = e.get("advisory_name")
-                    if not name or name in errata_map:
-                        continue
-                    errata_map[name] = {
-                        "target_os": target_os,
-                        "group":     group_name,
-                        **e,
-                    }
+            group_systems: dict = {}  # group_name → (systems, target_os)
+            with ThreadPoolExecutor(max_workers=workers) as ex:
+                futs = {ex.submit(_fetch_systems, g): g for g in groups}
+                for fut in as_completed(futs):
+                    try:
+                        gname, tos, syss = fut.result()
+                        group_systems[gname] = (syss, tos)
+                    except Exception as e:
+                        logger.warning(f"get_systems_in_group failed: {e}")
 
-        logger.info(
-            f"UYUNI: {len(errata_map)} unique relevant errata found"
-        )
+            # ③ Fetch errata per sistema (parallelo) → dedup
+            all_system_tasks = []
+            for _gname, (systems, target_os) in group_systems.items():
+                for sys in systems:
+                    sid = sys.get("id")
+                    if sid:
+                        all_system_tasks.append((sid, target_os))
 
-        # 3. Per ogni errata unico → dettagli + CVE → upsert
+            def _fetch_errata(sid_tos):
+                sid, tos = sid_tos
+                return tos, session.get_relevant_errata(sid)
+
+            errata_map: dict = {}  # advisory_name → {base, target_os, ...}
+            with ThreadPoolExecutor(max_workers=workers) as ex:
+                futs = {ex.submit(_fetch_errata, t): t for t in all_system_tasks}
+                for fut in as_completed(futs):
+                    try:
+                        tos, errata_list = fut.result()
+                        for e in errata_list:
+                            name = e.get("advisory_name")
+                            if name and name not in errata_map:
+                                errata_map[name] = {"target_os": tos, **e}
+                    except Exception as e:
+                        logger.warning(f"get_relevant_errata failed: {e}")
+
+            logger.info(
+                f"UYUNI: {len(errata_map)} unique relevant errata found"
+            )
+
+            # ④ Fetch CVEs (parallelo, solo Security Advisory)
+            security_names = [
+                name for name, base in errata_map.items()
+                if base.get("advisory_type", "") == "Security Advisory"
+            ]
+
+            def _fetch_cves(advisory_name):
+                return advisory_name, session.get_errata_cves(advisory_name)
+
+            cves_map: dict = {}  # advisory_name → ['CVE-...', ...]
+            with ThreadPoolExecutor(max_workers=workers * 2) as ex:
+                futs = {ex.submit(_fetch_cves, n): n for n in security_names}
+                for fut in as_completed(futs):
+                    try:
+                        name, cves = fut.result()
+                        cves_map[name] = cves
+                    except Exception as e:
+                        logger.warning(f"get_errata_cves failed: {e}")
+
+        # Sessione chiusa (logout avvenuto)
+
+        # ⑤ Build rows
+        rows = []
         for advisory_name, base in errata_map.items():
-            try:
-                details = uyuni_client.get_errata_details(advisory_name)
-                cves = uyuni_client.get_errata_cves(advisory_name)
-                row = _build_cache_row(
-                    advisory_name,
-                    base,
-                    details,
-                    cves,
-                    base["target_os"],
-                )
-                outcome = _upsert(row)
-                if outcome == "inserted":
-                    inserted += 1
-                else:
-                    updated += 1
-            except Exception as e:
-                logger.warning(
-                    f"Error processing {advisory_name!r}: {e}"
-                )
-                errors += 1
+            cves = cves_map.get(advisory_name, [])
+            row = _build_cache_row(advisory_name, base, cves, base["target_os"])
+            rows.append(row)
 
-        duration = (
-            datetime.now(timezone.utc) - started_at
-        ).total_seconds()
+        # ⑥ Batch upsert
+        inserted, updated = _batch_upsert(rows)
 
+        duration = (datetime.now(timezone.utc) - started_at).total_seconds()
         now = datetime.now(timezone.utc)
+
         _state.update({
             "last_sync":       now,
             "last_inserted":   inserted,
             "last_updated":    updated,
-            "last_errors":     errors,
+            "last_errors":     0,
             "last_duration_s": round(duration, 1),
             "last_error_msg":  None,
         })
@@ -301,14 +356,13 @@ def sync_errata_cache() -> dict:
 
         logger.info(
             f"UYUNI sync done: +{inserted} new, "
-            f"~{updated} updated, {errors} errors "
-            f"in {duration:.1f}s"
+            f"~{updated} updated in {duration:.1f}s"
         )
         return {
             "status":           "success",
             "inserted":         inserted,
             "updated":          updated,
-            "errors":           errors,
+            "errors":           0,
             "duration_seconds": round(duration, 1),
             "groups_found":     len(groups),
         }
@@ -393,5 +447,6 @@ def init_scheduler() -> None:
     logger.info(
         f"Poller started: interval={Config.UYUNI_POLL_INTERVAL}m, "
         f"group_prefix={Config.UYUNI_TEST_GROUP_PREFIX!r}, "
+        f"workers={Config.UYUNI_SYNC_WORKERS}, "
         f"initial sync in ~15s"
     )

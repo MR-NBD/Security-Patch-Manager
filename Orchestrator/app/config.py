@@ -64,6 +64,7 @@ class Config:
     UYUNI_TIMEOUT = int(os.getenv("UYUNI_TIMEOUT_SECONDS", 30))
     UYUNI_POLL_INTERVAL = int(os.getenv("UYUNI_POLL_INTERVAL_MINUTES", 30))
     UYUNI_TEST_GROUP_PREFIX = os.getenv("UYUNI_TEST_GROUP_PREFIX", "test-")
+    UYUNI_SYNC_WORKERS = int(os.getenv("UYUNI_SYNC_WORKERS", 10))
 
     # ----------------------------------------------------------
     # Salt API

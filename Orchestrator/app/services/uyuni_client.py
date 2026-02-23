@@ -3,12 +3,17 @@ SPM Orchestrator - UYUNI XML-RPC Client
 
 Client per recuperare errata applicabili ai sistemi nei gruppi "test-*"
 direttamente da UYUNI, invece di scaricare l'intero catalogo da SPM-SYNC.
+
+Ottimizzazioni:
+- UyuniSession: 1 login/logout per ciclo di sync (non per call)
+- Thread-safe: ogni thread crea il proprio ServerProxy via threading.local(),
+  condividendo self._key (read-only dopo login)
 """
 
 import logging
 import ssl
+import threading
 import xmlrpc.client
-from contextlib import contextmanager
 from typing import Optional
 
 from app.config import Config
@@ -17,40 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 # ─────────────────────────────────────────────
-# Session management
-# ─────────────────────────────────────────────
-
-@contextmanager
-def _session():
-    """
-    Context manager: apre sessione UYUNI XML-RPC, ritorna (client, key).
-    Garantisce logout anche in caso di eccezione.
-    """
-    url = f"{Config.UYUNI_URL}/rpc/api"
-
-    if Config.UYUNI_VERIFY_SSL:
-        transport = None
-    else:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        transport = xmlrpc.client.SafeTransport(context=ctx)
-
-    client = xmlrpc.client.ServerProxy(url, transport=transport)
-    key = None
-    try:
-        key = client.auth.login(Config.UYUNI_USER, Config.UYUNI_PASSWORD)
-        yield client, key
-    finally:
-        if key:
-            try:
-                client.auth.logout(key)
-            except Exception:
-                pass
-
-
-# ─────────────────────────────────────────────
-# OS / Severity helpers
+# OS / Severity helpers (module-level)
 # ─────────────────────────────────────────────
 
 def os_from_group(group_name: str) -> str:
@@ -77,110 +49,143 @@ def _severity_from_advisory_type(advisory_type: str) -> str:
 
 
 # ─────────────────────────────────────────────
-# Public API
+# UyuniSession — thread-safe, single login/logout
 # ─────────────────────────────────────────────
 
-def get_test_groups() -> list:
+class UyuniSession:
     """
-    Ritorna tutti i gruppi il cui nome inizia con Config.UYUNI_TEST_GROUP_PREFIX.
-    Ogni dict: {id, name, description, ...}
+    Sessione UYUNI riusabile per un intero ciclo di sync.
+
+    - 1 login/logout per ciclo (non per call)
+    - Thread-safe: ogni thread ottiene il proprio ServerProxy via
+      threading.local(), ma condividono self._key (read-only dopo login)
+
+    Uso:
+        with UyuniSession() as session:
+            groups = session.get_test_groups()
+            ...
     """
-    prefix = Config.UYUNI_TEST_GROUP_PREFIX
-    try:
-        with _session() as (client, key):
-            groups = client.systemgroup.listAllGroups(key)
-        filtered = [g for g in groups if g.get("name", "").startswith(prefix)]
-        logger.debug(f"UYUNI: {len(filtered)} test groups (prefix={prefix!r})")
-        return filtered
-    except Exception as e:
-        logger.error(f"UYUNI get_test_groups failed: {e}")
-        raise
+
+    def __init__(self):
+        self._url = f"{Config.UYUNI_URL}/rpc/api"
+        self._key: Optional[str] = None
+        self._local = threading.local()
+
+    def _make_proxy(self) -> xmlrpc.client.ServerProxy:
+        """Crea ServerProxy rispettando Config.UYUNI_VERIFY_SSL."""
+        if Config.UYUNI_VERIFY_SSL:
+            transport = None
+        else:
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            transport = xmlrpc.client.SafeTransport(context=ctx)
+        return xmlrpc.client.ServerProxy(self._url, transport=transport)
+
+    @property
+    def _proxy(self) -> xmlrpc.client.ServerProxy:
+        """Lazy: crea proxy per questo thread se non esiste."""
+        if not hasattr(self._local, "proxy"):
+            self._local.proxy = self._make_proxy()
+        return self._local.proxy
+
+    def __enter__(self) -> "UyuniSession":
+        self._key = self._proxy.auth.login(Config.UYUNI_USER, Config.UYUNI_PASSWORD)
+        logger.debug("UYUNI session opened")
+        return self
+
+    def __exit__(self, *_) -> None:
+        if self._key:
+            try:
+                self._proxy.auth.logout(self._key)
+                logger.debug("UYUNI session closed")
+            except Exception:
+                pass
+            self._key = None
+
+    # ── API Methods ──────────────────────────────────────────────
+
+    def get_test_groups(self) -> list:
+        """Ritorna gruppi con prefisso Config.UYUNI_TEST_GROUP_PREFIX."""
+        prefix = Config.UYUNI_TEST_GROUP_PREFIX
+        try:
+            groups = self._proxy.systemgroup.listAllGroups(self._key)
+            filtered = [g for g in groups if g.get("name", "").startswith(prefix)]
+            logger.debug(f"UYUNI: {len(filtered)} test groups (prefix={prefix!r})")
+            return filtered
+        except Exception as e:
+            logger.warning(f"UYUNI get_test_groups failed: {e}")
+            raise
+
+    def get_systems_in_group(self, group_name: str) -> list:
+        """Ritorna sistemi nel gruppo. Ogni dict include almeno {id, name}."""
+        try:
+            systems = self._proxy.systemgroup.listSystems(self._key, group_name)
+            logger.debug(
+                f"UYUNI: {len(systems)} systems in group {group_name!r}"
+            )
+            return systems
+        except Exception as e:
+            logger.warning(
+                f"UYUNI get_systems_in_group({group_name!r}) failed: {e}"
+            )
+            return []
+
+    def get_relevant_errata(self, system_id: int) -> list:
+        """
+        Patch applicabili (non ancora installate) per un sistema.
+        Ritorna [{id, advisory_name, advisory_type, synopsis, date}, ...]
+        """
+        try:
+            return self._proxy.system.getRelevantErrata(self._key, system_id)
+        except Exception as e:
+            logger.warning(
+                f"UYUNI get_relevant_errata(system_id={system_id}) failed: {e}"
+            )
+            return []
+
+    def get_errata_cves(self, advisory_name: str) -> list:
+        """
+        Lista CVE IDs associati all'errata.
+        Ritorna ['CVE-2024-1234', ...] oppure [] in caso di errore.
+        """
+        try:
+            return self._proxy.errata.listCves(self._key, advisory_name)
+        except Exception as e:
+            logger.warning(
+                f"UYUNI get_errata_cves({advisory_name!r}) failed: {e}"
+            )
+            return []
+
+    def get_errata_packages(self, advisory_name: str) -> list:
+        """
+        Pacchetti dell'errata.
+        UYUNI ritorna {id, name, version, release, epoch, arch_label, file_size}.
+        Mappato a {name, version, size_kb}.
+        Ritorna [] in caso di errore.
+        """
+        try:
+            pkgs = self._proxy.errata.listPackages(self._key, advisory_name)
+            return [
+                {
+                    "name":    p.get("name", ""),
+                    "version": p.get("version", ""),
+                    "size_kb": (p.get("file_size") or 0) // 1024,
+                }
+                for p in pkgs
+            ]
+        except Exception as e:
+            logger.warning(
+                f"UYUNI get_errata_packages({advisory_name!r}) failed: {e}"
+            )
+            return []
 
 
-def get_systems_in_group(group_name: str) -> list:
-    """
-    Ritorna sistemi nel gruppo. Ogni dict include almeno {id, name}.
-    """
-    try:
-        with _session() as (client, key):
-            systems = client.systemgroup.listSystems(key, group_name)
-        logger.debug(
-            f"UYUNI: {len(systems)} systems in group {group_name!r}"
-        )
-        return systems
-    except Exception as e:
-        logger.error(
-            f"UYUNI get_systems_in_group({group_name!r}) failed: {e}"
-        )
-        raise
-
-
-def get_relevant_errata(system_id: int) -> list:
-    """
-    Patch applicabili (non ancora installate) per un sistema.
-    Ritorna [{id, advisory_name, advisory_type, synopsis, date}, ...]
-    """
-    try:
-        with _session() as (client, key):
-            errata = client.system.getRelevantErrata(key, system_id)
-        return errata
-    except Exception as e:
-        logger.warning(
-            f"UYUNI get_relevant_errata(system_id={system_id}) failed: {e}"
-        )
-        return []
-
-
-def get_errata_details(advisory_name: str) -> dict:
-    """
-    Dettagli errata: synopsis, description, type, issue_date.
-    Ritorna {} in caso di errore.
-    """
-    try:
-        with _session() as (client, key):
-            return client.errata.getDetails(key, advisory_name)
-    except Exception as e:
-        logger.warning(
-            f"UYUNI get_errata_details({advisory_name!r}) failed: {e}"
-        )
-        return {}
-
-
-def get_errata_cves(advisory_name: str) -> list:
-    """
-    Lista CVE IDs associati all'errata.
-    Ritorna ['CVE-2024-1234', ...] oppure [] in caso di errore.
-    """
-    try:
-        with _session() as (client, key):
-            return client.errata.listCves(key, advisory_name)
-    except Exception as e:
-        logger.warning(
-            f"UYUNI get_errata_cves({advisory_name!r}) failed: {e}"
-        )
-        return []
-
+# ─────────────────────────────────────────────
+# Backward-compat one-shot wrapper (usato da queue_manager.py)
+# ─────────────────────────────────────────────
 
 def get_errata_packages(advisory_name: str) -> list:
-    """
-    Pacchetti dell'errata.
-    UYUNI ritorna {id, name, version, release, epoch, arch_label, file_size}.
-    Mappato a {name, version, size_kb}.
-    Ritorna [] in caso di errore.
-    """
-    try:
-        with _session() as (client, key):
-            pkgs = client.errata.listPackages(key, advisory_name)
-        result = []
-        for p in pkgs:
-            result.append({
-                "name":    p.get("name", ""),
-                "version": p.get("version", ""),
-                "size_kb": (p.get("file_size") or 0) // 1024,
-            })
-        return result
-    except Exception as e:
-        logger.warning(
-            f"UYUNI get_errata_packages({advisory_name!r}) failed: {e}"
-        )
-        return []
+    """One-shot wrapper — crea sessione, chiama, distrugge."""
+    with UyuniSession() as s:
+        return s.get_errata_packages(advisory_name)
