@@ -33,6 +33,7 @@ from app.services.uyuni_patch_client import (
     UyuniPatchClient, get_critical_services, get_test_system_for_os,
 )
 from app.services.prometheus_client import PrometheusClient
+from app.services.notification_manager import notify_test_result
 
 logger = logging.getLogger(__name__)
 
@@ -675,6 +676,18 @@ def _execute_test(queue_item: dict) -> dict:
     # patch_test_queue.chk_queue_status non ammette 'error': mappa a 'failed'
     queue_status = "failed" if final_result == "error" else final_result
     _set_queue_status(queue_id, queue_status)
+
+    # Notifica operatore (best-effort: failed/error → alert, pending_approval → info)
+    notify_test_result(
+        test_id       = test_id,
+        queue_id      = queue_id,
+        errata_id     = errata_id,
+        result        = final_result,
+        failure_phase = failure_phase,
+        failure_reason= failure_reason,
+        system_name   = system_name,
+        duration_s    = duration_s,
+    )
 
     logger.info(
         f"TestEngine: END {errata_id!r} → {final_result.upper()} "
