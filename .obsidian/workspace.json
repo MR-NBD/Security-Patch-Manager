@@ -204,6 +204,7 @@
   },
   "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
+    "Orchestrator/app/services/test_engine.py.tmp.22383.1771841953065",
     "Orchestrator/PROJECT-STATUS.md.tmp.22383.1771841111069",
     "Orchestrator/app/services/test_engine.py.tmp.22383.1771841108158",
     "Orchestrator/app/main.py.tmp.22383.1771841100184",
@@ -214,7 +215,6 @@
     "Orchestrator/app/main.py.tmp.22383.1771840541856",
     "Orchestrator/app/main.py.tmp.22383.1771840537723",
     "Orchestrator/app/api/approvals.py",
-    "Orchestrator/app/services/approval_manager.py",
     "Orchestrator/PROJECT-STATUS.md",
     "Uyuni/Deployment/Amministrazione-e-Troubleshooting.md",
     "CLAUDE.md",
