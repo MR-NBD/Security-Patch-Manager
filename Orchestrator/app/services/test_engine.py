@@ -537,13 +537,20 @@ def _execute_test(queue_item: dict) -> dict:
 
             # Verifica sistema raggiungibile prima di partire
             if not uyuni.ping():
-                raise RuntimeError(
+                failure_reason = (
                     f"System {system_name!r} (id={system_id}) "
                     f"not reachable via UYUNI"
                 )
+                failure_phase = "pre_check"
+                raise RuntimeError(failure_reason)
 
             # ① SNAPSHOT
-            snapshot_id = _phase_snapshot(test_id, uyuni, errata_id)
+            try:
+                snapshot_id = _phase_snapshot(test_id, uyuni, errata_id)
+            except RuntimeError as e:
+                failure_reason = str(e)
+                failure_phase  = "snapshot"
+                raise
 
             # Baseline metriche (best-effort, Prometheus opzionale)
             baseline_metrics = {}
