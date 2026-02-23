@@ -62,7 +62,7 @@ def _pick_next_queued() -> Optional[dict]:
             WHERE q.status = 'queued'
             ORDER BY q.priority_override DESC, q.success_score DESC, q.queued_at ASC
             LIMIT 1
-            FOR UPDATE SKIP LOCKED
+            FOR UPDATE OF q SKIP LOCKED
         """)
         row = cur.fetchone()
         return dict(row) if row else None
