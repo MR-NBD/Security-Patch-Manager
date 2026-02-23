@@ -29,7 +29,7 @@ from typing import Optional
 
 from app.config import Config
 from app.services.db import get_db
-from app.services.salt_client import SaltSession, get_critical_services
+from app.services.uyuni_patch_client import UyuniPatchClient, get_critical_services
 from app.services.prometheus_client import PrometheusClient
 
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ def _set_queue_status(
                    WHERE id = %s""",
                 (status, test_id, queue_id),
             )
-        elif status in ("passed", "failed", "error"):
+        elif status in ("passed", "failed", "pending_approval"):
             cur.execute(
                 """UPDATE patch_test_queue
                    SET status = %s, completed_at = NOW()
@@ -243,30 +243,24 @@ def _get_packages(errata_id: str) -> list:
 
 def _phase_snapshot(
     test_id: int,
-    salt: SaltSession,
-    system_name: str,
+    uyuni: UyuniPatchClient,
     errata_id: str,
 ) -> str:
     """
-    Fase SNAPSHOT: crea snapshot pre-patch via snapper.
+    Fase SNAPSHOT: crea snapshot pre-patch via snapper (UYUNI scheduleScriptRun).
     Ritorna snapshot_id (numero snapper come stringa).
     Raises: RuntimeError se fallisce.
     """
     phase_id = _create_phase(test_id, "snapshot")
     try:
         desc = f"spm-pre-{errata_id}"
-        raw = salt._run(
-            system_name,
-            "cmd.run",
-            arg=[f"snapper create --description '{desc}' --print-number"],
-        )
-        snapshot_id = str(raw).strip()
-        if not snapshot_id.isdigit():
-            raise RuntimeError(f"Unexpected snapper output: {raw!r}")
+        snapshot_id = uyuni.take_snapshot(desc)
 
         _complete_phase(phase_id, "completed", output={"snapshot_id": snapshot_id})
         _update_test_record(test_id, snapshot_id=snapshot_id)
-        logger.info(f"TestEngine: snapshot #{snapshot_id} created on {system_name!r}")
+        logger.info(
+            f"TestEngine: snapshot #{snapshot_id} created on {uyuni._system_name!r}"
+        )
         return snapshot_id
 
     except Exception as e:
@@ -276,18 +270,18 @@ def _phase_snapshot(
 
 def _phase_patch(
     test_id: int,
-    salt: SaltSession,
-    system_name: str,
+    uyuni: UyuniPatchClient,
+    errata_id: str,
     pkg_names: list,
 ) -> dict:
     """
-    Fase PATCH: installa/aggiorna pacchetti via Salt pkg.install.
-    Ritorna {pkg_name: {old: "...", new: "..."}} per rollback package.
+    Fase PATCH: applica errata via UYUNI scheduleApplyErrata.
+    Ritorna {pkg_name: {old: "", new: "patched"}} per compatibilità rollback.
     Raises: RuntimeError se fallisce.
     """
     phase_id = _create_phase(test_id, "patch")
     try:
-        result = salt.apply_packages(system_name, pkg_names)
+        result = uyuni.apply_errata(errata_id, pkg_names)
         _complete_phase(
             phase_id, "completed",
             output={"packages_applied": result, "count": len(result)},
@@ -301,25 +295,19 @@ def _phase_patch(
 
 def _phase_reboot(
     test_id: int,
-    salt: SaltSession,
-    system_name: str,
+    uyuni: UyuniPatchClient,
 ) -> None:
     """
-    Fase REBOOT: riavvio controllato + attesa online.
-    Raises: RuntimeError se il minion non torna online.
+    Fase REBOOT: riavvio tramite UYUNI scheduleReboot + attesa online.
+    Raises: RuntimeError se il sistema non torna online.
     """
     phase_id = _create_phase(test_id, "reboot")
     try:
-        salt.reboot(system_name, wait_seconds=5)
-        # Attende che il sistema avvii lo shutdown prima di polling
-        time.sleep(30)
-        online = salt.wait_online(
-            system_name,
-            timeout=Config.TEST_WAIT_AFTER_REBOOT,
-        )
+        uyuni.reboot()
+        online = uyuni.wait_online(timeout=Config.TEST_WAIT_AFTER_REBOOT)
         if not online:
             raise RuntimeError(
-                f"Minion {system_name!r} did not come back online "
+                f"System {uyuni._system_name!r} did not come back online "
                 f"within {Config.TEST_WAIT_AFTER_REBOOT}s"
             )
         _complete_phase(phase_id, "completed", output={"reboot_successful": True})
@@ -381,18 +369,17 @@ def _phase_validate(
 
 def _phase_services(
     test_id: int,
-    salt: SaltSession,
-    system_name: str,
+    uyuni: UyuniPatchClient,
     target_os: str,
 ) -> None:
     """
-    Fase SERVICES: verifica servizi critici post-patch.
+    Fase SERVICES: verifica servizi critici post-patch via systemctl script.
     Raises: RuntimeError se uno o più servizi sono DOWN.
     """
     phase_id = _create_phase(test_id, "services")
     try:
         services = get_critical_services(target_os)
-        failed = salt.get_failed_services(system_name, services)
+        failed = uyuni.get_failed_services(uyuni._system_name, services)
 
         _update_test_record(
             test_id,
@@ -423,53 +410,34 @@ def _phase_services(
 
 def _phase_rollback(
     test_id: int,
-    salt: SaltSession,
-    system_name: str,
+    uyuni: UyuniPatchClient,
     rollback_type: str,
     snapshot_id: Optional[str],
     packages_before: dict,
 ) -> None:
     """
-    Fase ROLLBACK: ripristina sistema allo stato pre-patch.
+    Fase ROLLBACK: ripristina sistema allo stato pre-patch via UYUNI.
 
-    rollback_type='snapshot' → snapper undochange {snapshot_id}..0
-    rollback_type='package'  → reinstalla versioni precedenti via pkg.install
+    rollback_type='snapshot' → snapper undochange (via scheduleScriptRun)
+    rollback_type='package'  → apt downgrade versioni precedenti
 
-    Non solleva eccezioni: il fallback del rollback viene solo loggato.
+    Non solleva eccezioni: il fallimento del rollback viene solo loggato.
     """
     phase_id = _create_phase(test_id, "rollback")
+    system_name = uyuni._system_name
     try:
         if rollback_type == "snapshot" and snapshot_id:
-            salt._run(
-                system_name,
-                "cmd.run",
-                arg=[f"snapper undochange {snapshot_id}..0"],
-            )
+            uyuni.rollback_snapshot(snapshot_id)
             logger.info(
                 f"TestEngine: snapshot rollback (#{snapshot_id}) on {system_name!r}"
             )
 
         elif rollback_type == "package" and packages_before:
-            # Reinstalla versioni precedenti: {pkg_name: {old: "version", new: "..."}}
-            pkgs_to_restore = [
-                {name: versions.get("old")}
-                for name, versions in packages_before.items()
-                if isinstance(versions, dict) and versions.get("old")
-            ]
-            if pkgs_to_restore:
-                salt._run(
-                    system_name,
-                    "pkg.install",
-                    kwarg={"pkgs": pkgs_to_restore},
-                )
-                logger.info(
-                    f"TestEngine: package rollback "
-                    f"({len(pkgs_to_restore)} packages) on {system_name!r}"
-                )
-            else:
-                logger.warning(
-                    f"TestEngine: package rollback skipped — no 'old' versions in apply result"
-                )
+            uyuni.rollback_packages(packages_before)
+            logger.info(
+                f"TestEngine: package rollback on {system_name!r}"
+            )
+
         else:
             logger.warning(
                 f"TestEngine: rollback skipped "
@@ -518,6 +486,14 @@ def _execute_test(queue_item: dict) -> dict:
         logger.error(f"TestEngine: {err}")
         return {"status": "error", "error": err, "queue_id": queue_id}
 
+    if not system_id:
+        err = (
+            f"system_id not configured for target_os={target_os!r}. "
+            f"Set TEST_SYSTEM_UBUNTU_ID / TEST_SYSTEM_RHEL_ID in .env"
+        )
+        logger.error(f"TestEngine: {err}")
+        return {"status": "error", "error": err, "queue_id": queue_id}
+
     # Tipo di rollback in base al profilo rischio
     rollback_type = "snapshot" if requires_reboot else "package"
 
@@ -551,19 +527,20 @@ def _execute_test(queue_item: dict) -> dict:
     )
 
     try:
-        with SaltSession() as salt:
+        with UyuniPatchClient(system_id, system_name) as uyuni:
             prom = PrometheusClient()
 
-            # Verifica minion raggiungibile prima di partire
-            if not salt.ping(system_name):
+            # Verifica sistema raggiungibile prima di partire
+            if not uyuni.ping():
                 raise RuntimeError(
-                    f"Minion {system_name!r} not reachable via Salt API"
+                    f"System {system_name!r} (id={system_id}) "
+                    f"not reachable via UYUNI"
                 )
 
             # ① SNAPSHOT
-            snapshot_id = _phase_snapshot(test_id, salt, system_name, errata_id)
+            snapshot_id = _phase_snapshot(test_id, uyuni, errata_id)
 
-            # Baseline metriche (best-effort)
+            # Baseline metriche (best-effort, Prometheus opzionale)
             baseline_metrics = {}
             if system_ip and prom.is_available():
                 baseline_metrics = prom.get_snapshot(system_ip)
@@ -571,12 +548,12 @@ def _execute_test(queue_item: dict) -> dict:
 
             # ② PATCH
             try:
-                apply_result = _phase_patch(test_id, salt, system_name, pkg_names)
+                apply_result = _phase_patch(test_id, uyuni, errata_id, pkg_names)
             except RuntimeError as e:
                 failure_reason = str(e)
                 failure_phase  = "patch"
                 _phase_rollback(
-                    test_id, salt, system_name,
+                    test_id, uyuni,
                     rollback_type, snapshot_id, apply_result,
                 )
                 rollback_done = True
@@ -585,12 +562,12 @@ def _execute_test(queue_item: dict) -> dict:
             # ③ REBOOT (solo se requires_reboot)
             if requires_reboot:
                 try:
-                    _phase_reboot(test_id, salt, system_name)
+                    _phase_reboot(test_id, uyuni)
                 except RuntimeError as e:
                     failure_reason = str(e)
                     failure_phase  = "reboot"
                     _phase_rollback(
-                        test_id, salt, system_name,
+                        test_id, uyuni,
                         rollback_type, snapshot_id, apply_result,
                     )
                     rollback_done = True
@@ -611,7 +588,7 @@ def _execute_test(queue_item: dict) -> dict:
                     failure_reason = str(e)
                     failure_phase  = "validate"
                     _phase_rollback(
-                        test_id, salt, system_name,
+                        test_id, uyuni,
                         rollback_type, snapshot_id, apply_result,
                     )
                     rollback_done = True
@@ -619,12 +596,12 @@ def _execute_test(queue_item: dict) -> dict:
 
             # ⑤ SERVICES
             try:
-                _phase_services(test_id, salt, system_name, target_os)
+                _phase_services(test_id, uyuni, target_os)
             except RuntimeError as e:
                 failure_reason = str(e)
                 failure_phase  = "services"
                 _phase_rollback(
-                    test_id, salt, system_name,
+                    test_id, uyuni,
                     rollback_type, snapshot_id, apply_result,
                 )
                 rollback_done = True
@@ -645,14 +622,18 @@ def _execute_test(queue_item: dict) -> dict:
     completed_at = datetime.now(timezone.utc)
     duration_s   = int((completed_at - started_at).total_seconds())
 
+    # patch_tests.result ammette solo: NULL, 'passed', 'failed', 'error', 'aborted'
+    # 'pending_approval' è lo status della queue, non del test record
+    test_result = "passed" if final_result == "pending_approval" else final_result
+
     _update_test_record(
         test_id,
-        result           = final_result,
-        failure_reason   = failure_reason,
-        failure_phase    = failure_phase,
+        result             = test_result,
+        failure_reason     = failure_reason,
+        failure_phase      = failure_phase,
         rollback_performed = rollback_done,
-        completed_at     = completed_at,
-        duration_seconds = duration_s,
+        completed_at       = completed_at,
+        duration_seconds   = duration_s,
     )
     # patch_test_queue.chk_queue_status non ammette 'error': mappa a 'failed'
     queue_status = "failed" if final_result == "error" else final_result
