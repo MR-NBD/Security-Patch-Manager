@@ -18,12 +18,13 @@ _wait_action() fa polling su schedule.listCompleted/FailedActions fino
 a completamento o timeout.
 """
 
+import ipaddress
 import logging
 import time
 from datetime import datetime
 from typing import Optional
 
-from app.services.uyuni_client import UyuniSession
+from app.services.uyuni_client import UyuniSession, os_from_group
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +37,58 @@ _DEFAULT_SERVICES = {
     "ubuntu": ["ssh", "cron", "rsyslog"],
     "rhel":   ["sshd", "crond", "rsyslog"],
 }
+
+
+def _is_ip(value: str) -> bool:
+    """Ritorna True se la stringa è un indirizzo IP valido."""
+    try:
+        ipaddress.ip_address(value)
+        return True
+    except ValueError:
+        return False
+
+
+def get_test_system_for_os(target_os: str) -> Optional[dict]:
+    """
+    Scopre automaticamente il sistema di test per il target_os dato
+    interrogando i gruppi UYUNI con prefisso 'test-'.
+
+    Ritorna {system_id, system_name, system_ip} del primo sistema
+    nel gruppo corrispondente, o None se non trovato.
+
+    Questa funzione viene chiamata dal test engine quando il sistema
+    non è esplicitamente configurato nel .env — garantisce che nuovi
+    sistemi aggiunti in UYUNI vengano automaticamente usati.
+    """
+    try:
+        with UyuniSession() as session:
+            groups = session.get_test_groups()
+            for group in groups:
+                group_name = group.get("name", "")
+                if os_from_group(group_name) != target_os:
+                    continue
+                systems = session.get_systems_in_group(group_name)
+                if not systems:
+                    continue
+                # Usa il primo sistema nel gruppo
+                s = systems[0]
+                system_id   = s.get("id")
+                system_name = s.get("name", "")
+                # Il nome del sistema spesso è l'IP in questo ambiente
+                system_ip   = system_name if _is_ip(system_name) else ""
+                logger.info(
+                    f"UYUNI auto-discovery: {target_os} → "
+                    f"system_id={system_id} name={system_name!r} "
+                    f"(group={group_name!r})"
+                )
+                return {
+                    "system_id":   system_id,
+                    "system_name": system_name,
+                    "system_ip":   system_ip,
+                }
+    except Exception as e:
+        logger.warning(f"get_test_system_for_os({target_os!r}) failed: {e}")
+    return None
 
 
 def get_critical_services(target_os: str) -> list:

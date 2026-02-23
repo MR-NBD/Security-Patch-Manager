@@ -29,7 +29,9 @@ from typing import Optional
 
 from app.config import Config
 from app.services.db import get_db
-from app.services.uyuni_patch_client import UyuniPatchClient, get_critical_services
+from app.services.uyuni_patch_client import (
+    UyuniPatchClient, get_critical_services, get_test_system_for_os,
+)
 from app.services.prometheus_client import PrometheusClient
 
 logger = logging.getLogger(__name__)
@@ -475,24 +477,27 @@ def _execute_test(queue_item: dict) -> dict:
     target_os      = queue_item["target_os"]
     requires_reboot = bool(queue_item.get("requires_reboot", False))
 
-    # Sistema di test per questo OS
-    sys_info    = Config.TEST_SYSTEMS.get(target_os, {})
-    system_id   = sys_info.get("system_id")
-    system_name = sys_info.get("system_name", "")
-    system_ip   = sys_info.get("system_ip", "")
+    # Sistema di test: .env ha priorità, altrimenti auto-discovery da UYUNI
+    cfg         = Config.TEST_SYSTEMS.get(target_os, {})
+    system_id   = cfg.get("system_id")
+    system_name = cfg.get("system_name", "")
+    system_ip   = cfg.get("system_ip", "")
 
-    if not system_name:
-        err = f"No test system configured for target_os={target_os!r}"
-        logger.error(f"TestEngine: {err}")
-        return {"status": "error", "error": err, "queue_id": queue_id}
-
-    if not system_id:
-        err = (
-            f"system_id not configured for target_os={target_os!r}. "
-            f"Set TEST_SYSTEM_UBUNTU_ID / TEST_SYSTEM_RHEL_ID in .env"
-        )
-        logger.error(f"TestEngine: {err}")
-        return {"status": "error", "error": err, "queue_id": queue_id}
+    if not system_id or not system_name:
+        # Auto-discovery: interroga UYUNI per sistemi nel gruppo test-{os}
+        discovered = get_test_system_for_os(target_os)
+        if discovered:
+            system_id   = system_id   or discovered["system_id"]
+            system_name = system_name or discovered["system_name"]
+            system_ip   = system_ip   or discovered["system_ip"]
+        else:
+            err = (
+                f"No test system found for target_os={target_os!r} — "
+                f"nessun sistema nel gruppo UYUNI 'test-{target_os}*' "
+                f"e nessuna configurazione in .env"
+            )
+            logger.error(f"TestEngine: {err}")
+            return {"status": "error", "error": err, "queue_id": queue_id}
 
     # Tipo di rollback in base al profilo rischio
     rollback_type = "snapshot" if requires_reboot else "package"
