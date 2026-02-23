@@ -545,12 +545,22 @@ def _execute_test(queue_item: dict) -> dict:
                 raise RuntimeError(failure_reason)
 
             # ① SNAPSHOT
+            # Se requires_reboot=True (kernel) lo snapshot è obbligatorio per
+            # il rollback. Altrimenti è best-effort: se snapper non disponibile
+            # si usa il rollback package.
             try:
                 snapshot_id = _phase_snapshot(test_id, uyuni, errata_id)
             except RuntimeError as e:
-                failure_reason = str(e)
-                failure_phase  = "snapshot"
-                raise
+                if requires_reboot:
+                    failure_reason = str(e)
+                    failure_phase  = "snapshot"
+                    raise
+                else:
+                    logger.warning(
+                        f"TestEngine: snapshot failed (snapper not available?), "
+                        f"switching to package rollback: {e}"
+                    )
+                    rollback_type = "package"
 
             # Baseline metriche (best-effort, Prometheus opzionale)
             baseline_metrics = {}

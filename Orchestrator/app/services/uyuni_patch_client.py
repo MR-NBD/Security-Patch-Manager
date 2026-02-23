@@ -72,10 +72,16 @@ def get_test_system_for_os(target_os: str) -> Optional[dict]:
                     continue
                 # Usa il primo sistema nel gruppo
                 s = systems[0]
-                system_id   = s.get("id")
-                system_name = s.get("name", "")
+                system_id = s.get("id")
+                # listSystems può usare 'name', 'profile_name' o 'hostname'
+                system_name = (
+                    s.get("name")
+                    or s.get("profile_name")
+                    or s.get("hostname")
+                    or str(system_id)
+                )
                 # Il nome del sistema spesso è l'IP in questo ambiente
-                system_ip   = system_name if _is_ip(system_name) else ""
+                system_ip = system_name if _is_ip(system_name) else ""
                 logger.info(
                     f"UYUNI auto-discovery: {target_os} → "
                     f"system_id={system_id} name={system_name!r} "
@@ -222,16 +228,16 @@ class UyuniPatchClient:
             return False, str(e)
 
         success = self._wait_action(action_id, timeout_s=wait_timeout)
-        if not success:
-            return False, ""
 
+        # Recupera output anche se l'azione è fallita (utile per diagnostica)
+        output = ""
         try:
             results = self._proxy.system.getScriptResults(self._key, action_id)
             output = results[0].get("output", "") if results else ""
-            return True, output
         except Exception as e:
             logger.warning(f"UyuniPatchClient: getScriptResults failed: {e}")
-            return True, ""  # Azione completata, output non disponibile
+
+        return success, output
 
     # ── Public interface ──────────────────────────────────────────────
 
