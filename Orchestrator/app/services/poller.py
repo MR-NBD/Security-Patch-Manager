@@ -19,7 +19,7 @@ import calendar
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -436,9 +436,7 @@ def init_scheduler() -> None:
     _scheduler.add_job(
         func=sync_errata_cache,
         trigger="date",
-        run_date=datetime.now(timezone.utc).replace(
-            second=datetime.now(timezone.utc).second + 15
-        ),
+        run_date=datetime.now(timezone.utc) + timedelta(seconds=15),
         id="uyuni_errata_initial",
         name="UYUNI Initial Sync",
     )

@@ -204,6 +204,8 @@
   },
   "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
+    "Orchestrator/app/services/poller.py.tmp.22383.1771838563321",
+    "Orchestrator/app/services/poller.py.tmp.22383.1771838559206",
     "Orchestrator/app/config.py.tmp.22383.1771837718503",
     "Orchestrator/app/services/poller.py.tmp.22383.1771837712388",
     "Orchestrator/app/api/health.py.tmp.22383.1771835801125",
@@ -215,8 +217,6 @@
     "Uyuni/Deployment/Amministrazione-e-Troubleshooting.md",
     "CLAUDE.md.tmp.8961.1771761213558",
     "CLAUDE.md",
-    "CLAUDE.md.tmp.8961.1771760561973",
-    "Orchestrator/app/services/poller.py.tmp.8961.1771759513454",
     "Thesys/cap4/cap4_draft.md",
     "Thesys/cap2/cap2_draft.md",
     "GeneralDocumentation/TESI/CAP2/Capitolo 2 Background on Patch Management.md",
