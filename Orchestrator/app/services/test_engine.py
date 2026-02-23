@@ -654,7 +654,9 @@ def _execute_test(queue_item: dict) -> dict:
         completed_at     = completed_at,
         duration_seconds = duration_s,
     )
-    _set_queue_status(queue_id, final_result)
+    # patch_test_queue.chk_queue_status non ammette 'error': mappa a 'failed'
+    queue_status = "failed" if final_result == "error" else final_result
+    _set_queue_status(queue_id, queue_status)
 
     logger.info(
         f"TestEngine: END {errata_id!r} → {final_result.upper()} "
