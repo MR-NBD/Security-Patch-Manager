@@ -2,7 +2,7 @@
 SPM Orchestrator - Queue Manager
 
 Gestisce la coda di test patch:
-- Aggiunta errata (con fetch on-demand pacchetti da SPM-SYNC)
+- Aggiunta errata (con fetch on-demand pacchetti da UYUNI)
 - Analisi pacchetti per profilo di rischio
 - Calcolo Success Score
 - CRUD su patch_test_queue e patch_risk_profile
@@ -15,7 +15,7 @@ from decimal import Decimal
 from typing import Optional
 
 from app.services.db import get_db
-import app.services.spm_sync_client as spm_client
+from app.services import uyuni_client
 
 logger = logging.getLogger(__name__)
 
@@ -304,7 +304,7 @@ def add_to_queue(
         )
 
     # 3. Fetch packages on-demand
-    packages = spm_client.fetch_packages(errata_id)
+    packages = uyuni_client.get_errata_packages(errata_id)
     logger.info(f"Queue: {errata_id} → {len(packages)} packages fetched")
 
     # 4. Aggiorna packages in errata_cache (best-effort)

@@ -1,7 +1,7 @@
 """
 SPM Orchestrator - Sync API
 
-Endpoints per monitorare e controllare il poller SPM-SYNC.
+Endpoints per monitorare e controllare il poller UYUNI.
 """
 
 from flask import Blueprint, jsonify
@@ -15,7 +15,7 @@ def sync_status():
     """
     GET /api/v1/sync/status
 
-    Ritorna stato corrente del poller SPM-SYNC e statistiche
+    Ritorna stato corrente del poller UYUNI e statistiche
     dell'ultimo run.
     """
     return jsonify(poller.get_sync_status())
@@ -26,7 +26,7 @@ def sync_trigger():
     """
     POST /api/v1/sync/trigger
 
-    Avvia manualmente un ciclo di sync SPM-SYNC → errata_cache.
+    Avvia manualmente un ciclo di sync UYUNI → errata_cache.
     Bloccante: ritorna quando il sync è completato.
     """
     result = poller.trigger_sync()

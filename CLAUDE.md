@@ -2,17 +2,19 @@
 
 ## Deployment sul VM (REGOLA FISSA)
 
-**Usare SEMPRE `git pull` per deployare modifiche sul VM. MAI base64.**
+**Usare SEMPRE git per deployare modifiche sul VM. MAI base64.**
+
+Il repo è clonato in `/opt/Security-Patch-Manager`. Procedura deploy:
 
 ```bash
-cd /opt/spm-orchestrator
-git pull origin main
+cd /opt/Security-Patch-Manager && git pull origin main
+cp -r /opt/Security-Patch-Manager/Orchestrator/app /opt/spm-orchestrator/
 sudo systemctl restart spm-orchestrator
 ```
 
-- Il VM (`10.172.2.22`) ha accesso a GitHub
+- Il VM (`10.172.2.22`) ha accesso a GitHub (repo pubblico: `https://github.com/MR-NBD/Security-Patch-Manager.git`)
 - L'accesso al VM è via Azure Bastion (no SCP, no rsync diretto)
-- `git pull` è l'unico metodo di deploy affidabile
+- Il repo è clonato in `/opt/Security-Patch-Manager`
 - Il base64 copy-paste è **vietato**: stringhe lunghe → errori silenziosi
 
 ---
@@ -25,11 +27,11 @@ sudo systemctl restart spm-orchestrator
   - DB: PostgreSQL locale, user `spm_orch`, db `spm_orchestrator`
   - `psql` richiede `-h localhost` (peer auth disabilitata su TCP)
 
-- **SPM-SYNC**: API esterna su `10.172.5.4:5000`
-  - `issued_date` è in formato **RFC 2822** (es. `"Fri, 20 Feb 2026 13:23:45 GMT"`)
-  - NON è ISO 8601 — usare `email.utils.parsedate_to_datetime()` per parsarlo
-
-- **UYUNI**: patch manager, host `10.172.x.x`
+- **UYUNI**: patch manager su `10.172.2.17` (XML-RPC `/rpc/api`)
+  - Source of truth per le patch applicabili ai sistemi test-*
+  - SSL verify disabilitato (`UYUNI_VERIFY_SSL=false`)
+  - Il poller interroga i gruppi con prefisso `test-` (es. `test-rhel9`, `test-ubuntu-2404`)
+  - Severity mappata da advisory_type: Security→Medium, Bug Fix→Low, Enhancement→Low
 
 ## Stack
 - Python 3.x, Flask 3.x, psycopg2, APScheduler

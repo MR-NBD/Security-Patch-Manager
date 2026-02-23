@@ -3,14 +3,15 @@
 -- Version: 1.1
 -- Date: 2026-02-20
 -- ============================================================
--- Database separato da SPM-SYNC.
--- errata_cache replica localmente i dati da SPM-SYNC via polling.
+-- Database separato da UYUNI.
+-- errata_cache replica localmente le patch da UYUNI via polling
+-- (sistemi nei gruppi test-*).
 -- ============================================================
 
 BEGIN;
 
 -- ============================================================
--- 0. ERRATA CACHE (replica locale da SPM-SYNC via polling)
+-- 0. ERRATA CACHE (cache locale errata da UYUNI - sistemi test-*)
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS errata_cache (

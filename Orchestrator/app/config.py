@@ -55,21 +55,15 @@ class Config:
         )
 
     # ----------------------------------------------------------
-    # SPM-SYNC (lettura errata, polling)
-    # ----------------------------------------------------------
-    SPM_SYNC_URL = os.getenv("SPM_SYNC_URL", "http://10.172.5.4:5000")
-    SPM_SYNC_POLL_INTERVAL = int(os.getenv("SPM_SYNC_POLL_INTERVAL_MINUTES", 30))
-    SPM_SYNC_MIN_SEVERITY = os.getenv("SPM_SYNC_MIN_SEVERITY", "Medium")
-    SPM_SYNC_TIMEOUT = int(os.getenv("SPM_SYNC_TIMEOUT_SECONDS", 30))
-
-    # ----------------------------------------------------------
-    # UYUNI
+    # UYUNI (fonte errata, polling gruppi test-*)
     # ----------------------------------------------------------
     UYUNI_URL = os.getenv("UYUNI_URL", "https://10.172.2.17")
     UYUNI_USER = os.getenv("UYUNI_USER", "admin")
     UYUNI_PASSWORD = os.getenv("UYUNI_PASSWORD", "")
     UYUNI_VERIFY_SSL = os.getenv("UYUNI_VERIFY_SSL", "false").lower() == "true"
     UYUNI_TIMEOUT = int(os.getenv("UYUNI_TIMEOUT_SECONDS", 30))
+    UYUNI_POLL_INTERVAL = int(os.getenv("UYUNI_POLL_INTERVAL_MINUTES", 30))
+    UYUNI_TEST_GROUP_PREFIX = os.getenv("UYUNI_TEST_GROUP_PREFIX", "test-")
 
     # ----------------------------------------------------------
     # Salt API

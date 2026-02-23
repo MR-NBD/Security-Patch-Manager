@@ -51,11 +51,6 @@ def health_detail():
     if db_status["status"] == "error":
         overall = "degraded"
 
-    # --- SPM-SYNC ---
-    components["spm_sync"] = _check_spm_sync()
-    if components["spm_sync"]["status"] == "error":
-        overall = "degraded"
-
     # --- UYUNI ---
     components["uyuni"] = _check_uyuni()
     if components["uyuni"]["status"] == "error":
@@ -79,34 +74,6 @@ def health_detail():
 # ----------------------------------------------------------
 # Check singoli componenti
 # ----------------------------------------------------------
-
-def _check_spm_sync() -> dict:
-    """Verifica raggiungibilità SPM-SYNC"""
-    try:
-        response = requests.get(
-            f"{Config.SPM_SYNC_URL}/api/health",
-            timeout=5,
-        )
-        if response.status_code == 200:
-            return {"status": "connected", "url": Config.SPM_SYNC_URL}
-        return {
-            "status": "error",
-            "message": f"HTTP {response.status_code}",
-            "url": Config.SPM_SYNC_URL,
-        }
-    except requests.ConnectionError:
-        return {
-            "status": "error",
-            "message": "Connection refused",
-            "url": Config.SPM_SYNC_URL,
-        }
-    except requests.Timeout:
-        return {
-            "status": "error",
-            "message": "Timeout",
-            "url": Config.SPM_SYNC_URL,
-        }
-
 
 def _check_uyuni() -> dict:
     """Verifica raggiungibilità UYUNI XML-RPC"""
