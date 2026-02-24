@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Thesys/cap3/capitolo3.md",
+                "file": "Update/25-2-2026.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "capitolo3"
+              "title": "25-2-2026"
             }
           }
         ]
@@ -202,8 +202,15 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "f76e3691fbfccb78",
+  "active": "c0b08d57e6e8fd92",
   "lastOpenFiles": [
+    "Uyuni/Deployment/HA-Architecture-UYUNI.md",
+    "Orchestrator/PROJECT-STATUS.md",
+    "Orchestrator/app/services/test_engine.py.tmp.22383.1771864410770",
+    "Orchestrator/app/services/test_engine.py.tmp.22383.1771864405182",
+    "Orchestrator/app/services/notification_manager.py",
+    "Orchestrator/README.md",
+    "Thesys/cap3/capitolo3.md",
     "Orchestrator/app/services/test_engine.py.tmp.22383.1771855075031",
     "Orchestrator/app/services/uyuni_patch_client.py.tmp.22383.1771855069266",
     "Orchestrator/app/services/uyuni_patch_client.py.tmp.22383.1771855062659",
@@ -211,21 +218,14 @@
     "Orchestrator/app/services/test_engine.py.tmp.22383.1771853866023",
     "Orchestrator/app/services/test_engine.py.tmp.22383.1771853856748",
     "Orchestrator/app/services/uyuni_patch_client.py.tmp.22383.1771853852906",
-    "Orchestrator/app/services/test_engine.py.tmp.22383.1771853067958",
-    "Orchestrator/app/services/test_engine.py.tmp.22383.1771853062787",
-    "Orchestrator/app/services/test_engine.py.tmp.22383.1771853053977",
-    "Orchestrator/app/services/test_engine.py.tmp.22383.1771853034171",
-    "Orchestrator/PROJECT-STATUS.md",
     "Uyuni/Deployment/Amministrazione-e-Troubleshooting.md",
     "CLAUDE.md",
     "Thesys/cap4/cap4_draft.md",
     "Thesys/cap2/cap2_draft.md",
     "GeneralDocumentation/TESI/CAP2/Capitolo 2 Background on Patch Management.md",
     "GeneralDocumentation/TESI/CAP2/Senza nome.md",
-    "Thesys/cap3/capitolo3.md",
     "Thesys/cap3/Insecurity_score_formula.md",
     "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
-    "Orchestrator/README.md",
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
