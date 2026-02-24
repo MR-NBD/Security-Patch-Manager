@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Update/25-2-2026.md",
+                "file": "Uyuni/Deployment/HA-Architecture-UYUNI.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "25-2-2026"
+              "title": "HA-Architecture-UYUNI"
             }
           }
         ]
@@ -204,6 +204,9 @@
   },
   "active": "c0b08d57e6e8fd92",
   "lastOpenFiles": [
+    "Update/25-2-2026.md",
+    "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
+    "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
     "Uyuni/Deployment/HA-Architecture-UYUNI.md",
     "Orchestrator/PROJECT-STATUS.md",
     "Orchestrator/app/services/test_engine.py.tmp.22383.1771864410770",
@@ -229,7 +232,6 @@
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
-    "Update/25-2-2026.md",
     "Uyuni/Teoria/PKI-TLS-HLD.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
@@ -237,9 +239,7 @@
     "Uyuni/Teoria/BUG-MGRPXY.md",
     "Utenze/ASL0603.md",
     "Update/18-2-2026.md",
-    "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
     "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
-    "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
     "Senza nome.canvas",
     "Senza nome 2.canvas",
     "Senza nome 1.canvas",

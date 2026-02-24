@@ -1,29 +1,4 @@
-# Architettura High Availability — UYUNI su Azure
-
-> **Versione**: 1.0 — Febbraio 2026
-> **Ambiente**: Azure Italy North · UYUNI 2025.10 · openSUSE Leap 15.6 · Podman
-> **Scope**: UYUNI Server + Proxy. SPM Orchestrator e budget esclusi da questa analisi.
-
----
-
-## Indice
-
-1. [Stato attuale e Single Points of Failure](#1-stato-attuale-e-single-points-of-failure)
-2. [Scenario A — Meno di 500 client](#2-scenario-a--meno-di-500-client)
-   - [A1 — SLA best-effort (RTO 30-60 min)](#a1--sla-best-effort-rto-30-60-min)
-   - [A2 — SLA strict (RTO < 15 min)](#a2--sla-strict-rto--15-min)
-3. [Scenario B — Più di 1000 client](#3-scenario-b--pi-di-1000-client)
-   - [B1 — SLA best-effort](#b1--sla-best-effort)
-   - [B2 — SLA strict (RTO < 15 min)](#b2--sla-strict-rto--15-min)
-4. [Gestione avanzata e HA dell'API XML-RPC](#4-gestione-avanzata-e-ha-dellapi-xml-rpc)
-5. [Matrice di confronto](#5-matrice-di-confronto)
-6. [Roadmap implementativa](#6-roadmap-implementativa)
-7. [Riferimenti](#7-riferimenti)
-
----
-
 ## 1. Stato attuale e Single Points of Failure
-
 ### Topologia corrente
 
 ```
@@ -62,15 +37,9 @@ Client attuali: test-ubuntu-2404 (10.172.2.18), test-rhel9 (10.172.2.19)
 >
 > Il layer proxy è stateless lato gestionale: lo stato dei client risiede tutto nel DB del server.
 > Il pattern ufficiale per l'HA dei proxy è la **Proxy Replacement Strategy**, non il load balancing classico.
-
----
-
 ## 2. Scenario A — Meno di 500 client
 
 Con < 500 client, un singolo server UYUNI è ampiamente sufficiente (capacità documentata: fino a ~1.000 client per server con hardware adeguato). L'obiettivo HA è la **ridondanza del servizio**, non la scalabilità.
-
----
-
 ### A1 — SLA best-effort (RTO 30-60 min)
 
 **Filosofia**: in caso di failure, si ripristina da backup. Nessuna replica live.
