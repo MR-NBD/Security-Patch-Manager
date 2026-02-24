@@ -218,24 +218,3 @@ salt -G 'os:RedHat' cp.get_file \
 | `oscap` non trovato in PATH | Installazione incompleta | `rpm -q openscap-scanner` + reinstalla |
 | Scansione schedulata ma non parte | Minion offline al momento dello schedule | Verifica stato minion in Uyuni → Systems → Overview |
 
-### Comandi diagnostici rapidi
-
-```bash
-# Sul server Uyuni (10.172.2.17)
-salt '10.172.2.19' test.ping
-salt '10.172.2.19' pkg.version openscap-scanner
-salt '10.172.2.19' cmd.run 'oscap --version'
-salt '10.172.2.19' cmd.run 'ls /usr/share/xml/scap/ssg/content/ | grep rhel9'
-
-# Verifica azioni pendenti via API
-# GET https://10.172.2.17/rpc/api → schedule.listAllActions
-```
-
----
-
-## Note finali
-
-- Usa sempre il file **DataStream** (`ssg-rhel9-ds.xml`) e non i singoli file XCCDF/OVAL
-- Il profilo **CIS Level 1** e' il punto di partenza consigliato: buon equilibrio tra sicurezza e impatto operativo
-- Esegui sempre una scansione **prima** di applicare patch per avere una baseline di confronto
-- I risultati sono conservati in Uyuni per audit trail storico
