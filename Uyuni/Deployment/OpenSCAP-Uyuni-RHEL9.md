@@ -96,6 +96,115 @@ Audit → All Scans
 ```
 
 Permette di confrontare i risultati tra sistemi diversi e monitorare il trend nel tempo.
+## Vulnerability Scanning — OVAL Red Hat (patch-centric)
+
+A differenza della compliance XCCDF, la scansione OVAL è **patch-centric**: verifica quali CVE
+sono presenti sul sistema confrontando le versioni dei pacchetti installati con quelle che
+includono il fix.
+
+### Approccio 1 — OVAL Red Hat (consigliato)
+
+Red Hat pubblica definizioni OVAL ufficiali che mappano **CVE → versione pacchetto che risolve**.
+
+#### Step 1 — Scarica il file OVAL sul sistema RHEL
+
+Via Salt dal server Uyuni:
+
+```bash
+# Scarica e decomprimi le definizioni OVAL RHEL 9
+salt '10.172.2.19' cmd.run '
+  curl -s -o /tmp/rhel-9.oval.xml.bz2 \
+    https://www.redhat.com/security/data/oval/v2/RHEL9/rhel-9.oval.xml.bz2 &&
+  bzip2 -d -f /tmp/rhel-9.oval.xml.bz2 &&
+  echo "OK: $(wc -l < /tmp/rhel-9.oval.xml) righe"
+'
+```
+
+> **Nota:** Per distribuire il file a più VM senza scaricarlo ogni volta, vedi la sezione
+> [Riutilizzo su più VM RHEL](#riutilizzo-su-più-vm-rhel) più avanti.
+
+#### Step 2 — Esegui la scansione OVAL in Uyuni
+
+```
+Systems → [RHEL 9] → Audit → Schedule
+```
+
+| Campo | Valore |
+|---|---|
+| **Path to XCCDF document** | `/tmp/rhel-9.oval.xml` |
+| **Command-line arguments** | `--results /tmp/oval-results.xml --report /tmp/oval-report.html` |
+
+#### Step 3 — Output della scansione OVAL
+
+I risultati mostrano per ogni CVE:
+
+```
+CVE-2024-1234   true   → sistema VULNERABILE (patch mancante)
+CVE-2024-5678   false  → sistema non affetto
+CVE-2023-9999   true   → pacchetto foo-1.2.3 < versione fissa 1.2.4
+```
+
+---
+
+### Riutilizzo su più VM RHEL
+
+Il file OVAL si scarica **una sola volta sul server Uyuni** e viene distribuito a tutti i client via Salt — non è necessario scaricarlo su ogni VM.
+
+```bash
+# 1. Scarica sul server Uyuni (una tantum)
+mkdir -p /srv/salt/oval
+curl -s -o /srv/salt/oval/rhel-9.oval.xml.bz2 \
+  https://www.redhat.com/security/data/oval/v2/RHEL9/rhel-9.oval.xml.bz2
+bzip2 -d -f /srv/salt/oval/rhel-9.oval.xml.bz2
+
+# 2. Distribuisci a tutti i RHEL 9 in un colpo solo
+salt -G 'os:RedHat' cp.get_file \
+  salt://oval/rhel-9.oval.xml \
+  /tmp/rhel-9.oval.xml
+```
+
+Tutti i sistemi avranno il file sullo stesso path `/tmp/rhel-9.oval.xml` → stessa configurazione di scansione per tutti.
+
+```
+Server Uyuni (10.172.2.17)
+  /srv/salt/oval/rhel-9.oval.xml   ← unico file sorgente
+        │
+        │  salt cp.get_file
+        ├──────────────────→  RHEL 9 (10.172.2.19)   /tmp/rhel-9.oval.xml
+        ├──────────────────→  RHEL 9 (VM prod 1)     /tmp/rhel-9.oval.xml
+        └──────────────────→  RHEL 9 (VM prod 2)     /tmp/rhel-9.oval.xml
+```
+
+#### Aggiornamento OVAL periodico
+
+Red Hat aggiorna le definizioni frequentemente. Automatizza con un cronjob sul server Uyuni:
+
+```bash
+# /etc/cron.weekly/update-rhel-oval.sh
+#!/bin/bash
+curl -s -o /srv/salt/oval/rhel-9.oval.xml.bz2 \
+  https://www.redhat.com/security/data/oval/v2/RHEL9/rhel-9.oval.xml.bz2
+bzip2 -d -f /srv/salt/oval/rhel-9.oval.xml.bz2
+
+# Ridistribuisci a tutti i client RHEL
+salt -G 'os:RedHat' cp.get_file \
+  salt://oval/rhel-9.oval.xml \
+  /tmp/rhel-9.oval.xml
+```
+
+---
+
+### Riepilogo — XCCDF vs OVAL
+
+| Obiettivo | File | Argomenti |
+|---|---|---|
+| Compliance CIS | `ssg-rhel9-ds.xml` | `--profile ...cis` |
+| Compliance STIG | `ssg-rhel9-ds.xml` | `--profile ...stig` |
+| **Vulnerabilità CVE (patch)** | **`rhel-9.oval.xml`** | *(nessun profilo)* |
+| Compliance + CVE insieme | `ssg-rhel9-ds.xml` | `--profile ...cis --oval-results` |
+
+---
+
 ## Troubleshooting
 
 | Sintomo | Causa probabile | Soluzione |
