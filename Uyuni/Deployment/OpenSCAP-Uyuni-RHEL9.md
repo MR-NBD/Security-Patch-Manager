@@ -22,12 +22,12 @@ Systems → [sistema RHEL] → Software → Packages → Install
 ```
 Cerca e installa i seguenti pacchetti:
 
-| Pacchetto | Obbligatorio | Funzione |
-|---|---|---|
-| `openscap-scanner` | Si | Scanner SCAP core |
-| `scap-security-guide` | Si | Profili CIS, STIG, PCI-DSS, HIPAA |
-| `bzip2` | Si | Decompressione risultati (richiesto da Uyuni) |
-| `openscap-utils` | No | Utility aggiuntive |
+| Pacchetto             | Obbligatorio | Funzione                                      |
+| --------------------- | ------------ | --------------------------------------------- |
+| `openscap-scanner`    | Si           | Scanner SCAP core                             |
+| `scap-security-guide` | Si           | Profili CIS, STIG, PCI-DSS, HIPAA             |
+| `bzip2`               | Si           | Decompressione risultati (richiesto da Uyuni) |
+| `openscap-utils`      | No           | Utility aggiuntive                            |
 
 1. Cerca ogni pacchetto nella barra di ricerca
 2. Seleziona la versione più recente
@@ -40,11 +40,11 @@ Systems → [sistema RHEL] → Audit → Schedule
 ```
 Compila il form:
 
-| Campo | Valore |
-|---|---|
-| **Path to XCCDF document** | `/usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml` |
+| Campo                      | Valore                                               |
+| -------------------------- | ---------------------------------------------------- |
+| **Path to XCCDF document** | `/usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml`   |
 | **Command-line arguments** | `--profile xccdf_org.ssgproject.content_profile_cis` |
-| **Date/Time** | Subito o pianificato |
+| **Date/Time**              | Subito o pianificato                                 |
 
 Clicca **Schedule** e attendi il completamento (2-10 minuti).
 

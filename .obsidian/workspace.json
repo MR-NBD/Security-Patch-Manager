@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Update/25-2-2026.md",
+                "file": "Uyuni/Deployment/OpenSCAP-Uyuni-RHEL9.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "25-2-2026"
+              "title": "OpenSCAP-Uyuni-RHEL9"
             }
           }
         ]
@@ -204,8 +204,8 @@
   },
   "active": "c0b08d57e6e8fd92",
   "lastOpenFiles": [
-    "Uyuni/Deployment/OpenSCAP-Uyuni-RHEL9.md",
     "Update/25-2-2026.md",
+    "Uyuni/Deployment/OpenSCAP-Uyuni-RHEL9.md",
     "Uyuni/Teoria/PKI-TLS-HLD.md",
     "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "Uyuni/Infrastructure-Design/UYUNI-Infrastructure-HA.drawio",
