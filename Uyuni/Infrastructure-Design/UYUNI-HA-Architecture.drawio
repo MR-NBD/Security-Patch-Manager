@@ -1,0 +1,405 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.8 Chrome/140.0.7339.240 Electron/38.4.0 Safari/537.36" version="28.2.8">
+  <diagram name="UYUNI HA Architecture" id="uyuni-ha-v1">
+    <mxGraphModel dx="1000" dy="679" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- TITLE                                                               -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="title" value="&lt;b&gt;&lt;font style=&quot;font-size: 17px;&quot;&gt;UYUNI — High Availability Architecture&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 9px; color: #666666;&quot;&gt;HAProxy Farm A (XML-RPC) · HAProxy Farm B (Proxy) · UYUNI Active/Passive · ~100 Organizzazioni · Proxy Puro (mgr-proxy stateless)&lt;/font&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="600" y="18" width="1200" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- AZ BACKGROUNDS                                                      -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="az1-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;opacity=30;arcSize=2;" parent="1" vertex="1">
+          <mxGeometry x="30" y="108" width="1062" height="1270" as="geometry" />
+        </mxCell>
+        <mxCell id="az1-lbl" value="&lt;b&gt;&lt;font style=&quot;font-size: 11px; color: #4472C4;&quot;&gt;Availability Zone 1&lt;/font&gt;&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="36" y="112" width="180" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="az2-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;opacity=30;arcSize=2;" parent="1" vertex="1">
+          <mxGeometry x="1308" y="108" width="1062" height="1270" as="geometry" />
+        </mxCell>
+        <mxCell id="az2-lbl" value="&lt;b&gt;&lt;font style=&quot;font-size: 11px; color: #7030A0;&quot;&gt;Availability Zone 2&lt;/font&gt;&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1314" y="112" width="180" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- SECTION 1 HEADER — UYUNI Server HA                                 -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="s1-hdr" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #FFFFFF;&quot;&gt;UYUNI SERVER — Active/Passive HA (vincolo architetturale: clustering active/active non supportato da UYUNI)&lt;/font&gt;&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1F3864;strokeColor=none;align=left;spacingLeft=8;verticalAlign=middle;" parent="1" vertex="1">
+          <mxGeometry x="30" y="88" width="2340" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- UYUNI PRIMARY (AZ1)                                                 -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="uyuni-pri-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="50" y="114" width="1022" height="308" as="geometry" />
+        </mxCell>
+        <mxCell id="uyuni-pri-vm" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/compute/Virtual_Machine.svg;" parent="1" vertex="1">
+          <mxGeometry x="56" y="118" width="28" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="uyuni-pri-title" value="&lt;b&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;UYUNI SERVER — PRIMARY&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 8px; color: #27AE60;&quot;&gt;&lt;b&gt;STATUS: ACTIVE&lt;/b&gt; · 10.172.2.17 · openSUSE Leap 15.6 · Standard D8as_v5 · AZ1&lt;/font&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="90" y="118" width="560" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- uyuni-server sub-box (Primary) -->
+        <mxCell id="pri-srv-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #27AE60;&quot;&gt;uyuni-server [UP ✓]&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;• Apache HTTPD :443 (reverse proxy)&lt;br&gt;• Tomcat :8080 (Web UI + XML-RPC /rpc/api)&lt;br&gt;• Salt Master (ZeroMQ :4505/:4506)&lt;br&gt;• Taskomatic (job scheduler)&lt;br&gt;• Cobbler (PXE boot)&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#82b366;align=left;spacingLeft=8;verticalAlign=top;arcSize=4;" parent="1" vertex="1">
+          <mxGeometry x="68" y="162" width="610" height="244" as="geometry" />
+        </mxCell>
+
+        <!-- uyuni-db sub-box (Primary) -->
+        <mxCell id="pri-db-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #2980B9;&quot;&gt;uyuni-db [PostgreSQL PRIMARY]&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;• Stato: client, jobs, actions, errata&lt;br&gt;• /pgsql_storage (NVMe locale)&lt;br&gt;• max_connections = 100&lt;br&gt;• WAL sender → Standby attivo&lt;br&gt;• synchronous_commit = local&lt;br&gt;• RPO &amp;lt; 1 secondo&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#2980B9;align=left;spacingLeft=8;verticalAlign=top;arcSize=4;" parent="1" vertex="1">
+          <mxGeometry x="690" y="162" width="370" height="244" as="geometry" />
+        </mxCell>
+        <mxCell id="pri-db-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/databases/Azure_Database_PostgreSQL_Server.svg;" parent="1" vertex="1">
+          <mxGeometry x="698" y="168" width="28" height="26" as="geometry" />
+        </mxCell>
+
+        <!-- /manager_storage label -->
+        <mxCell id="pri-storage-lbl" value="&lt;font style=&quot;font-size: 7px; color: #555555;&quot;&gt;/manager_storage → Azure Files NFS Premium ZRS (mount condiviso)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="68" y="412" width="700" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- UYUNI STANDBY (AZ2)                                                 -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="uyuni-stb-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="1328" y="114" width="1022" height="308" as="geometry" />
+        </mxCell>
+        <mxCell id="uyuni-stb-vm" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/compute/Virtual_Machine.svg;" parent="1" vertex="1">
+          <mxGeometry x="1334" y="118" width="28" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="uyuni-stb-title" value="&lt;b&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;UYUNI SERVER — STANDBY&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 8px; color: #C0392B;&quot;&gt;&lt;b&gt;STATUS: WARM STANDBY&lt;/b&gt; · 10.172.2.50 · openSUSE Leap 15.6 · Standard D8as_v5 · AZ2&lt;/font&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1368" y="118" width="560" height="36" as="geometry" />
+        </mxCell>
+
+        <!-- uyuni-server sub-box (Standby) -->
+        <mxCell id="stb-srv-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #C0392B;&quot;&gt;uyuni-server [STOPPED — attende failover]&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;• Processo non attivo (mgradm stop)&lt;br&gt;• Attivato da operatore: mgradm start&lt;br&gt;• Stessa versione UYUNI del Primary&lt;br&gt;• RTO target: ~10-12 min con operatore&lt;br&gt;• Post-failover: stesso FQDN via DNS (record immutabile)&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#b85450;align=left;spacingLeft=8;verticalAlign=top;arcSize=4;" parent="1" vertex="1">
+          <mxGeometry x="1346" y="162" width="610" height="244" as="geometry" />
+        </mxCell>
+
+        <!-- uyuni-db sub-box (Standby) -->
+        <mxCell id="stb-db-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #E67E22;&quot;&gt;uyuni-db [HOT STANDBY]&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;• Riceve WAL stream dal PRIMARY&lt;br&gt;• Lag: &amp;lt; 1s (sync_commit=local)&lt;br&gt;• Promozione: podman exec uyuni-db pg_promote&lt;br&gt;• Verifica: SELECT pg_is_in_recovery();&lt;br&gt;• Dopo promozione → nuovo PRIMARY&lt;br&gt;• /pgsql_storage (NVMe locale)&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#E67E22;align=left;spacingLeft=8;verticalAlign=top;arcSize=4;" parent="1" vertex="1">
+          <mxGeometry x="1968" y="162" width="370" height="244" as="geometry" />
+        </mxCell>
+        <mxCell id="stb-db-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/databases/Azure_Database_PostgreSQL_Server.svg;" parent="1" vertex="1">
+          <mxGeometry x="1976" y="168" width="28" height="26" as="geometry" />
+        </mxCell>
+
+        <!-- /manager_storage label Standby -->
+        <mxCell id="stb-storage-lbl" value="&lt;font style=&quot;font-size: 7px; color: #555555;&quot;&gt;/manager_storage → Azure Files NFS Premium ZRS (stesso mount del Primary — zone-redundant)&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1346" y="412" width="800" height="16" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- CENTER ROW 1 — DNS + Azure Files + PgSQL Streaming Rep             -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+        <!-- Azure Private DNS Zone -->
+        <mxCell id="dns-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/DNS_Zones.svg;" parent="1" vertex="1">
+          <mxGeometry x="1158" y="122" width="42" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="dns-lbl" value="&lt;b&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Private DNS Zone&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;uyuni.internal · TTL 60s&lt;br&gt;Record IMMUTABILI in failover&lt;br&gt;Failover gestito da HAProxy&lt;br&gt;(non da aggiornamento DNS)&lt;/font&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1094" y="163" width="212" height="72" as="geometry" />
+        </mxCell>
+
+        <!-- Azure Files NFS -->
+        <mxCell id="files-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/storage/Storage_Accounts.svg;" parent="1" vertex="1">
+          <mxGeometry x="1158" y="262" width="42" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="files-lbl" value="&lt;b&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Azure Files NFS Premium ZRS&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;/manager_storage · 500 GB+&lt;br&gt;Mount su Primary &amp;amp; Standby&lt;br&gt;Zone-redundant nativo&lt;br&gt;Latenza &amp;lt; 2ms (repo pacchetti OK)&lt;/font&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1094" y="303" width="212" height="72" as="geometry" />
+        </mxCell>
+
+        <!-- PgSQL Streaming Replication arrow -->
+        <mxCell id="pgsql-rep" value="&lt;b&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;PostgreSQL Streaming Replication&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;TCP 5432 · synchronous_commit=local&lt;br&gt;WAL streaming continuo · RPO &amp;lt; 1s&lt;/font&gt;&lt;/div&gt;" style="endArrow=classic;startArrow=classic;html=1;rounded=0;strokeColor=#2980B9;strokeWidth=2;fillColor=#2980B9;fontColor=#2980B9;align=center;verticalAlign=bottom;labelBackgroundColor=#FFFFFF;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1092" y="236" as="sourcePoint" />
+            <mxPoint x="1308" y="236" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Azure Files mount arrows -->
+        <mxCell id="files-to-pri" value="&lt;font style=&quot;font-size: 6px;&quot;&gt;NFS mount&lt;/font&gt;" style="endArrow=open;endSize=6;html=1;rounded=0;strokeColor=#7B68EE;strokeWidth=1;dashed=1;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1158" y="281" as="sourcePoint" />
+            <mxPoint x="1072" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="files-to-stb" value="&lt;font style=&quot;font-size: 6px;&quot;&gt;NFS mount&lt;/font&gt;" style="endArrow=open;endSize=6;html=1;rounded=0;strokeColor=#7B68EE;strokeWidth=1;dashed=1;" parent="1" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="281" as="sourcePoint" />
+            <mxPoint x="1328" y="360" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- SECTION 2 HEADER — HAProxy Farm A                                  -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="s2-hdr" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #FFFFFF;&quot;&gt;HAPROXY FARM A — XML-RPC (Farm dedicata · SSL Termination + HTTPS re-encryption · Health check applicativo HTTP GET /rpc/api)&lt;/font&gt;&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#7F4F00;strokeColor=none;align=left;spacingLeft=8;verticalAlign=middle;" parent="1" vertex="1">
+          <mxGeometry x="30" y="432" width="2340" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- HAProxy Farm A — Node 1 (AZ1)                                      -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="ha-a1-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;HAProxy Farm A — Node 1 · AZ1 · Standard D2s_v5&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;br&gt;• Frontend :443 → SSL Termination + HTTPS re-encryption verso backend UYUNI&lt;br&gt;• Health check: HTTP GET /rpc/api ogni 3s · fall=2 (down) · rise=3 (up recovery)&lt;br&gt;• Backend PRIMARY uyuni-primary:443 weight=100 → riceve tutto il traffico normale&lt;br&gt;• Backend STANDBY uyuni-standby:443 [keyword: backup] → attivato SOLO se PRIMARY DOWN&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=10;verticalAlign=top;arcSize=4;" parent="1" vertex="1">
+          <mxGeometry x="50" y="458" width="1022" height="155" as="geometry" />
+        </mxCell>
+
+        <!-- HAProxy Farm A — Node 2 (AZ2) -->
+        <mxCell id="ha-a2-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;HAProxy Farm A — Node 2 · AZ2 · Standard D2s_v5&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;br&gt;• Identica configurazione del Node 1 (stesso backend pool, stesso health check)&lt;br&gt;• Azure ILB Standard ZRS distribuisce il traffico tra Node 1 e Node 2 (entrambi attivi)&lt;br&gt;• Loss di un node HAProxy = riduzione capacità 50%, servizio continuato dal node superstite&lt;br&gt;• Re-login XML-RPC automatico: token invalidato solo in failover UYUNI (non HAProxy)&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=left;spacingLeft=10;verticalAlign=top;arcSize=4;" parent="1" vertex="1">
+          <mxGeometry x="1328" y="458" width="1022" height="155" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- CENTER ROW 2 — ILB Farm A                                           -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="ilb-a-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/Load_Balancers.svg;" parent="1" vertex="1">
+          <mxGeometry x="1158" y="462" width="42" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="ilb-a-lbl" value="&lt;b&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Azure ILB Standard ZRS&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;&lt;b&gt;VIP: xmlrpc.uyuni.internal:443&lt;/b&gt;&lt;br&gt;Farm A — XML-RPC entry point&lt;br&gt;Health probe: TCP:443&lt;br&gt;Backend: HAProxy-A1 (AZ1) + A2 (AZ2)&lt;br&gt;Failover auto XML-RPC &amp;lt; 10s&lt;/font&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1094" y="503" width="212" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- HAProxy-A → UYUNI PRIMARY (solid, main path) -->
+        <mxCell id="ha-a1-to-pri" value="&lt;font style=&quot;font-size: 6px; color: #27AE60;&quot;&gt;weight=100 (PRIMARY)&lt;/font&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#27AE60;strokeWidth=2;exitX=0.3;exitY=0;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="458" as="sourcePoint" />
+            <mxPoint x="360" y="422" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- HAProxy-A1 → UYUNI STANDBY (dashed, backup) -->
+        <mxCell id="ha-a1-to-stb" value="&lt;font style=&quot;font-size: 6px; color: #E67E22;&quot;&gt;backup (se PRIMARY DOWN)&lt;/font&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#E67E22;strokeWidth=1;dashed=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1072" y="490" as="sourcePoint" />
+            <mxPoint x="1328" y="195" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1190" y="490" />
+              <mxPoint x="1190" y="195" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- HAProxy-A2 → UYUNI PRIMARY (solid, cross-column) -->
+        <mxCell id="ha-a2-to-pri" value="&lt;font style=&quot;font-size: 6px; color: #27AE60;&quot;&gt;weight=100 (PRIMARY)&lt;/font&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#27AE60;strokeWidth=2;exitX=0;exitY=0.3;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1328" y="490" as="sourcePoint" />
+            <mxPoint x="1072" y="195" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1210" y="490" />
+              <mxPoint x="1210" y="195" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- HAProxy-A2 → UYUNI STANDBY (dashed, backup, same AZ) -->
+        <mxCell id="ha-a2-to-stb" value="&lt;font style=&quot;font-size: 6px; color: #E67E22;&quot;&gt;backup&lt;/font&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#E67E22;strokeWidth=1;dashed=1;exitX=0.7;exitY=0;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1710" y="458" as="sourcePoint" />
+            <mxPoint x="1710" y="422" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ILB Farm A → HAProxy-A1 -->
+        <mxCell id="ilb-a-to-ha1" value="" style="endArrow=open;endSize=8;html=1;rounded=0;strokeColor=#d6b656;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1158" y="481" as="sourcePoint" />
+            <mxPoint x="1072" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ilb-a-to-ha2" value="" style="endArrow=open;endSize=8;html=1;rounded=0;strokeColor=#d6b656;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1200" y="481" as="sourcePoint" />
+            <mxPoint x="1328" y="520" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- SECTION 3 HEADER — HAProxy Farm B                                  -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="s3-hdr" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #FFFFFF;&quot;&gt;HAPROXY FARM B — PROXY (~100 Organizzazioni) (Farm dedicata · :443 SSL Termination · :4505/:4506 TCP mode · Active/Passive per coppia)&lt;/font&gt;&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#1A5276;strokeColor=none;align=left;spacingLeft=8;verticalAlign=middle;" parent="1" vertex="1">
+          <mxGeometry x="30" y="620" width="2340" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- HAProxy Farm B — Node 1 (AZ1)                                      -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="ha-b1-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;HAProxy Farm B — Node 1 · AZ1 · Standard D4s_v5&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;br&gt;• ~100 frontend stanze (1 VIP per organizzazione) · routing basato su IP destinazione&lt;br&gt;• Porta :443 → SSL Termination + HTTPS re-encryption · Health check: HTTP GET /pub/bootstrap/&lt;br&gt;• Porte :4505/:4506 → TCP mode · Health check: TCP connect per Salt broker&lt;br&gt;• Per ogni org: backend ACTIVE (weight=100) + backend PASSIVE [backup] · failover auto &amp;lt; 10s&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=10;verticalAlign=top;arcSize=4;" parent="1" vertex="1">
+          <mxGeometry x="50" y="646" width="1022" height="155" as="geometry" />
+        </mxCell>
+
+        <!-- HAProxy Farm B — Node 2 (AZ2) -->
+        <mxCell id="ha-b2-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;HAProxy Farm B — Node 2 · AZ2 · Standard D4s_v5&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;br&gt;• Identica configurazione del Node 1 (stessa tabella di routing 100 org, stessi backend)&lt;br&gt;• Azure ILB Standard ZRS distribuisce tra Node 1 e Node 2 · entrambi ricevono traffico&lt;br&gt;• Scalabilità: aggiungere org = aggiungere frontend+backend config + 2 VM proxy + reload HAProxy&lt;br&gt;• ~100 org × 3 porte = 300 LB rules sull&apos;ILB (limite Azure Standard: 600) · espandibile&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=10;verticalAlign=top;arcSize=4;" parent="1" vertex="1">
+          <mxGeometry x="1328" y="646" width="1022" height="155" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- CENTER ROW 3 — ILB Farm B                                           -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="ilb-b-icon" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/Load_Balancers.svg;" parent="1" vertex="1">
+          <mxGeometry x="1158" y="650" width="42" height="38" as="geometry" />
+        </mxCell>
+        <mxCell id="ilb-b-lbl" value="&lt;b&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Azure ILB Standard ZRS&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 6px;&quot;&gt;&lt;b&gt;VIP Pool: proxy-orgX.uyuni.internal&lt;/b&gt;&lt;br&gt;Farm B — Proxy entry point&lt;br&gt;1 IP VIP per organizzazione&lt;br&gt;~100 VIP · 300 LB rules&lt;br&gt;Health probe: TCP:443 per HAProxy&lt;/font&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1094" y="691" width="212" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ILB Farm B → HAProxy-B1 and B2 -->
+        <mxCell id="ilb-b-to-hb1" value="" style="endArrow=open;endSize=8;html=1;rounded=0;strokeColor=#82b366;strokeWidth=2;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1158" y="669" as="sourcePoint" />
+            <mxPoint x="1072" y="704" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ilb-b-to-hb2" value="" style="endArrow=open;endSize=8;html=1;rounded=0;strokeColor=#82b366;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1200" y="669" as="sourcePoint" />
+            <mxPoint x="1328" y="704" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- SECTION 4 HEADER — Proxy Pairs                                     -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="s4-hdr" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #FFFFFF;&quot;&gt;PROXY PAIRS PER ORGANIZZAZIONE — mgr-proxy (stateless · Active/Passive · Identità = VIP FQDN · Failover automatico &amp;lt; 10s)&lt;/font&gt;&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#4A235A;strokeColor=none;align=left;spacingLeft=8;verticalAlign=middle;" parent="1" vertex="1">
+          <mxGeometry x="30" y="810" width="2340" height="22" as="geometry" />
+        </mxCell>
+
+        <!-- Section 4 legend center -->
+        <mxCell id="s4-legend" value="&lt;font style=&quot;font-size: 6px; color: #333333;&quot;&gt;&lt;b&gt;Active/Passive per coppia:&lt;/b&gt; HAProxy invia tutto il traffico al nodo ACTIVE (AZ1).&lt;br&gt;Il nodo PASSIVE (AZ2) riceve traffico solo in caso di failure del nodo ACTIVE.&lt;br&gt;Failover: 2 health check falliti → backend ACTIVE marcato DOWN → PASSIVE attivato (auto).&lt;br&gt;I minion subiscono 1 TCP reset e si riconnettono automaticamente (comportamento Salt nativo).&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="1094" y="836" width="212" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- PROXY ORG-A PAIR                                                    -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="proxy-a1-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #27AE60;&quot;&gt;Proxy-OrgA-1 · AZ1 · [ACTIVE] · Standard B4ms&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;proxy-orgA.uyuni.internal → VIP 10.172.3.1 → questo nodo · Salt broker :4505/:4506 | Squid cache | HTTPD proxy :443&lt;br&gt;Connessione → UYUNI Server (Salt ZeroMQ :4505/:4506 · HTTPS :443 per content)&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=10;verticalAlign=middle;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="50" y="836" width="1022" height="88" as="geometry" />
+        </mxCell>
+
+        <mxCell id="proxy-a2-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #E67E22;&quot;&gt;Proxy-OrgA-2 · AZ2 · [PASSIVE/backup] · Standard B4ms&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Stessa identità VIP (FQDN proxy-orgA.uyuni.internal) · stessi certificati mgr-proxy · stessa config UYUNI&lt;br&gt;Attivato da HAProxy in &amp;lt; 10s se Proxy-OrgA-1 fallisce · i minion si riconnettono automaticamente&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#E67E22;align=left;spacingLeft=10;verticalAlign=middle;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="1328" y="836" width="1022" height="88" as="geometry" />
+        </mxCell>
+
+        <!-- HAProxy-B → Proxy-OrgA-1 (active) -->
+        <mxCell id="hb1-to-pa1" value="&lt;font style=&quot;font-size: 6px; color: #27AE60;&quot;&gt;ACTIVE weight=100&lt;/font&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#27AE60;strokeWidth=2;exitX=0.3;exitY=1;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="801" as="sourcePoint" />
+            <mxPoint x="360" y="836" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- HAProxy-B1 → Proxy-OrgA-2 (backup, cross) -->
+        <mxCell id="hb1-to-pa2" value="&lt;font style=&quot;font-size: 6px; color: #E67E22;&quot;&gt;backup&lt;/font&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#E67E22;strokeWidth=1;dashed=1;exitX=1;exitY=0.7;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1072" y="780" as="sourcePoint" />
+            <mxPoint x="1328" y="870" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1190" y="780" />
+              <mxPoint x="1190" y="870" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- HAProxy-B2 → Proxy-OrgA-2 (active) -->
+        <mxCell id="hb2-to-pa2" value="&lt;font style=&quot;font-size: 6px; color: #27AE60;&quot;&gt;ACTIVE weight=100&lt;/font&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#27AE60;strokeWidth=2;exitX=0.7;exitY=1;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1710" y="801" as="sourcePoint" />
+            <mxPoint x="1710" y="836" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Proxy-OrgA-1 → UYUNI Primary (Salt + HTTPS) -->
+        <mxCell id="pa1-to-uyuni" value="&lt;font style=&quot;font-size: 6px;&quot;&gt;Salt ZeroMQ :4505/:4506 + HTTPS :443&lt;/font&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#555555;strokeWidth=1;exitX=0.15;exitY=0;exitDx=0;exitDy=0;dashed=1;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="200" y="836" as="sourcePoint" />
+            <mxPoint x="200" y="422" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- PROXY ORG-B PAIR                                                    -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="proxy-b1-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #27AE60;&quot;&gt;Proxy-OrgB-1 · AZ1 · [ACTIVE] · Standard B4ms&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;proxy-orgB.uyuni.internal → VIP 10.172.3.2 → questo nodo · Salt broker :4505/:4506 | Squid cache | HTTPD proxy :443&lt;br&gt;Ogni organizzazione ha il suo VIP dedicato: nessuna interferenza cross-org (routing basato su IP destinazione)&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=10;verticalAlign=middle;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="50" y="936" width="1022" height="88" as="geometry" />
+        </mxCell>
+
+        <mxCell id="proxy-b2-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #E67E22;&quot;&gt;Proxy-OrgB-2 · AZ2 · [PASSIVE/backup] · Standard B4ms&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Stessa identità VIP (FQDN proxy-orgB.uyuni.internal) · stessi certificati · stessa config mgr-proxy&lt;br&gt;Aggiunta nuova org: 2 VM proxy + 1 record DNS + 1 frontend ILB + 1 blocco config HAProxy + reload (zero downtime)&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#E67E22;align=left;spacingLeft=10;verticalAlign=middle;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="1328" y="936" width="1022" height="88" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- "..." ORG ELLIPSIS                                                  -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="org-ellipsis" value="&lt;font style=&quot;font-size: 11px; color: #666666;&quot;&gt;&lt;b&gt;· · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·&lt;/b&gt;&lt;/font&gt;&lt;div&gt;&lt;font style=&quot;font-size: 8px; color: #888888;&quot;&gt;~100 organizzazioni totali — ogni organizzazione ha la propria coppia Active/Passive con VIP dedicato&lt;/font&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" parent="1" vertex="1">
+          <mxGeometry x="30" y="1034" width="2340" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- PROXY ORG-N PAIR                                                    -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="proxy-n1-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #27AE60;&quot;&gt;Proxy-OrgN-1 · AZ1 · [ACTIVE] · Standard B4ms&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;proxy-orgN.uyuni.internal → VIP 10.172.3.N → questo nodo · Salt broker :4505/:4506 | Squid cache | HTTPD proxy :443&lt;br&gt;Nessun limite al numero di organizzazioni: scaling orizzontale aggiungendo coppie proxy + config HAProxy&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;spacingLeft=10;verticalAlign=middle;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="50" y="1074" width="1022" height="88" as="geometry" />
+        </mxCell>
+
+        <mxCell id="proxy-n2-box" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px; color: #E67E22;&quot;&gt;Proxy-OrgN-2 · AZ2 · [PASSIVE/backup] · Standard B4ms&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Stessa identità VIP (FQDN proxy-orgN.uyuni.internal) · Principio: VIP identity ≠ VM identity&lt;br&gt;Il failover è trasparente a UYUNI (registra proxy per FQDN) e ai client Salt (riconnessione nativa)&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#E67E22;align=left;spacingLeft=10;verticalAlign=middle;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="1328" y="1074" width="1022" height="88" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- CLIENTS                                                              -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="client-xmlrpc" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;XML-RPC Clients&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;SPM Orchestrator · tool amministrativi · script di automazione · integrazioni future&lt;br&gt;Connessione: HTTPS :443 → xmlrpc.uyuni.internal (VIP ILB Farm A · sempre stabile · non cambia in failover)&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#FF6D00;align=left;spacingLeft=10;verticalAlign=middle;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="50" y="1200" width="1022" height="88" as="geometry" />
+        </mxCell>
+
+        <mxCell id="client-salt" value="&lt;b&gt;&lt;font style=&quot;font-size: 9px;&quot;&gt;Salt Minions — Org-A, Org-B, ..., Org-N&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;Connessione: Salt ZeroMQ :4505/:4506 + HTTPS :443 → proxy-orgX.uyuni.internal (VIP ILB Farm B · 1 IP per org)&lt;br&gt;Failover proxy trasparente: TCP reset → riconnessione automatica Salt al proxy attivo · nessuna riconfigurazione client&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff3e0;strokeColor=#FF6D00;align=left;spacingLeft=10;verticalAlign=middle;arcSize=5;" parent="1" vertex="1">
+          <mxGeometry x="1328" y="1200" width="1022" height="88" as="geometry" />
+        </mxCell>
+
+        <!-- Client → ILB Farm A -->
+        <mxCell id="cli-xmlrpc-to-ilba" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;HTTPS :443&lt;/font&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#FF6D00;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDx=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="561" y="1200" as="sourcePoint" />
+            <mxPoint x="1179" y="690" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="561" y="1170" />
+              <mxPoint x="1179" y="1170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Client Salt → ILB Farm B -->
+        <mxCell id="cli-salt-to-ilbb" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;:4505/:4506 + :443&lt;/font&gt;" style="endArrow=classic;html=1;rounded=0;strokeColor=#FF6D00;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" parent="1" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1839" y="1200" as="sourcePoint" />
+            <mxPoint x="1179" y="690" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1839" y="1170" />
+              <mxPoint x="1200" y="1170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- LEGEND                                                               -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <mxCell id="legend-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;arcSize=3;" parent="1" vertex="1">
+          <mxGeometry x="30" y="1310" width="2340" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-content" value="&lt;b&gt;&lt;font style=&quot;font-size: 8px;&quot;&gt;Legenda · Decisioni architetturali chiave:&lt;/font&gt;&lt;/b&gt;&lt;div&gt;&lt;font style=&quot;font-size: 7px;&quot;&gt;&lt;b style=&quot;color: #27AE60;&quot;&gt;─── Verde/Solido&lt;/b&gt;: percorso attivo normale (weight=100) · &lt;b style=&quot;color: #E67E22;&quot;&gt;- - - Arancio/Tratteggiato&lt;/b&gt;: percorso backup (keyword: backup, attivato SOLO se primary DOWN) · &lt;b style=&quot;color: #2980B9;&quot;&gt;◄──► Blu&lt;/b&gt;: streaming replication PostgreSQL&lt;br&gt;SSL Termination scelto su Passthrough: health check HTTP applicativo (rileva Tomcat crashed anche se porta 443 aperta) · Proxy Puro (mgr-proxy stateless) scelto su Peripheral Server: ~100 org × stack completo = insostenibile · Identità proxy = VIP FQDN (non VM)&lt;/font&gt;&lt;/div&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;rounded=0;spacingLeft=10;" parent="1" vertex="1">
+          <mxGeometry x="30" y="1310" width="2340" height="66" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

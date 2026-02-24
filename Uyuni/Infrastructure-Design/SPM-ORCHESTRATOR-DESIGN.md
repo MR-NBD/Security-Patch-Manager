@@ -29,22 +29,22 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  GOAL: Automatizzare il patch management con supervisione umana    │
+│  GOAL: Automatizzare il patch management con supervisione umana     │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  INPUT                           OUTPUT                             │
 │  ─────                           ──────                             │
-│  • Errata Ubuntu (USN)           • Sistemi PROD patchati           │
-│  • Errata Debian (DSA)           • Zero downtime imprevisti        │
-│  • Errata RHEL (RHSA)            • Audit trail completo            │
-│  • CVE/CVSS data                 • Report compliance               │
+│  • Errata Ubuntu (USN)           • Sistemi PROD patchati            │
+│  • Errata Debian (DSA)           • Zero downtime imprevisti         │
+│  • Errata RHEL (RHSA)            • Audit trail completo             │
+│  • CVE/CVSS data                 • Report compliance                │
 │                                                                     │
 │  VINCOLI                                                            │
 │  ───────                                                            │
-│  • Operatore approva prima di PROD                                 │
-│  • Test automatico su ambiente dedicato                            │
-│  • Rollback possibile (package + system level)                     │
-│  • Priorità: patch più "sicure" prima (Success Score)              │
+│  • Operatore approva prima di PROD                                  │
+│  • Test automatico su ambiente dedicato                             │
+│  • Rollback possibile (package + system level)                      │
+│  • Priorità: patch più "sicure" prima (Success Score)               │
 │  • Gestione reboot controllata                                      │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
@@ -61,46 +61,46 @@ I due componenti sono **separati** per garantire manutenibilità, scalabilità e
 │                    ARCHITETTURA SEPARATA                            │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  COMPONENTE 1: SPM-SYNC (Esistente)                                │
-│  ══════════════════════════════════                                │
-│  Container: errata-sync-api                                        │
-│  Porta: 5000                                                       │
-│  Responsabilità:                                                   │
-│  • Sync USN, DSA, NVD, OVAL                                        │
-│  • Normalizzazione errata                                          │
-│  • Push errata a UYUNI                                             │
-│  • Cache pacchetti                                                 │
+│  COMPONENTE 1: SPM-SYNC (Esistente)                                 │
+│  ══════════════════════════════════                                 │
+│  Container: errata-sync-api                                         │
+│  Porta: 5000                                                        │
+│  Responsabilità:                                                    │
+│  • Sync USN, DSA, NVD, OVAL                                         │
+│  • Normalizzazione errata                                           │
+│  • Push errata a UYUNI                                              │
+│  • Cache pacchetti                                                  │
 │                                                                     │
-│  Database: PostgreSQL (tabelle esistenti)                          │
-│  • errata, cves, packages, oval_definitions                        │
+│  Database: PostgreSQL (tabelle esistenti)                           │
+│  • errata, cves, packages, oval_definitions                         │
 │                                                                     │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  COMPONENTE 2: SPM-ORCHESTRATOR (Nuovo)                            │
-│  ══════════════════════════════════════                            │
-│  Container: patch-orchestrator-api                                 │
-│  Porta: 5001                                                       │
-│  Responsabilità:                                                   │
-│  • Success Score calculation                                       │
-│  • Test queue management                                           │
-│  • Test orchestration (Salt, Prometheus)                           │
-│  • Approval workflow                                               │
-│  • Rollback management                                             │
-│  • Notifications                                                   │
+│  COMPONENTE 2: SPM-ORCHESTRATOR (Nuovo)                             │
+│  ══════════════════════════════════════                             │
+│  Container: patch-orchestrator-api                                  │
+│  Porta: 5001                                                        │
+│  Responsabilità:                                                    │
+│  • Success Score calculation                                        │
+│  • Test queue management                                            │
+│  • Test orchestration (Salt, Prometheus)                            │
+│  • Approval workflow                                                │
+│  • Rollback management                                              │
+│  • Notifications                                                    │
 │                                                                     │
-│  Database: PostgreSQL (nuove tabelle)                              │
-│  • patch_risk_profile, patch_test_queue, patch_tests               │
-│  • patch_approvals, patch_deployments, notifications               │
+│  Database: PostgreSQL (nuove tabelle)                               │
+│  • patch_risk_profile, patch_test_queue, patch_tests                │
+│  • patch_approvals, patch_deployments, notifications                │
 │                                                                     │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  COMUNICAZIONE                                                      │
 │  ─────────────                                                      │
 │                                                                     │
-│  ┌─────────────┐         Database          ┌──────────────────┐    │
-│  │  SPM-SYNC   │◄───── (PostgreSQL) ──────►│ SPM-ORCHESTRATOR │    │
-│  │   :5000     │        condiviso          │      :5001       │    │
-│  └──────┬──────┘                           └────────┬─────────┘    │
+│  ┌─────────────┐         Database          ┌──────────────────┐     │
+│  │  SPM-SYNC   │◄───── (PostgreSQL) ──────►│ SPM-ORCHESTRATOR │     │
+│  │   :5000     │        condiviso          │      :5001       │     │
+│  └──────┬──────┘                           └────────┬─────────┘     │
 │         │                                           │               │
 │         │  Webhook (opzionale)                      │               │
 │         └──────── POST /webhook/new-errata ────────►│               │
@@ -117,41 +117,41 @@ I due componenti sono **separati** per garantire manutenibilità, scalabilità e
 │                                                                     │
 │  PRESENTATION LAYER                                                 │
 │  ──────────────────                                                 │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐           │
-│  │   Streamlit   │  │    Grafana    │  │  UYUNI WebUI  │           │
-│  │   (Approval)  │  │  (Monitoring) │  │   (Admin)     │           │
-│  └───────────────┘  └───────────────┘  └───────────────┘           │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐            │
+│  │   Streamlit   │  │    Grafana    │  │  UYUNI WebUI  │            │
+│  │   (Approval)  │  │  (Monitoring) │  │   (Admin)     │            │
+│  └───────────────┘  └───────────────┘  └───────────────┘            │
 │                                                                     │
 │  API LAYER                                                          │
 │  ─────────                                                          │
-│  ┌───────────────────────────────────┐  ┌───────────────┐          │
-│  │          SPM API (Flask)          │  │ UYUNI XML-RPC │          │
-│  │  • /api/sync/*      (SYNC)        │  │               │          │
-│  │  • /api/uyuni/*     (SYNC)        │  │               │          │
-│  │  • /api/v1/*        (ORCHESTRATOR)│  │               │          │
-│  └───────────────────────────────────┘  └───────────────┘          │
+│  ┌───────────────────────────────────┐  ┌───────────────┐           │
+│  │          SPM API (Flask)          │  │ UYUNI XML-RPC │           │
+│  │  • /api/sync/*      (SYNC)        │  │               │           │
+│  │  • /api/uyuni/*     (SYNC)        │  │               │           │
+│  │  • /api/v1/*        (ORCHESTRATOR)│  │               │           │
+│  └───────────────────────────────────┘  └───────────────┘           │
 │                                                                     │
 │  DATA LAYER                                                         │
 │  ──────────                                                         │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐           │
-│  │  PostgreSQL   │  │  Prometheus   │  │  UYUNI DB     │           │
-│  │  (SPM Data)   │  │  (Time-series)│  │  (Systems)    │           │
-│  └───────────────┘  └───────────────┘  └───────────────┘           │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐            │
+│  │  PostgreSQL   │  │  Prometheus   │  │  UYUNI DB     │            │
+│  │  (SPM Data)   │  │  (Time-series)│  │  (Systems)    │            │
+│  └───────────────┘  └───────────────┘  └───────────────┘            │
 │                                                                     │
 │  INFRASTRUCTURE LAYER                                               │
 │  ────────────────────                                               │
-│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐           │
-│  │  Salt Master  │  │ node_exporter │  │   snapper/    │           │
-│  │  (via UYUNI)  │  │ (all systems) │  │   LVM snap    │           │
-│  └───────────────┘  └───────────────┘  └───────────────┘           │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐            │
+│  │  Salt Master  │  │ node_exporter │  │   snapper/    │            │
+│  │  (via UYUNI)  │  │ (all systems) │  │   LVM snap    │            │
+│  └───────────────┘  └───────────────┘  └───────────────┘            │
 │                                                                     │
 │  TARGET SYSTEMS                                                     │
 │  ──────────────                                                     │
-│  ┌───────────────┐  ┌───────────────┐                              │
-│  │  TEST-VM-01   │  │  PROD-*       │                              │
-│  │  TEST-VM-02   │  │  (N systems)  │                              │
-│  │  (Ubuntu/RHEL)│  │               │                              │
-│  └───────────────┘  └───────────────┘                              │
+│  ┌───────────────┐  ┌───────────────┐                               │
+│  │  TEST-VM-01   │  │  PROD-*       │                               │
+│  │  TEST-VM-02   │  │  (N systems)  │                               │
+│  │  (Ubuntu/RHEL)│  │               │                               │
+│  └───────────────┘  └───────────────┘                               │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -165,101 +165,101 @@ I due componenti sono **separati** per garantire manutenibilità, scalabilità e
 │                         WORKFLOW COMPLETO                           │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ FASE 1: DISCOVERY & SYNC (Automatico - ogni 6h)                ││
-│  │ ──────────────────────────────────────────────                 ││
-│  │ • SPM-SYNC sincronizza USN/DSA/NVD/OVAL                        ││
-│  │ • SPM-ORCHESTRATOR calcola Success Score per ogni errata       ││
-│  │ • Push errata su canali UYUNI DEV                              ││
-│  │ • UYUNI CLM: Build ambiente DEV                                ││
-│  └────────────────────────────────────────────────────────────────┘│
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ FASE 1: DISCOVERY & SYNC (Automatico - ogni 6h)                │ │
+│  │ ──────────────────────────────────────────────                 │ │
+│  │ • SPM-SYNC sincronizza USN/DSA/NVD/OVAL                        │ │
+│  │ • SPM-ORCHESTRATOR calcola Success Score per ogni errata       │ │
+│  │ • Push errata su canali UYUNI DEV                              │ │
+│  │ • UYUNI CLM: Build ambiente DEV                                │ │
+│  └────────────────────────────────────────────────────────────────┘ │
 │                                    │                                │
 │                                    ▼                                │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ FASE 2: PROMOTE TO TEST (Automatico)                           ││
-│  │ ────────────────────────────────────                           ││
-│  │ • UYUNI CLM: Promote DEV → TEST                                ││
-│  │ • Sistemi TEST ricevono nuovi canali                           ││
-│  └────────────────────────────────────────────────────────────────┘│
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ FASE 2: PROMOTE TO TEST (Automatico)                           │ │
+│  │ ────────────────────────────────────                           │ │
+│  │ • UYUNI CLM: Promote DEV → TEST                                │ │
+│  │ • Sistemi TEST ricevono nuovi canali                           │ │
+│  └────────────────────────────────────────────────────────────────┘ │
 │                                    │                                │
 │                                    ▼                                │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ FASE 3: AUTOMATED TESTING (Automatico - ordinato per Score)    ││
-│  │ ──────────────────────────────────────────────────────────     ││
-│  │ Per ogni errata (ordine: Success Score DESC):                  ││
-│  │                                                                 ││
-│  │   3.1 PRE-PATCH                                                ││
-│  │       • Snapshot sistema (snapper/LVM)                         ││
-│  │       • Query Prometheus: baseline metriche                    ││
-│  │       • Salva stato servizi                                    ││
-│  │                                                                 ││
-│  │   3.2 APPLY PATCH                                              ││
-│  │       • Salt: applica errata                                   ││
-│  │       • Attendi stabilizzazione (5 min)                        ││
-│  │                                                                 ││
-│  │   3.3 VALIDATION                                               ││
-│  │       • Query Prometheus: post-patch metriche                  ││
-│  │       • Check: servizi critici UP                              ││
-│  │       • Check: reboot required?                                ││
-│  │       • Se reboot required → reboot → re-check                 ││
-│  │       • Confronta baseline vs post-patch                       ││
-│  │                                                                 ││
-│  │   3.4 VERDICT                                                  ││
-│  │       • PASS: tutti i criteri soddisfatti                      ││
-│  │       • FAIL: rollback automatico, log motivo                  ││
-│  │       • Aggiorna Success Score (storico)                       ││
-│  │       • Notifica Grafana/Email se FAIL                         ││
-│  └────────────────────────────────────────────────────────────────┘│
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ FASE 3: AUTOMATED TESTING (Automatico - ordinato per Score)    │ │
+│  │ ──────────────────────────────────────────────────────────     │ │
+│  │ Per ogni errata (ordine: Success Score DESC):                  │ │
+│  │                                                                │ │
+│  │   3.1 PRE-PATCH                                                │ │
+│  │       • Snapshot sistema (snapper/LVM)                         │ │
+│  │       • Query Prometheus: baseline metriche                    │ │
+│  │       • Salva stato servizi                                    │ │
+│  │                                                                │ │
+│  │   3.2 APPLY PATCH                                              │ │
+│  │       • Salt: applica errata                                   │ │
+│  │       • Attendi stabilizzazione (5 min)                        │ │
+│  │                                                                │ │
+│  │   3.3 VALIDATION                                               │ │
+│  │       • Query Prometheus: post-patch metriche                  │ │
+│  │       • Check: servizi critici UP                              │ │
+│  │       • Check: reboot required?                                │ │
+│  │       • Se reboot required → reboot → re-check                 │ │
+│  │       • Confronta baseline vs post-patch                       │ │
+│  │                                                                │ │
+│  │   3.4 VERDICT                                                  │ │
+│  │       • PASS: tutti i criteri soddisfatti                      │ │
+│  │       • FAIL: rollback automatico, log motivo                  │ │
+│  │       • Aggiorna Success Score (storico)                       │ │
+│  │       • Notifica Grafana/Email se FAIL                         │ │
+│  └────────────────────────────────────────────────────────────────┘ │
 │                                    │                                │
 │                                    ▼                                │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ FASE 4: APPROVAL GATE (Manuale - Operatore)                    ││
-│  │ ───────────────────────────────────────────                    ││
-│  │ • Dashboard Streamlit mostra patch testate                     ││
-│  │ • Operatore vede: errata, severity, test result, metriche     ││
-│  │ • Operatore decide: APPROVE o REJECT o SNOOZE                  ││
-│  │ • Email digest giornaliero con pending approvals               ││
-│  │ • Opzionale: crea ticket su ITSM                               ││
-│  └────────────────────────────────────────────────────────────────┘│
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ FASE 4: APPROVAL GATE (Manuale - Operatore)                    │ │
+│  │ ───────────────────────────────────────────                    │ │
+│  │ • Dashboard Streamlit mostra patch testate                     │ │
+│  │ • Operatore vede: errata, severity, test result, metriche      │ │
+│  │ • Operatore decide: APPROVE o REJECT o SNOOZE                  │ │
+│  │ • Email digest giornaliero con pending approvals               │ │
+│  │ • Opzionale: crea ticket su ITSM                               │ │
+│  └────────────────────────────────────────────────────────────────┘ │
 │                                    │                                │
 │                    ┌───────────────┴───────────────┐                │
 │                    ▼                               ▼                │
 │              APPROVED                          REJECTED             │
 │                    │                               │                │
 │                    ▼                               ▼                │
-│  ┌─────────────────────────────┐   ┌─────────────────────────────┐ │
-│  │ FASE 5: PROMOTE TO PROD     │   │ LOG & INVESTIGATE           │ │
-│  │ ───────────────────────     │   │ ─────────────────           │ │
-│  │ • CLM: Promote TEST → PROD  │   │ • Salva motivo rejection    │ │
-│  │ • Schedule maintenance      │   │ • Crea ticket (opzionale)   │ │
-│  │   window                    │   │ • Notifica security team    │ │
-│  └──────────────┬──────────────┘   └─────────────────────────────┘ │
+│  ┌─────────────────────────────┐   ┌─────────────────────────────┐  │
+│  │ FASE 5: PROMOTE TO PROD     │   │ LOG & INVESTIGATE           │  │
+│  │ ───────────────────────     │   │ ─────────────────           │  │
+│  │ • CLM: Promote TEST → PROD  │   │ • Salva motivo rejection    │  │
+│  │ • Schedule maintenance      │   │ • Crea ticket (opzionale)   │  │
+│  │   window                    │   │ • Notifica security team    │  │
+│  └──────────────┬──────────────┘   └─────────────────────────────┘  │
 │                 │                                                   │
 │                 ▼                                                   │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ FASE 6: PRODUCTION DEPLOYMENT                                  ││
-│  │ ─────────────────────────────                                  ││
-│  │ • Snapshot pre-patch (per rollback)                            ││
-│  │ • Applica patch (simultaneo - canary in roadmap futura)        ││
-│  │ • Check reboot required                                        ││
-│  │ • Se reboot: schedule in maintenance window                    ││
-│  │ • Verifica post-deployment                                     ││
-│  │                                                                 ││
-│  │ SE PROBLEMA:                                                   ││
-│  │ • Alert immediato                                              ││
-│  │ • Opzioni rollback: Package-only o Full System                 ││
-│  │ • Operatore sceglie via Dashboard                              ││
-│  └────────────────────────────────────────────────────────────────┘│
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ FASE 6: PRODUCTION DEPLOYMENT                                  │ │
+│  │ ─────────────────────────────                                  │ │
+│  │ • Snapshot pre-patch (per rollback)                            │ │
+│  │ • Applica patch (simultaneo - canary in roadmap futura)        │ │
+│  │ • Check reboot required                                        │ │
+│  │ • Se reboot: schedule in maintenance window                    │ │
+│  │ • Verifica post-deployment                                     │ │
+│  │                                                                │ │
+│  │ SE PROBLEMA:                                                   │ │
+│  │ • Alert immediato                                              │ │
+│  │ • Opzioni rollback: Package-only o Full System                 │ │
+│  │ • Operatore sceglie via Dashboard                              │ │
+│  └────────────────────────────────────────────────────────────────┘ │
 │                                    │                                │
 │                                    ▼                                │
-│  ┌────────────────────────────────────────────────────────────────┐│
-│  │ FASE 7: REPORTING & COMPLIANCE                                 ││
-│  │ ─────────────────────────────                                  ││
-│  │ • UYUNI CVE Audit: verifica vulnerabilità risolte             ││
-│  │ • Grafana: dashboard compliance                                ││
-│  │ • Report automatico: patch applicate, pending, failed          ││
-│  │ • Audit trail completo in DB                                   ││
-│  └────────────────────────────────────────────────────────────────┘│
+│  ┌────────────────────────────────────────────────────────────────┐ │
+│  │ FASE 7: REPORTING & COMPLIANCE                                 │ │
+│  │ ─────────────────────────────                                  │ │
+│  │ • UYUNI CVE Audit: verifica vulnerabilità risolte              │ │
+│  │ • Grafana: dashboard compliance                                │ │
+│  │ • Report automatico: patch applicate, pending, failed          │ │
+│  │ • Audit trail completo in DB                                   │ │
+│  └────────────────────────────────────────────────────────────────┘ │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -273,66 +273,66 @@ I due componenti sono **separati** per garantire manutenibilità, scalabilità e
 │                    PATCH STATE MACHINE                              │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
-│                         ┌─────────┐                                │
-│                         │ SYNCED  │ ← Errata importato da USN/DSA  │
-│                         └────┬────┘                                │
+│                         ┌─────────┐                                 │
+│                         │ SYNCED  │ ← Errata importato da USN/DSA   │
+│                         └────┬────┘                                 │
 │                              │                                      │
 │                              ▼                                      │
-│                         ┌─────────┐                                │
-│                         │ QUEUED  │ ← In coda test (per Score)     │
-│                         └────┬────┘                                │
+│                         ┌─────────┐                                 │
+│                         │ QUEUED  │ ← In coda test (per Score)      │
+│                         └────┬────┘                                 │
 │                              │                                      │
 │                              ▼                                      │
-│                         ┌─────────┐                                │
-│                         │ TESTING │ ← Test in corso                │
-│                         └────┬────┘                                │
+│                         ┌─────────┐                                 │
+│                         │ TESTING │ ← Test in corso                 │
+│                         └────┬────┘                                 │
 │                              │                                      │
-│              ┌───────────────┼───────────────┐                     │
+│              ┌───────────────┼───────────────┐                      │
 │              ▼               ▼               ▼                      │
-│        ┌──────────┐   ┌──────────┐   ┌──────────────┐             │
-│        │  PASSED  │   │  FAILED  │   │ NEEDS_REBOOT │             │
-│        └────┬─────┘   └────┬─────┘   └──────┬───────┘             │
+│        ┌──────────┐   ┌──────────┐   ┌──────────────┐               │
+│        │  PASSED  │   │  FAILED  │   │ NEEDS_REBOOT │               │
+│        └────┬─────┘   └────┬─────┘   └──────┬───────┘               │
 │             │              │                │                       │
 │             │              │                ▼                       │
-│             │              │         ┌──────────┐                  │
-│             │              │         │ REBOOTING│                  │
-│             │              │         └────┬─────┘                  │
+│             │              │         ┌──────────┐                   │
+│             │              │         │ REBOOTING│                   │
+│             │              │         └────┬─────┘                   │
 │             │              │              │                         │
-│             │              │    ┌─────────┴─────────┐              │
+│             │              │    ┌─────────┴─────────┐               │
 │             │              │    ▼                   ▼               │
 │             │              │  PASSED             FAILED             │
 │             │              │    │                   │               │
 │             ▼              ▼    ▼                   ▼               │
-│        ┌─────────────────────────┐         ┌─────────────┐        │
-│        │   PENDING_APPROVAL     │         │  ROLLED_BACK │        │
-│        └───────────┬────────────┘         └─────────────┘        │
-│                    │                                               │
-│        ┌───────────┼───────────┐                                  │
-│        ▼           ▼           ▼                                   │
-│  ┌──────────┐ ┌─────────┐ ┌─────────┐                            │
-│  │ APPROVED │ │REJECTED │ │ SNOOZED │                            │
-│  └────┬─────┘ └─────────┘ └────┬────┘                            │
-│       │                        │                                   │
-│       ▼                        │ (dopo N giorni)                   │
-│  ┌───────────┐                 │                                   │
-│  │ PROMOTING │                 └──────► PENDING_APPROVAL           │
-│  └─────┬─────┘                                                     │
-│        │                                                           │
-│        ▼                                                           │
-│  ┌────────────┐                                                   │
-│  │PROD_PENDING│ ← In attesa maintenance window                    │
-│  └─────┬──────┘                                                   │
-│        │                                                           │
-│        ▼                                                           │
-│  ┌────────────┐                                                   │
-│  │PROD_APPLIED│                                                   │
-│  └─────┬──────┘                                                   │
-│        │                                                           │
-│        ├─────────────────┐                                         │
-│        ▼                 ▼                                         │
-│  ┌───────────┐   ┌──────────────┐                                 │
-│  │ COMPLETED │   │PROD_ROLLBACK │                                 │
-│  └───────────┘   └──────────────┘                                 │
+│        ┌─────────────────────────┐         ┌─────────────┐          │
+│        │   PENDING_APPROVAL     │         │  ROLLED_BACK │          │
+│        └───────────┬────────────┘         └─────────────┘           │
+│                    │                                                │
+│        ┌───────────┼───────────┐                                    │
+│        ▼           ▼           ▼                                    │
+│  ┌──────────┐ ┌─────────┐ ┌─────────┐                               │
+│  │ APPROVED │ │REJECTED │ │ SNOOZED │                               │
+│  └────┬─────┘ └─────────┘ └────┬────┘                               │
+│       │                        │                                    │
+│       ▼                        │ (dopo N giorni)                    │
+│  ┌───────────┐                 │                                    │
+│  │ PROMOTING │                 └──────► PENDING_APPROVAL            │
+│  └─────┬─────┘                                                      │
+│        │                                                            │
+│        ▼                                                            │
+│  ┌────────────┐                                                     │
+│  │PROD_PENDING│ ← In attesa maintenance window                      │
+│  └─────┬──────┘                                                     │
+│        │                                                            │
+│        ▼                                                            │
+│  ┌────────────┐                                                     │
+│  │PROD_APPLIED│                                                     │
+│  └─────┬──────┘                                                     │
+│        │                                                            │
+│        ├─────────────────┐                                          │
+│        ▼                 ▼                                          │
+│  ┌───────────┐   ┌──────────────┐                                   │
+│  │ COMPLETED │   │PROD_ROLLBACK │                                   │
+│  └───────────┘   └──────────────┘                                   │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
