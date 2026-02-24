@@ -28,21 +28,21 @@ Il proxy UYUNI (`mgr-proxy`) è per definizione stateless: non ha database propr
                     ┌──────────────────────────────────────────────────────────────┐
                     │                  UYUNI SERVER — Active/Passive               │
                     │                                                              │
-                    │   Primary  AZ1  10.172.2.17        Standby  AZ2  10.172.2.50│
+                    │   Primary  AZ1  10.172.2.17        Standby  AZ2  10.172.2.50 │
                     │   ├── uyuni-server (UP)             ├── uyuni-server (STOP)  │
                     │   └── uyuni-db (PostgreSQL PRIMARY) └── uyuni-db (HOT STDBY) │
                     │                    ◄── Streaming Replication (TCP 5432) ───► │
                     │                                                              │
-                    │   /manager_storage ──► Azure Files NFS Premium ZRS          │
-                    │                        (mount su entrambi i nodi)           │
+                    │   /manager_storage ──► Azure Files NFS Premium ZRS           │
+                    │                        (mount su entrambi i nodi)            │
                     └────────────────────────────┬─────────────────────────────────┘
                                                  │ HTTPS :443
                                                  │ (backend XML-RPC)
                     ┌────────────────────────────▼─────────────────────────────────┐
                     │           HAProxy Farm XML-RPC  (Farm A)                     │
                     │                                                              │
-                    │   Azure ILB Standard ZRS                                    │
-                    │   VIP: xmlrpc.uyuni.internal  →  :443                       │
+                    │   Azure ILB Standard ZRS                                     │
+                    │   VIP: xmlrpc.uyuni.internal  →  :443                        │
                     │           │                                                  │
                     │    ┌──────┴──────┐                                           │
                     │    ▼             ▼                                           │
@@ -53,7 +53,7 @@ Il proxy UYUNI (`mgr-proxy`) è per definizione stateless: non ha database propr
                     │           │ Health check: HTTP GET /rpc/api ogni 3s          │
                     │           │                                                  │
                     │    Primary  weight=100    Standby  backup (fallback auto)    │
-                    └───────────────────────────────────────────────────────────────┘
+                    └──────────────────────────────────────────────────────────────┘
 
   Qualsiasi client XML-RPC → xmlrpc.uyuni.internal:443
   (SPM Orchestrator, tool amministrativi, automazioni)
@@ -61,11 +61,11 @@ Il proxy UYUNI (`mgr-proxy`) è per definizione stateless: non ha database propr
                     ┌──────────────────────────────────────────────────────────────┐
                     │           HAProxy Farm Proxy  (Farm B)                       │
                     │                                                              │
-                    │   Azure ILB Standard ZRS                                    │
-                    │   VIP pool: un IP per organizzazione                        │
-                    │   proxy-orgA.uyuni.internal → VIP-A                         │
-                    │   proxy-orgB.uyuni.internal → VIP-B                         │
-                    │   proxy-orgN.uyuni.internal → VIP-N  (~100 org)             │
+                    │   Azure ILB Standard ZRS                                     │
+                    │   VIP pool: un IP per organizzazione                         │
+                    │   proxy-orgA.uyuni.internal → VIP-A                          │
+                    │   proxy-orgB.uyuni.internal → VIP-B                          │
+                    │   proxy-orgN.uyuni.internal → VIP-N  (~100 org)              │
                     │           │                                                  │
                     │    ┌──────┴──────┐                                           │
                     │    ▼             ▼                                           │
@@ -75,9 +75,9 @@ Il proxy UYUNI (`mgr-proxy`) è per definizione stateless: non ha database propr
                     │           │                                                  │
                     │     Per ogni org:                                            │
                     │     :443  → SSL Termination + re-encrypt → Proxy-OrgN active │
-                    │     :4505 → TCP mode → Proxy-OrgN active                    │
-                    │     :4506 → TCP mode → Proxy-OrgN active                    │
-                    │     Fallback automatico a Proxy-OrgN standby                │
+                    │     :4505 → TCP mode → Proxy-OrgN active                     │
+                    │     :4506 → TCP mode → Proxy-OrgN active                     │
+                    │     Fallback automatico a Proxy-OrgN standby                 │
                     └──────────────────────────────────────────────────────────────┘
 
   Per ogni organizzazione (es. Org-A):
@@ -576,7 +576,7 @@ mgrctl exec -- salt-run manage.down
 
 ---
 
-## 8. Componenti Azure richiesti
+## Componenti Azure richiesti
 
 | Componente | Quantità | Scopo |
 |---|---|---|
@@ -595,10 +595,7 @@ mgrctl exec -- salt-run manage.down
 | **Dischi Premium SSD** da 128 GB | ~100 | Cache Squid per ogni proxy VM |
 
 > **HAProxy Farm B sizing**: i nodi D4s_v5 gestiscono la tabella di routing per ~100 organizzazioni (300 regole di load balancing in memoria) e il forwarding TCP/HTTP per tutti i client. HAProxy è estremamente efficiente in memoria e CPU per questo tipo di workload. Rivalutare il sizing se il numero di organizzazioni supera 300.
-
----
-
-## 9. Roadmap implementativa
+## Roadmap implementativa
 
 ### Fase 1 — Fondamenta (prerequisito tutto il resto)
 
@@ -695,9 +692,8 @@ mgrctl exec -- salt-run manage.down
   - Runbook failover server approvato dal team
 ```
 
----
 
-## 10. Riferimenti
+## Riferimenti
 
 | Documento | URL |
 |---|---|

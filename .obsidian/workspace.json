@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
+                "file": "Uyuni/Teoria/HA-Architecture-UYUNI.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "SPM-ORCHESTRATOR-DESIGN"
+              "title": "HA-Architecture-UYUNI"
             }
           }
         ]
@@ -202,14 +202,14 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "fcae071421e98e82",
+  "active": "c0b08d57e6e8fd92",
   "lastOpenFiles": [
+    "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
     "Uyuni/Infrastructure-Design/UYUNI-HA-Architecture.drawio",
     "Uyuni/Infrastructure-Design/UYUNI-HA-Architecture.drawio.tmp.30946.1771930357026",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-API-SPEC.md",
     "Uyuni/Infrastructure-Design/SCHEMI-a-Blocchi-SPM.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
-    "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
     "Uyuni/Infrastructure-Design/NON UTILIZZABILI/SPM-Sync-Workflow.drawio",
     "Uyuni/Infrastructure-Design/NON UTILIZZABILI/SPM-Push-UYUNI-Workflow.drawio",
@@ -219,7 +219,6 @@
     "Uyuni/Infrastructure-Design/DA RIVEDERE/HLD-SPM-Full-Infrastructure-PSN.drawio",
     "Uyuni/Infrastructure-Design/DA RIVEDERE/Flask API v2.6 - Architecture & Endpoint Map.drawio",
     "Uyuni/Infrastructure-Design/DA RIVEDERE",
-    "workflow-DISEGNI/OLD/Active_Environment_Discovery-SPM.drawio",
     "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "Update/25-2-2026.md",
     "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
