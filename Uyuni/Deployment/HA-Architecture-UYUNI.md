@@ -1,9 +1,3 @@
-# HA Architecture UYUNI — Documento di Progetto
-
-*Security Patch Manager Project · Febbraio 2026*
-
----
-
 ## 1. Decisioni architetturali fondamentali
 
 Questa sezione documenta le scelte progettuali adottate e le relative motivazioni. Ogni decisione è irreversibile nel senso che orienta tutto il design conseguente: modificarla richiederebbe un redesign significativo.
@@ -14,7 +8,6 @@ Questa sezione documenta le scelte progettuali adottate e le relative motivazion
 > La documentazione ufficiale SUSE/UYUNI definisce un solo pattern HA supportato per il server: **Active/Passive** con failover manuale o semiautomatico. Lo stato dei client risiede interamente nel database PostgreSQL del server primario.
 
 Il proxy UYUNI (`mgr-proxy`) è per definizione stateless: non ha database proprio, non ha Salt Master proprio. Lo stato di ogni client gestito via proxy vive sul server centrale. Questo è un vincolo architetturale che però diventa un vantaggio per l'HA del proxy.
-
 ### 1.2 Scelte progettuali adottate
 
 | Decisione | Scelta adottata | Alternativa scartata | Motivazione |
@@ -716,7 +709,3 @@ mgrctl exec -- salt-run manage.down
 | Azure Files NFS — Performance | https://learn.microsoft.com/en-us/azure/storage/files/files-nfs-protocol |
 | Azure Private DNS Zone | https://learn.microsoft.com/en-us/azure/dns/private-dns-overview |
 | mgradm Server Administration | https://deepwiki.com/uyuni-project/uyuni-tools/2.1-mgradm-server-administration |
-
----
-
-*Documento aggiornato: Febbraio 2026 · Security Patch Manager Project*

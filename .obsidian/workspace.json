@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/HA-Architecture-UYUNI.md",
+                "file": "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "HA-Architecture-UYUNI"
+              "title": "Azure Security-First Architecture (Conforme PSN)"
             }
           }
         ]
@@ -202,25 +202,29 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "c0b08d57e6e8fd92",
+  "active": "fcae071421e98e82",
   "lastOpenFiles": [
+    "Uyuni/Infrastructure-Design/NON UTILIZZABILI/SPM-Sync-Workflow.drawio",
+    "Uyuni/Infrastructure-Design/NON UTILIZZABILI/SPM-Push-UYUNI-Workflow.drawio",
+    "Uyuni/Infrastructure-Design/NON UTILIZZABILI/HLD-Uyuni-Only-PSN.drawio",
+    "Uyuni/Infrastructure-Design/NON UTILIZZABILI",
+    "Uyuni/Infrastructure-Design/New folder",
+    "Uyuni/Infrastructure-Design/DA RIVEDERE/HLD-SPM-Full-Infrastructure-PSN.drawio",
+    "Uyuni/Infrastructure-Design/DA RIVEDERE/Flask API v2.6 - Architecture & Endpoint Map.drawio",
+    "Uyuni/Infrastructure-Design/DA RIVEDERE",
+    "workflow-DISEGNI/OLD/Active_Environment_Discovery-SPM.drawio",
+    "workflow-DISEGNI/OLD/DISCOVERY_NVD.drawio",
+    "workflow-DISEGNI/OLD/PATCH_INSTALLATION_ENGINE.drawio",
+    "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
+    "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-API-SPEC.md",
+    "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
+    "Uyuni/Deployment/HA-Architecture-UYUNI.md",
     "Update/25-2-2026.md",
     "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
     "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
-    "Uyuni/Deployment/HA-Architecture-UYUNI.md",
     "Orchestrator/PROJECT-STATUS.md",
-    "Orchestrator/app/services/test_engine.py.tmp.22383.1771864410770",
-    "Orchestrator/app/services/test_engine.py.tmp.22383.1771864405182",
-    "Orchestrator/app/services/notification_manager.py",
     "Orchestrator/README.md",
     "Thesys/cap3/capitolo3.md",
-    "Orchestrator/app/services/test_engine.py.tmp.22383.1771855075031",
-    "Orchestrator/app/services/uyuni_patch_client.py.tmp.22383.1771855069266",
-    "Orchestrator/app/services/uyuni_patch_client.py.tmp.22383.1771855062659",
-    "Orchestrator/app/services/test_engine.py.tmp.22383.1771854448688",
-    "Orchestrator/app/services/test_engine.py.tmp.22383.1771853866023",
-    "Orchestrator/app/services/test_engine.py.tmp.22383.1771853856748",
-    "Orchestrator/app/services/uyuni_patch_client.py.tmp.22383.1771853852906",
     "Uyuni/Deployment/Amministrazione-e-Troubleshooting.md",
     "CLAUDE.md",
     "Thesys/cap4/cap4_draft.md",
@@ -231,15 +235,11 @@
     "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
-    "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
     "Uyuni/Teoria/PKI-TLS-HLD.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
     "Uyuni/Teoria/BUG-MGRPXY.md",
-    "Utenze/ASL0603.md",
-    "Update/18-2-2026.md",
-    "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
     "Senza nome.canvas",
     "Senza nome 2.canvas",
     "Senza nome 1.canvas",
