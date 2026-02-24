@@ -15,19 +15,17 @@
 
 Client attuali: test-ubuntu-2404 (10.172.2.18), test-rhel9 (10.172.2.19)
 ```
-
 ### Analisi dei rischi
 
-| Componente | Failure Mode | Impatto | Attuale Mitigazione |
-|---|---|---|---|
-| VM uyuni-server | Crash / manutenzione Azure | Tutti i client Salt offline, nessuna patch management | Nessuna |
-| Container uyuni-db | Crash PostgreSQL | Server UYUNI non operativo | Nessuna |
-| VM uyuni-proxy | Crash | Tutti i client dietro il proxy offline | Nessuna |
-| Disco `/manager_storage` | Corruzione / riempimento | Repo non servibili | LVM resize manuale |
-| Disco `/pgsql_storage` | Corruzione | DB irrecuperabile | Nessuna |
-| DNS (`/etc/hosts` statici) | Nessun failover automatico | Impossibile redirigere traffico | Nessuna |
-| AZ1 intera | Failure di zona Azure | Sistema completamente offline | Nessuna |
-
+| Componente                 | Failure Mode               | Impatto                                               | Attuale Mitigazione |
+| -------------------------- | -------------------------- | ----------------------------------------------------- | ------------------- |
+| VM uyuni-server            | Crash / manutenzione Azure | Tutti i client Salt offline, nessuna patch management | Nessuna             |
+| Container uyuni-db         | Crash PostgreSQL           | Server UYUNI non operativo                            | Nessuna             |
+| VM uyuni-proxy             | Crash                      | Tutti i client dietro il proxy offline                | Nessuna             |
+| Disco `/manager_storage`   | Corruzione / riempimento   | Repo non servibili                                    | LVM resize manuale  |
+| Disco `/pgsql_storage`     | Corruzione                 | DB irrecuperabile                                     | Nessuna             |
+| DNS (`/etc/hosts` statici) | Nessun failover automatico | Impossibile redirigere traffico                       | Nessuna             |
+| AZ1 intera                 | Failure di zona Azure      | Sistema completamente offline                         | Nessuna             |
 ### Vincolo architetturale fondamentale
 
 > **UYUNI non supporta clustering active/active nativo del server.**
