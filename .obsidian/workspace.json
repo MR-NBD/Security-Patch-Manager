@@ -63,8 +63,7 @@
               "title": "HA-Architecture-UYUNI"
             }
           }
-        ],
-        "currentTab": 3
+        ]
       }
     ],
     "direction": "vertical"
@@ -245,12 +244,12 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "29609b11e3d1da19",
+  "active": "d5797c6080995cae",
   "lastOpenFiles": [
+    "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "Uyuni/Deployment/OpenSCAP-Uyuni-RHEL9.md",
     "Update/25-2-2026.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
-    "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "Uyuni/Deployment/PAM-SSSD-Authentication.md",
     "Uyuni/Deployment/OpenSCAP-Uyuni-RHEL9.md.tmp.34360.1771951710411",
     "Uyuni/Teoria/PKI-TLS-HLD.md",
