@@ -12,7 +12,8 @@
       "Bash(chmod:*)",
       "Bash(base64:*)",
       "Bash(git -C /mnt/c/Users/alber/Documents/GitHub/Security-Patch-Manager remote get-url:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(python3:*)"
     ]
   }
 }

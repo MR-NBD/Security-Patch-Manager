@@ -1,3 +1,27 @@
+# HA Architecture — UYUNI
+
+> **Scopo del documento**: fonte teorica di riferimento per il diagramma `UYUNI-Infrastructure-HA.drawio`. Spiega le scelte architetturali, il funzionamento di ogni componente e le motivazioni che le giustificano. Non è una guida operativa step-by-step (quella vive nei runbook): è la base concettuale che consente di capire *perché* il sistema è fatto così.
+
+---
+
+## Indice
+
+1. [Decisioni architetturali fondamentali](#1-decisioni-architetturali-fondamentali)
+2. [Concetti base di HA applicati a UYUNI](#2-concetti-base-di-ha-applicati-a-uyuni)
+3. [Topologia complessiva](#3-topologia-complessiva)
+4. [UYUNI Server — Active/Passive HA](#4-uyuni-server--activepassive-ha)
+5. [HAProxy Farm XML-RPC (Farm A)](#5-haproxy-farm-xml-rpc-farm-a)
+6. [HAProxy Farm Proxy (Farm B)](#6-haproxy-farm-proxy-farm-b)
+7. [DNS — Azure Private DNS Zone](#7-dns--azure-private-dns-zone)
+8. [Analisi dei domini di failure](#8-analisi-dei-domini-di-failure)
+9. [Sicurezza e TLS](#9-sicurezza-e-tls)
+10. [Procedure operative](#10-procedure-operative)
+11. [Componenti Azure richiesti](#11-componenti-azure-richiesti)
+12. [Roadmap implementativa](#12-roadmap-implementativa)
+13. [Riferimenti](#13-riferimenti)
+
+---
+
 ## 1. Decisioni architetturali fondamentali
 
 Questa sezione documenta le scelte progettuali adottate e le relative motivazioni. Ogni decisione è irreversibile nel senso che orienta tutto il design conseguente: modificarla richiederebbe un redesign significativo.
@@ -8,6 +32,7 @@ Questa sezione documenta le scelte progettuali adottate e le relative motivazion
 > La documentazione ufficiale SUSE/UYUNI definisce un solo pattern HA supportato per il server: **Active/Passive** con failover manuale o semiautomatico. Lo stato dei client risiede interamente nel database PostgreSQL del server primario.
 
 Il proxy UYUNI (`mgr-proxy`) è per definizione stateless: non ha database proprio, non ha Salt Master proprio. Lo stato di ogni client gestito via proxy vive sul server centrale. Questo è un vincolo architetturale che però diventa un vantaggio per l'HA del proxy.
+
 ### 1.2 Scelte progettuali adottate
 
 | Decisione | Scelta adottata | Alternativa scartata | Motivazione |
@@ -22,7 +47,73 @@ Il proxy UYUNI (`mgr-proxy`) è per definizione stateless: non ha database propr
 
 ---
 
-## 2. Topologia complessiva
+## 2. Concetti base di HA applicati a UYUNI
+
+### 2.1 RPO e RTO — definizioni operative
+
+**RPO (Recovery Point Objective)**: quanti dati possiamo perdere in caso di failure? Si misura in tempo. RPO = 0 significa zero perdita di transazioni; RPO = 5 minuti significa che le ultime 5 minuti di operazioni vanno ripetute dopo il ripristino.
+
+**RTO (Recovery Time Objective)**: quanto tempo passa tra il momento del failure e il momento in cui il servizio è di nuovo operativo? Include detection, decisione di failover, esecuzione della procedura, verifica.
+
+Per UYUNI in questo design:
+
+| Componente | RPO | RTO |
+|---|---|---|
+| Server UYUNI (primary crash) | < 1s con `synchronous_commit=on` / < 1 min con `local` | 10–12 minuti (failover semiautomatico con operatore) |
+| Proxy UYUNI (proxy crash) | 0 (stateless) | < 10 secondi (failover HAProxy automatico) |
+| Nodo HAProxy (un nodo va down) | 0 | < 3 secondi (Azure ILB reindirizza all'altro nodo HAProxy) |
+
+### 2.2 Warm Standby vs. Hot Standby vs. Cold Standby
+
+Il server UYUNI usa il pattern **warm standby**:
+
+- **Cold standby**: il sistema di backup è spento. Per attivarlo bisogna avviarlo, configurarlo, eventualmente ripristinare dati. RTO: ore/giorni.
+- **Warm standby** (pattern adottato): il database è sincronizzato in tempo reale (hot standby PgSQL), ma l'applicazione UYUNI è ferma sul nodo standby. La promozione richiede un operatore che avvii `mgradm start` dopo aver promosso PostgreSQL. RTO: 10-12 minuti.
+- **Hot standby / active-passive automatico**: l'applicazione è pronta su entrambi i nodi e il failover è completamente automatico. UYUNI non supporta questo pattern in modo nativo e sicuro.
+
+La scelta del warm standby è un compromesso deliberato tra complessità e RTO: un RTO di 12 minuti è accettabile per un sistema di patch management interno, e la complessità di un hot standby completo per UYUNI (che richiederebbe fencing, shared-nothing storage, cluster manager come Pacemaker) sarebbe sproporzionata.
+
+### 2.3 Il principio VIP-over-VM
+
+Il principio fondamentale che rende l'architettura scalabile a N organizzazioni è che **nessun client conosce l'indirizzo IP diretto delle VM**. Ogni client (minion Salt, SPM Orchestrator, tool di amministrazione) si connette sempre e solo a un VIP (Virtual IP) gestito dall'Azure Internal Load Balancer.
+
+```
+Client → FQDN (DNS) → VIP (Azure ILB) → HAProxy → VM Backend
+```
+
+Questo significa:
+- Le VM possono essere sostituite, spostate tra AZ, aggiornate — senza impatto sui client
+- Il failover (automatico per proxy, semiautomatico per server) non richiede mai aggiornamenti DNS d'emergenza
+- Aggiungere una nuova organizzazione è un'operazione additiva: nessuna modifica alle organizzazioni esistenti
+
+### 2.4 Failure domain isolation
+
+Il design separa i componenti in failure domain indipendenti:
+
+```
+Failure domain 1: UYUNI Server Primary (AZ1)
+  → in caso di crash: Farm A reindirizza sul Server Standby (AZ2)
+
+Failure domain 2: UYUNI Server Standby (AZ2)
+  → in caso di crash: nessun impatto su operatività (non serve in condizioni normali)
+
+Failure domain 3: HAProxy-A1 (AZ1) + HAProxy-A2 (AZ2)
+  → perdita di un nodo: capacità -50%, servizio continua
+  → perdita di entrambi: Farm A non raggiungibile, tutto il traffico XML-RPC fallisce
+
+Failure domain 4: HAProxy-B1 (AZ1) + HAProxy-B2 (AZ2)
+  → stessa logica di Farm A
+
+Failure domain 5-N: Proxy-OrgN pair (AZ1 + AZ2)
+  → ogni organizzazione ha il proprio failure domain
+  → failure di Org-A non impatta Org-B
+```
+
+La separazione fisica su Azure Availability Zone garantisce che un singolo failure di datacenter fisico (rack, UPS, switch TOR) non abbatta più di un nodo per ogni failure domain.
+
+---
+
+## 3. Topologia complessiva
 
 ```
                     ┌──────────────────────────────────────────────────────────────┐
@@ -91,9 +182,9 @@ Il proxy UYUNI (`mgr-proxy`) è per definizione stateless: non ha database propr
 
 ---
 
-## 3. UYUNI Server — Active/Passive HA
+## 4. UYUNI Server — Active/Passive HA
 
-### 3.1 Architettura
+### 4.1 Architettura
 
 Il server UYUNI è il componente con il vincolo architetturale più rigido: non può essere attivo su più nodi contemporaneamente. Il pattern adottato è quindi **active/passive con warm standby**:
 
@@ -103,9 +194,18 @@ Il server UYUNI è il componente con il vincolo architetturale più rigido: non 
 Lo standby è "warm" nel senso che il database è sincronizzato in tempo reale e pronto alla promozione, ma il processo applicativo UYUNI (Tomcat, Taskomatic, Salt Master) rimane fermo fino al failover. Questo è necessario perché UYUNI non è progettato per avere due istanze attive sullo stesso database.
 
 **RPO**: < 1 secondo con `synchronous_commit = on` | < 1 minuto con `synchronous_commit = local`
-**RTO**: 10-12 minuti con operatore disponibile (procedura documentata nella sezione 8.1)
+**RTO**: 10-12 minuti con operatore disponibile (procedura documentata nella sezione 10.1)
 
-### 3.2 PostgreSQL Streaming Replication
+### 4.2 Perché il processo UYUNI è fermato sullo standby
+
+Il server UYUNI (Tomcat + Taskomatic + Salt Master) non è progettato per la coesistenza multi-nodo. Due istanze UYUNI attive sullo stesso database causerebbero:
+- Conflitti di scheduling su Taskomatic (doppia esecuzione di job)
+- Conflitti sul Salt Master (due master per gli stessi minion)
+- Corruzione della coda di eventi Salt
+
+L'unico approccio sicuro è mantenere una sola istanza applicativa attiva. Il database invece può (e deve) essere in replication in tempo reale per garantire RPO basso.
+
+### 4.3 PostgreSQL Streaming Replication
 
 La replication è configurata a livello di container `uyuni-db`. Il parametro `synchronous_commit` è una scelta di bilanciamento tra RPO e performance:
 
@@ -150,7 +250,18 @@ podman exec uyuni-db psql -U spacewalk -c \
    FROM pg_stat_replication;"
 ```
 
-### 3.3 Storage `/manager_storage` — Azure Files NFS Premium ZRS
+### 4.4 Perché la streaming replication e non la logical replication
+
+PostgreSQL offre due meccanismi di replication:
+
+**Streaming replication (fisica)**: replica il flusso WAL byte per byte. Lo standby è una copia esatta del primary a livello di blocchi di disco. È il meccanismo corretto per HA perché:
+- Supporta `hot_standby`: lo standby può servire query in sola lettura
+- La promozione è istantanea (`pg_promote`)
+- Non richiede configurazione per tabella: replica tutto il database automaticamente
+
+**Logical replication**: replica solo le modifiche logiche (INSERT/UPDATE/DELETE) su tabelle specifiche. Non è adatta per HA perché non replica DDL, non supporta promozione automatica, richiede configurazione manuale per ogni oggetto.
+
+### 4.5 Storage `/manager_storage` — Azure Files NFS Premium ZRS
 
 Il repository dei pacchetti (`/manager_storage`) contiene centinaia di GB di dati binari (RPM, DEB, metadati canali). Non è replicabile via PostgreSQL. La soluzione è uno storage condiviso montato su entrambi i nodi.
 
@@ -163,11 +274,13 @@ myaccount.file.core.windows.net:/myaccount/uyuni-repo \
   vers=4.1,sec=sys,nofail,_netdev,rsize=1048576,wsize=1048576 0 0
 ```
 
+**Perché Azure Files e non un disco managed Premium replicato**: i dischi managed Azure non possono essere montati contemporaneamente su due VM diverse in scrittura. Azure Files NFS è invece un filesystem di rete che supporta mount concorrenti. In failover, entrambe le VM possono leggere dallo storage senza configurazioni aggiuntive.
+
 > **Nota**: Azure Files NFS Premium ha latenza ~1-2 ms. È accettabile per repository di pacchetti (letture sequenziali grandi). **Non usare per PostgreSQL**: la latenza NFS degrada significativamente le performance del database. Il database rimane su disco locale con streaming replication.
 
 > **Sicurezza**: Azure Files NFS è accessibile solo tramite Private Endpoint nella VNet. Non esposto su internet.
 
-### 3.4 Tuning PostgreSQL
+### 4.6 Tuning PostgreSQL
 
 Il tuning è necessario per garantire le performance del server primario sotto carico operativo normale. I parametri seguono le raccomandazioni per hardware D8as_v5 (8 vCPU, 32 GB RAM).
 
@@ -211,9 +324,9 @@ java.salt_event_thread_pool_size = 8
 
 ---
 
-## 4. HAProxy Farm XML-RPC (Farm A)
+## 5. HAProxy Farm XML-RPC (Farm A)
 
-### 4.1 Architettura e razionale
+### 5.1 Architettura e razionale
 
 Il Farm A gestisce **esclusivamente** il traffico verso l'API XML-RPC di UYUNI (`/rpc/api`). Qualsiasi client di management — SPM Orchestrator, tool amministrativi, script di automazione, futuri integratori — si connette sempre e solo al VIP di questo farm. Non conosce né deve conoscere l'indirizzo del server UYUNI sottostante.
 
@@ -222,19 +335,22 @@ Componenti:
 - **2 nodi HAProxy** (AZ1 + AZ2): entrambi attivi, ricevono traffico dall'ILB. Entrambi mantengono la stessa configurazione backend e lo stesso stato delle health check. La perdita di un nodo HAProxy riduce la capacità del 50% ma non interrompe il servizio.
 - **Backend UYUNI**: il server primario riceve tutto il traffico normale. Lo standby è configurato come `backup` — entra in gioco solo quando il primary supera il threshold di failure delle health check.
 
-### 4.2 SSL Termination — motivazione e meccanismo
+### 5.2 SSL Termination — motivazione e meccanismo
 
 HAProxy termina la connessione TLS dal client, ispeziona il traffico HTTP, e stabilisce una nuova connessione HTTPS cifrata verso il backend UYUNI. Il client vede il certificato di HAProxy; il backend UYUNI vede la connessione proveniente da HAProxy.
 
 **Perché non SSL passthrough**: con il passthrough, HAProxy vede solo un tunnel TCP cifrato. L'unico health check possibile è `TCP connect` (la porta 443 risponde?). Apache HTTPD sul server UYUNI risponde sulla porta 443 anche quando Tomcat (il processo che gestisce XML-RPC) è bloccato o in crash. In questo scenario, passthrough dichiarerebbe il backend sano mentre tutte le richieste XML-RPC fallirebbero con errori 502/503. Con SSL termination, HAProxy invia `GET /rpc/api` ogni 3 secondi e verifica la risposta HTTP: rileva immediatamente il Tomcat non funzionante.
 
-**Certificato su HAProxy**: serve un certificato valido per `xmlrpc.uyuni.internal`. Può essere:
-- Emesso dalla CA interna UYUNI (già presente, distribuita ai client via `uyuni-ca.crt`)
-- O un certificato da una CA interna aziendale
+**Il meccanismo in dettaglio**:
+1. Il client apre una connessione TLS verso il VIP (`xmlrpc.uyuni.internal:443`)
+2. HAProxy presenta il proprio certificato (emesso per `xmlrpc.uyuni.internal`)
+3. HAProxy decifra il traffico, ispeziona l'HTTP request
+4. HAProxy apre una nuova connessione TLS verso il backend UYUNI (es. `10.172.2.17:443`) con `ssl verify none` (rete interna, CA interna)
+5. HAProxy invia la request al backend e riporta la response al client
+6. Per il client: una sola connessione HTTPS a `xmlrpc.uyuni.internal`
+7. Per UYUNI: riceve connessioni da HAProxy, non direttamente dai client
 
-Il certificato UYUNI originale rimane sul backend — HAProxy usa il proprio certificato lato client e verifica (o meno, su rete interna) il certificato del backend.
-
-### 4.3 Health check applicativo
+### 5.3 Health check applicativo
 
 ```
 HAProxy → UYUNI backend ogni 3s:
@@ -249,7 +365,11 @@ Se 3 check consecutivi riescono → backend marcato UP (dopo failover)
 
 Questo endpoint non richiede autenticazione e risponde con le informazioni di versione del server. È il canale più rapido per rilevare che il layer applicativo (Tomcat + XMLRPC handler) è funzionante, non solo che Apache è vivo.
 
-### 4.4 Configurazione HAProxy Farm A
+**Tempistica del failover con questi parametri**:
+- `inter 3s fall 2` → detection failure: 6 secondi
+- `rise 3` → ripristino dopo failover: 9 secondi prima di tornare sul primary
+
+### 5.4 Configurazione HAProxy Farm A
 
 ```haproxy
 #------------------------------------------------------------
@@ -282,9 +402,9 @@ backend uyuni_xmlrpc_backend
 
 ---
 
-## 5. HAProxy Farm Proxy (Farm B)
+## 6. HAProxy Farm Proxy (Farm B)
 
-### 5.1 Architettura
+### 6.1 Architettura
 
 Il Farm B gestisce il traffico dei Salt minion e il download dei pacchetti verso i proxy UYUNI. Gestisce ~100 organizzazioni, ciascuna con il proprio pair di proxy VM (active/passive).
 
@@ -293,7 +413,7 @@ Componenti:
 - **2 nodi HAProxy** (AZ1 + AZ2): entrambi attivi, stessa configurazione, gestiscono tutte le organizzazioni.
 - **Per ogni organizzazione**: 2 VM proxy mgr-proxy (AZ1 = active, AZ2 = passive/backup).
 
-### 5.2 Modello di indirizzamento per ~100 organizzazioni
+### 6.2 Modello di indirizzamento per ~100 organizzazioni
 
 Ogni organizzazione ha un indirizzo IP dedicato nel pool del Farm B. Questo è necessario perché il traffico Salt (porte 4505/4506) è TCP puro: non ha hostname nel payload, quindi l'unico modo per discriminare l'organizzazione di destinazione è l'IP di destinazione.
 
@@ -314,7 +434,7 @@ HAProxy distingue l'organizzazione dall'IP di destinazione (dst).
 
 > Con un numero superiore a ~150-180 organizzazioni e 3 porte ciascuna si avvicina al limite dell'ILB. In quel caso: split in due ILB (Farm B-1 e Farm B-2) o consolidamento porte. Decisione da rivalutare quando necessario.
 
-### 5.3 Active/Passive per pair — motivazione
+### 6.3 Active/Passive per pair — motivazione
 
 Il Salt minion mantiene due connessioni TCP persistenti verso il proxy:
 - Porta 4505 (publish port): il master invia comandi, il minion ascolta
@@ -327,7 +447,7 @@ Il modello active/passive è la soluzione corretta:
 - Failover automatico all'altro nodo solo in caso di failure
 - Il minion subisce un TCP reset e si riconnette al nodo ora attivo — comportamento nativo Salt, nessuna configurazione client richiesta
 
-### 5.4 Identità del proxy: VIP ≠ VM
+### 6.4 Identità del proxy: VIP ≠ VM
 
 Questo è il principio architetturale che rende il failover trasparente a UYUNI.
 
@@ -340,21 +460,27 @@ UYUNI registra ogni proxy tramite il suo FQDN (`proxy-orgA.uyuni.internal`). I c
 
 **Requisito operativo**: i due nodi del pair devono essere configurati identicamente al momento del deploy. Qualsiasi modifica alla configurazione del proxy va applicata su entrambi i nodi in modo sincrono (o gestita via configuration management).
 
-### 5.5 Modalità traffico per tipo di porta
+### 6.5 Modalità traffico per tipo di porta
 
 Il proxy UYUNI espone tre tipologie di traffico con requisiti diversi:
 
-| Porta | Protocollo | Modalità HAProxy | Health Check |
-|---|---|---|---|
-| 443 | HTTPS | SSL Termination + re-encrypt | HTTP `GET /pub/bootstrap/` (risponde 200/301) |
-| 4505 | TCP (Salt PUB) | TCP mode (Layer 4) | TCP connect |
-| 4506 | TCP (Salt RET) | TCP mode (Layer 4) | TCP connect |
+| Porta | Protocollo | Modalità HAProxy | Health Check | Motivazione |
+|---|---|---|---|---|
+| 443 | HTTPS | SSL Termination + re-encrypt | HTTP `GET /pub/bootstrap/` (risponde 200/301) | Verifica applicativa che HTTPD del proxy sia funzionante, non solo che la porta sia aperta |
+| 4505 | TCP (Salt PUB) | TCP mode (Layer 4) | TCP connect | ZeroMQ non è HTTP: HAProxy non può ispezionare il payload. TCP connect verifica che `salt-broker` ascolti |
+| 4506 | TCP (Salt RET) | TCP mode (Layer 4) | TCP connect | Stessa motivazione di 4505 |
 
-**Porta 443**: SSL termination permette a HAProxy di verificare che il proxy HTTPD risponda correttamente, non solo che la porta sia aperta. Il certificato lato HAProxy è quello del VIP dell'organizzazione (`proxy-orgA.uyuni.internal`).
+**Perché non SSL termination anche su 4505/4506**: le porte Salt usano il protocollo ZeroMQ sopra TCP. Non è un protocollo basato su HTTP/TLS nel senso convenzionale. HAProxy non ha un decoder ZeroMQ, quindi opera in TCP mode puro. La cifratura del canale Salt (se richiesta) è gestita nativamente da Salt con le proprie chiavi, non da HAProxy.
 
-**Porte 4505/4506**: il protocollo Salt su queste porte usa ZeroMQ su TCP. Non è HTTP: HAProxy non può ispezionare il payload. TCP connect è il check più affidabile disponibile — verifica che il processo `salt-broker` stia effettivamente ascoltando.
+### 6.6 Cache Squid sul proxy
 
-### 5.6 Configurazione HAProxy Farm B (struttura per organizzazione)
+Ogni VM proxy UYUNI include Squid come HTTP proxy cache per i pacchetti. La cache risiede su `/cache/squid` — un disco managed Premium SSD da 128 GB dedicato.
+
+**Perché un disco separato**: separare la cache dal disco di sistema evita che un fill della cache (download massiccio di pacchetti) riempia il disco di sistema, causando un crash del proxy per filesystem full.
+
+**Comportamento in failover**: la cache Squid sul nodo standby non è sincronizzata con il nodo active. Quando il nodo standby diventa active, la cache è vuota e i minion riceveranno i pacchetti direttamente dal server UYUNI (cache miss) fino a che la cache si popola naturalmente. Non causa errori, solo un maggiore traffico verso il server UYUNI nelle prime ore post-failover.
+
+### 6.7 Configurazione HAProxy Farm B (struttura per organizzazione)
 
 ```haproxy
 #------------------------------------------------------------
@@ -407,7 +533,7 @@ backend proxy_orgA_salt_ret_backend
 # 2 VM proxy VM + 1 record DNS + 1 frontend IP sull'Azure ILB
 ```
 
-### 5.7 Scalabilità: aggiunta di una nuova organizzazione
+### 6.8 Scalabilità: aggiunta di una nuova organizzazione
 
 Il design è stato pensato per essere esteso senza redesign. Aggiungere un'organizzazione richiede:
 
@@ -422,9 +548,9 @@ Nessun riavvio dei nodi HAProxy, nessun impatto sulle organizzazioni esistenti.
 
 ---
 
-## 6. DNS — Azure Private DNS Zone
+## 7. DNS — Azure Private DNS Zone
 
-### 6.1 Struttura zone
+### 7.1 Struttura zone
 
 **Zona**: `uyuni.internal` — collegata alla VNet hub (accessibile da tutti gli spoke via VNet peering).
 
@@ -443,19 +569,143 @@ uyuni-primary.uyuni.internal   A  →  10.172.2.17
 uyuni-standby.uyuni.internal   A  →  10.172.2.50
 ```
 
-### 6.2 TTL e failover
+### 7.2 TTL e failover
 
 **TTL raccomandato**: 60 secondi per tutti i record critici.
 
 **Punto chiave**: in questa architettura, i record DNS **non cambiano mai** durante un failover. Il failover è gestito interamente da HAProxy tramite health check. Questo è un cambiamento radicale rispetto all'approccio precedente (che richiedeva aggiornamento manuale dei record DNS con Azure CLI).
 
+Questo è il vantaggio principale del design basato su VIP: il DNS è statico e stabile. Non ci sono race condition tra aggiornamento DNS e propagazione TTL. Non c'è dipendenza dalla velocità di Azure DNS per il failover.
+
 L'unico caso in cui un record DNS viene modificato è l'aggiunta di una nuova organizzazione (nuovo record proxy-orgN) — operazione pianificata, non emergenziale.
+
+### 7.3 Perché Azure Private DNS e non /etc/hosts o DNS custom
+
+- **`/etc/hosts`**: non scalabile a ~100 organizzazioni. Ogni aggiunta richiede modifica manuale su tutte le VM. Non tollerante a errori umani.
+- **DNS custom su VM**: introduce una dipendenza aggiuntiva (il DNS server deve essere HA a sua volta). Azure Private DNS è gestito da Microsoft con SLA 99.99%.
+- **Azure Private DNS**: integrazione nativa con VNet peering (tutti gli spoke vedono la zona senza configurazione). Supporta modifiche via API/Terraform. SLA garantita.
 
 ---
 
-## 7. Procedure operative
+## 8. Analisi dei domini di failure
 
-### 7.1 Failover UYUNI Server (RTO target: 10-12 min)
+Questa sezione documenta il comportamento atteso del sistema per ogni scenario di failure possibile. È la base per i test di failover e per i runbook operativi.
+
+### 8.1 Failure del server UYUNI Primary (AZ1)
+
+**Scenario**: il nodo AZ1 del server UYUNI va offline (crash VM, manutenzione Azure, failure disco di sistema).
+
+**Impatto immediato**:
+- HAProxy Farm A rileva il failure in 6 secondi (2 health check × 3s)
+- HAProxy attiva il server standby (uyuni-standby, 10.172.2.50) come backend
+- Ma: il server UYUNI sul nodo standby è fermo (`mgradm stop`) — lo standby risponde al health check HAProxy solo dopo che l'operatore completa il failover
+
+**Azione richiesta** (operatore): procedura di failover UYUNI (10-12 minuti, sezione 10.1).
+
+**Impatto sui minion durante il failover**:
+- Salt minion già connessi ai proxy: **nessun impatto** — i proxy rimangono attivi
+- Nuovi job Salt (patch, esecuzione comandi) via UYUNI: **in coda** — vengono eseguiti quando UYUNI torna online
+- Download pacchetti tramite proxy: **nessun impatto** — la cache Squid serve i pacchetti localmente
+
+### 8.2 Failure di un nodo HAProxy (Farm A o Farm B)
+
+**Scenario**: uno dei due nodi HAProxy va offline.
+
+**Impatto**: Azure ILB rileva il failure tramite health probe TCP e smette di instradare traffico su quel nodo. L'altro nodo HAProxy riceve il 100% del traffico. Capacità ridotta del 50%, nessuna interruzione di servizio.
+
+**Azione richiesta**: nessuna per l'operatività immediata. Ripristinare il nodo HAProxy in background (non è un'emergenza).
+
+### 8.3 Failure di un proxy VM (active)
+
+**Scenario**: il nodo active di un proxy pair va offline (es. Proxy-OrgA-1, AZ1).
+
+**Sequenza automatica**:
+1. t=0s: health check HAProxy fallisce su Proxy-OrgA-1 (porta 443 o 4505/4506)
+2. t=5s: secondo health check fallisce (`inter=5s, fall=2`)
+3. t=5s: HAProxy marca Proxy-OrgA-1 DOWN, attiva Proxy-OrgA-2 (AZ2)
+4. t=5–35s: i minion di Org-A ricevono TCP reset → si riconnettono automaticamente a `proxy-orgA.uyuni.internal` → VIP → HAProxy → Proxy-OrgA-2
+
+Nessun intervento umano. L'impatto sui minion è una disconnessione temporanea di 30-60 secondi (tempo di TCP reset + riconnessione Salt).
+
+### 8.4 Failure di un'intera Availability Zone
+
+**Scenario**: AZ1 va offline (failure di datacenter fisico Azure).
+
+**Componenti affetti in AZ1**:
+- UYUNI Server Primary → Farm A fallisce sul Standby (AZ2) con intervento operatore
+- HAProxy-A1 → Azure ILB instrada tutto su HAProxy-A2 (AZ2)
+- HAProxy-B1 → Azure ILB instrada tutto su HAProxy-B2 (AZ2)
+- Proxy-OrgN-1 per ogni organizzazione → HAProxy attiva Proxy-OrgN-2 (AZ2) automaticamente
+
+**Impatto totale**: servizio degradato (RTO server 10-12 min), nessuna perdita di dati (RPO < 1 min), proxy operativi in < 10s.
+
+### 8.5 Failure di Azure Files NFS
+
+**Scenario**: lo storage `/manager_storage` diventa irraggiungibile.
+
+**Impatto**: UYUNI non può servire pacchetti dai canali (i file RPM/DEB sono su questo storage). Le operazioni di sync UYUNI falliscono. Il download di nuovi pacchetti fallisce.
+
+**Mitigazione**: Azure Files NFS Premium ZRS è replicato su 3 zone di disponibilità. La probabilità di failure totale è molto bassa. In caso di failure parziale (una zona), lo storage rimane disponibile. In caso di failure totale: contattare support Azure.
+
+**Impatto sui minion già aggiornati**: nessuno — i pacchetti sono già installati.
+
+---
+
+## 9. Sicurezza e TLS
+
+### 9.1 Principi di sicurezza applicati
+
+Il design segue il principio **zero trust sul perimetro, encryption in transit ovunque**:
+
+- Tutto il traffico tra client e HAProxy è TLS (HTTPS o Salt con cifratura)
+- Tutto il traffico tra HAProxy e backend è TLS (re-encryption, non passthrough)
+- Tutto il traffico tra nodi interni (PgSQL replication) è su rete privata Azure (VNet) con NSG restrictive
+- Nessun componente è esposto su internet (tutti i VIP sono Azure Internal Load Balancer — privati per definizione)
+
+### 9.2 Gerarchia dei certificati TLS
+
+```
+CA interna UYUNI (uyuni-ca.crt)
+├── Certificato server UYUNI (uyuni-server.uyuni.internal)
+├── Certificato HAProxy Farm A (xmlrpc.uyuni.internal)
+├── Certificato HAProxy Farm B Org-A (proxy-orgA.uyuni.internal)
+├── Certificato HAProxy Farm B Org-B (proxy-orgB.uyuni.internal)
+└── Certificato proxy mgr-proxy Org-N (proxy-orgN.uyuni.internal)
+```
+
+I client (Salt minion, SPM Orchestrator) validano i certificati contro `uyuni-ca.crt`, distribuita al momento del bootstrap. Il fatto che HAProxy usi SSL termination è trasparente: i client vedono il certificato del VIP, emesso dalla stessa CA interna, e lo validano correttamente.
+
+### 9.3 Certificati per HAProxy
+
+**Farm A** (`xmlrpc.uyuni.internal`): un singolo certificato per il VIP. Deve essere emesso dalla CA UYUNI (o da una CA interna aziendale che i client già fidano). Il file PEM su HAProxy include certificato + chiave privata + chain CA.
+
+**Farm B** (proxy): un certificato per organizzazione, con CN = `proxy-orgN.uyuni.internal`. I client mgr-proxy usano questo FQDN per validare l'identità del proxy. Ogni certificato deve essere distribuito su entrambi i nodi del pair (AZ1 e AZ2) con chiave privata identica — questo è il meccanismo che rende i due nodi "identici" agli occhi dei client.
+
+### 9.4 Network Security Group (NSG)
+
+Ogni subnet ha un NSG che applica least-privilege:
+
+**Subnet server UYUNI**:
+- Ingress: TCP 443 da subnet HAProxy-A (XML-RPC), TCP 5432 da subnet standby (replication)
+- Egress: TCP 443 verso internet (sync canali), TCP 443 verso Farm B (mgmt proxy)
+
+**Subnet HAProxy Farm A**:
+- Ingress: TCP 443 da qualsiasi source nella VNet (client XML-RPC interni)
+- Egress: TCP 443 verso subnet server UYUNI
+
+**Subnet HAProxy Farm B**:
+- Ingress: TCP 443, 4505, 4506 da subnet minion spoke
+- Egress: TCP 443, 4505, 4506 verso subnet proxy
+
+**Subnet proxy**:
+- Ingress: TCP 443, 4505, 4506 da subnet HAProxy-B
+- Egress: TCP 443, 4505, 4506 verso subnet server UYUNI (Salt Master)
+
+---
+
+## 10. Procedure operative
+
+### 10.1 Failover UYUNI Server (RTO target: 10-12 min)
 
 Il failover del server è semiautomatico: richiede un operatore. I passi seguenti assumono che il primary (10.172.2.17) sia effettivamente irraggiungibile.
 
@@ -492,7 +742,7 @@ mgrctl exec -- salt-run manage.up
 
 > **Nota post-failover**: dopo il ripristino del primary originale, va ricostituita la streaming replication in senso inverso (il vecchio primary ora diventa standby). La procedura è simmetrica a quella di setup iniziale.
 
-### 7.2 Failover Proxy (automatico, RTO < 10s)
+### 10.2 Failover Proxy (automatico, RTO < 10s)
 
 Il failover dei proxy è **completamente automatico** tramite HAProxy. Nessun intervento umano richiesto.
 
@@ -515,7 +765,7 @@ t=15s  Proxy-OrgA-1 torna active, Proxy-OrgA-2 torna passive (backup)
        Il traffico torna sul nodo primario (AZ1) automaticamente
 ```
 
-### 7.3 Aggiunta nuova organizzazione
+### 10.3 Aggiunta nuova organizzazione
 
 ```bash
 # 1. Deploy 2 VM proxy con mgr-proxy configurato
@@ -538,7 +788,7 @@ az network private-dns record-set a add-record \
 #    (via Azure Portal o Terraform)
 
 # 5. Aggiungere blocco frontend+backend in haproxy.cfg su HAProxy-B1 e HAProxy-B2
-#    (identico alla struttura documentata in sezione 5.6)
+#    (identico alla struttura documentata in sezione 6.7)
 
 # 6. Reload HAProxy senza downtime
 systemctl reload haproxy   # su HAProxy-B1
@@ -548,7 +798,7 @@ systemctl reload haproxy   # su HAProxy-B2
 curl -sk https://proxy-orgN.uyuni.internal/pub/bootstrap/ | head -5
 ```
 
-### 7.4 Health check manuale
+### 10.4 Health check manuale
 
 ```bash
 # Verifica Farm A (XML-RPC) — deve rispondere con info versione
@@ -576,7 +826,7 @@ mgrctl exec -- salt-run manage.down
 
 ---
 
-## Componenti Azure richiesti
+## 11. Componenti Azure richiesti
 
 | Componente | Quantità | Scopo |
 |---|---|---|
@@ -595,7 +845,10 @@ mgrctl exec -- salt-run manage.down
 | **Dischi Premium SSD** da 128 GB | ~100 | Cache Squid per ogni proxy VM |
 
 > **HAProxy Farm B sizing**: i nodi D4s_v5 gestiscono la tabella di routing per ~100 organizzazioni (300 regole di load balancing in memoria) e il forwarding TCP/HTTP per tutti i client. HAProxy è estremamente efficiente in memoria e CPU per questo tipo di workload. Rivalutare il sizing se il numero di organizzazioni supera 300.
-## Roadmap implementativa
+
+---
+
+## 12. Roadmap implementativa
 
 ### Fase 1 — Fondamenta (prerequisito tutto il resto)
 
@@ -692,8 +945,9 @@ mgrctl exec -- salt-run manage.down
   - Runbook failover server approvato dal team
 ```
 
+---
 
-## Riferimenti
+## 13. Riferimenti
 
 | Documento | URL |
 |---|---|
