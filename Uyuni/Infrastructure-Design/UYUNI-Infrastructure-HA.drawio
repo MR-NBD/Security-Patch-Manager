@@ -1,6 +1,6 @@
 <mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.2.8 Chrome/140.0.7339.240 Electron/38.4.0 Safari/537.36" version="28.2.8">
   <diagram name="SPM Infrastructure LLD" id="spm-lld">
-    <mxGraphModel dx="2264" dy="510" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+    <mxGraphModel dx="2640" dy="731" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -321,7 +321,7 @@
         </mxCell>
         <mxCell id="wBmmWcZejjsC3x_rh1Mm-105" value="&lt;b style=&quot;font-size: 13px; text-wrap-mode: wrap;&quot;&gt;Private Link&amp;nbsp;&lt;/b&gt;&lt;div&gt;&lt;span&gt;&lt;b&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;Salt ZeroMQ&amp;nbsp; : 4505/4506&lt;/font&gt;&lt;/b&gt;&lt;b style=&quot;font-size: 13px; text-wrap-mode: wrap;&quot;&gt;&lt;/b&gt;&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;b style=&quot;font-size: 10px;&quot;&gt;HTTPS: 443&lt;/b&gt;&lt;b&gt;&lt;font style=&quot;font-size: 10px;&quot;&gt;&lt;/font&gt;&lt;/b&gt;&lt;/div&gt;" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="wBmmWcZejjsC3x_rh1Mm-104">
           <mxGeometry x="0.1334" relative="1" as="geometry">
-            <mxPoint x="18" y="5" as="offset" />
+            <mxPoint x="38" y="2" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="wBmmWcZejjsC3x_rh1Mm-106" value="&lt;font style=&quot;font-size: 10px; color: rgb(0, 127, 255);&quot;&gt;DNS Zone&lt;/font&gt;" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" vertex="1" parent="1">
@@ -346,7 +346,7 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="wBmmWcZejjsC3x_rh1Mm-114" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/azure_stack/User_Subscriptions.svg;" vertex="1" parent="1">
-          <mxGeometry x="103.98999999999998" y="100" width="28.85" height="28" as="geometry" />
+          <mxGeometry x="103.65999999999998" y="100" width="28.85" height="28" as="geometry" />
         </mxCell>
         <mxCell id="wBmmWcZejjsC3x_rh1Mm-115" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="wBmmWcZejjsC3x_rh1Mm-64" target="wBmmWcZejjsC3x_rh1Mm-64">
           <mxGeometry relative="1" as="geometry" />
@@ -379,9 +379,13 @@
         <mxCell id="wBmmWcZejjsC3x_rh1Mm-124" value="" style="image;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/azure2/networking/Bastions.svg;" vertex="1" parent="1">
           <mxGeometry x="107.08" y="194.85" width="21.99" height="25.78" as="geometry" />
         </mxCell>
-        <mxCell id="wBmmWcZejjsC3x_rh1Mm-126" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.147;entryY=-0.001;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" source="wBmmWcZejjsC3x_rh1Mm-124" target="wBmmWcZejjsC3x_rh1Mm-43">
+        <mxCell id="wBmmWcZejjsC3x_rh1Mm-126" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="wBmmWcZejjsC3x_rh1Mm-124" target="wBmmWcZejjsC3x_rh1Mm-40">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="118" y="390" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="118" y="240" />
+              <mxPoint x="245" y="240" />
+            </Array>
           </mxGeometry>
         </mxCell>
         <mxCell id="wBmmWcZejjsC3x_rh1Mm-127" value="Bastion" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="wBmmWcZejjsC3x_rh1Mm-126">
