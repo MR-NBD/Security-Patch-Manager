@@ -37,7 +37,6 @@ automaticamente tramite mapping gruppi AD (vedi FASE 4).
 - Accesso root al server Uyuni (via Azure Bastion)
 
 ---
-
 ## FASE 1 — Registra Uyuni come Enterprise Application in Azure AD
 
 ### 1.1 Crea la nuova applicazione
