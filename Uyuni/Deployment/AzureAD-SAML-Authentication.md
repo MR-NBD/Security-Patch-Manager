@@ -52,13 +52,13 @@ automaticamente tramite mapping gruppi AD (vedi FASE 4).
 1. Nella pagina dell'app → **Single sign-on** → **SAML**
 2. **Basic SAML Configuration** → Edit
 
-| Campo | Valore |
-|---|---|
+| Campo                      | Valore                                                       |
+| -------------------------- | ------------------------------------------------------------ |
 | **Identifier (Entity ID)** | `https://uyuni-server-test.uyuni.internal/rhn/saml/metadata` |
-| **Reply URL (ACS URL)** | `https://uyuni-server-test.uyuni.internal/rhn/saml/acs` |
-| **Sign on URL** | `https://uyuni-server-test.uyuni.internal` |
-| **Relay State** | *(lascia vuoto)* |
-| **Logout URL** | `https://uyuni-server-test.uyuni.internal/rhn/saml/logout` |
+| **Reply URL (ACS URL)**    | `https://uyuni-server-test.uyuni.internal/rhn/saml/acs`      |
+| **Sign on URL**            | `https://uyuni-server-test.uyuni.internal`                   |
+| **Relay State**            | *(lascia vuoto)*                                             |
+| **Logout URL**             | `https://uyuni-server-test.uyuni.internal/rhn/saml/logout`   |
 
 > Sostituisci `uyuni-server-test.uyuni.internal` con il tuo FQDN reale.
 
@@ -66,12 +66,12 @@ automaticamente tramite mapping gruppi AD (vedi FASE 4).
 
 In **Attributes & Claims** → Edit, verifica che siano presenti questi claim:
 
-| Claim Name | Sorgente | Attributo Azure AD |
-|---|---|---|
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | Attributo | `user.mail` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname` | Attributo | `user.givenname` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname` | Attributo | `user.surname` |
-| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name` | Attributo | `user.userprincipalname` |
+| Claim Name                                                           | Sorgente  | Attributo Azure AD       |
+| -------------------------------------------------------------------- | --------- | ------------------------ |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress` | Attributo | `user.mail`              |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname`    | Attributo | `user.givenname`         |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname`      | Attributo | `user.surname`           |
+| `http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name`         | Attributo | `user.userprincipalname` |
 
 **Aggiunta claim gruppi** (necessaria per il role mapping automatico):
 1. **+ Add a group claim**
