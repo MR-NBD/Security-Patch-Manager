@@ -305,8 +305,9 @@ systemctl enable --now podman.socket
 
 ### Sull'Host Proxy: Installare Salt Minion e Certificato CA
 Questa fase prepara il minion Salt sull'host proxy senza registrarlo formalmente. Il Salt minion servirà per la gestione post-installazione.
+#### Scaricare il certificato CA del Server
+
 ```bash
-# Scaricare il certificato CA del Server
 curl -Sks https://uyuni-server-test.uyuni.internal/pub/RHN-ORG-TRUSTED-SSL-CERT -o /etc/pki/trust/anchors/uyuni-ca.crt
 update-ca-certificates
 ```
@@ -322,7 +323,7 @@ Dalla **Web UI** del Server UYUNI (`https://uyuni-server-test.uyuni.internal`):
 | **Key**                 | `1-proxy-asl06-test`                                |
 | **Description**         | Activation key per Uyuni Proxy - openSUSE Leap 15.6 |
 | **Base Channel**        | Uyuni Default                                       |
-| **Add-On Entitlements** | Container Build Host                                |
+| **Add-On Entitlements** | Container Build Host , Proxy                        |
 | **Contact Method**      | Default                                             |
 
 > Se hai i canali openSUSE Leap 15.6 sincronizzati sul Server, puoi selezionarli esplicitamente come Base Channel. Altrimenti usa "Universal Default" e Uyuni auto-detecterà l'OS.
