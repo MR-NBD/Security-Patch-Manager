@@ -273,7 +273,7 @@ Eseguire questa operazione PRIMA di installare il Proxy.
 ### Verificare Configurazione Storage
 ```bash
 df -hP /proxy_storage
-lvd
+lvdisplay
 ```
 ## FASE 6: Installazione Repository e Pacchetti Proxy
 ### Aggiungere Repository UYUNI Proxy
