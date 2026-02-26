@@ -230,8 +230,10 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "fcae071421e98e82",
+  "active": "fe3b881e7983d217",
   "lastOpenFiles": [
+    "Uyuni/Deployment/UYUNI-Proxy-Cascata.md",
+    "Uyuni/Deployment/AzureAD-SAML-Authentication.md.tmp.44095.1772112558817",
     "Uyuni/Config/saml/Uyuni Server.xml",
     "Uyuni/Config/saml",
     "Uyuni/Config",
@@ -255,8 +257,6 @@
     "Uyuni/Infrastructure-Design/SCHEMI-a-Blocchi-SPM.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
-    "Uyuni/Infrastructure-Design/NON UTILIZZABILI/SPM-Sync-Workflow.drawio",
-    "Uyuni/Infrastructure-Design/NON UTILIZZABILI/SPM-Push-UYUNI-Workflow.drawio",
     "Uyuni/Deployment/Mass-Onboarding-Strategy.md",
     "Uyuni/Deployment/Mass-Onboarding-Tested-Procedures.md",
     "Orchestrator/PROJECT-STATUS.md",

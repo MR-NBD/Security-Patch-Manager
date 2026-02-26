@@ -12,7 +12,12 @@
       "WebFetch(domain:www.lucidity.cloud)",
       "WebFetch(domain:turbo360.com)",
       "WebFetch(domain:github.com)",
-      "Bash(gh search:*)"
+      "Bash(gh search:*)",
+      "WebFetch(domain:www.suse.com)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(gh repo:*)",
+      "WebFetch(domain:api.github.com)"
     ]
   }
 }
