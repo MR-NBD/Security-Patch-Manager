@@ -313,3 +313,11 @@ Dopo il riavvio il login locale torna attivo.
 - [SUSE Manager — SSO Configuration Example](https://documentation.suse.com/suma/5.0/en/suse-manager/administration/auth-methods-sso-example.html)
 - [Microsoft — Azure AD SAML Integration](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/add-application-portal-setup-sso)
 - [Uyuni GitHub Issue #6793 — SSO metadata returns HTML](https://github.com/uyuni-project/uyuni/issues/6793)
+
+
+Login URL : https://login.microsoftonline.com/fae8df93-7cf5-40da-b480-f272e15b6242/saml2
+Microsoft Entra Identifier : https://sts.windows.net/fae8df93-7cf5-40da-b480-f272e15b6242/
+Logout URL : https://login.microsoftonline.com/fae8df93-7cf5-40da-b480-f272e15b6242/saml2
+
+
+Tenant ID : fae8df93-7cf5-40da-b480-f272e15b6242
