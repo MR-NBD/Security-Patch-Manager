@@ -185,17 +185,6 @@ EOF"
 > **Nota**: I nomi esatti dei parametri `java.saml_*` possono variare tra versioni.
 > Verifica con `mgrctl exec -- grep -i saml /etc/rhn/rhn.conf.d/*.conf` se esistono
 > file di configurazione separati da UYUNI 2025.x.
-
-### 3.3 Alternativa: Configurazione da Web UI (se disponibile in 2025.x)
-
-Alcune versioni di Uyuni espongono la configurazione SAML dalla Web UI:
-
-```
-Admin → Authentication Methods → SAML SSO
-```
-
-Se il menu è presente, preferisci questo metodo alla modifica manuale di `rhn.conf`.
-
 ### 3.4 Riavvia Tomcat per applicare la configurazione
 
 ```bash
