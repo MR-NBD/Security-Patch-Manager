@@ -146,7 +146,7 @@ mgrctl exec -- openssl req -x509 -nodes -days 3650 \
   -newkey rsa:2048 \
   -keyout /etc/rhn/saml/sp-key.pem \
   -out /etc/rhn/saml/sp-cert.pem \
-  -subj "/CN=uyuni-server-test.uyuni.internal/O=SPM/C=IT"
+  -subj "/CN=uyuni-server-test.uyuni.internal/O=LEONARDO/C=IT"
 
 mgrctl exec -- chmod 600 /etc/rhn/saml/sp-key.pem
 mgrctl exec -- chmod 644 /etc/rhn/saml/sp-cert.pem
