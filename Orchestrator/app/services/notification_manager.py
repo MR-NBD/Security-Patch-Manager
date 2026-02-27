@@ -244,23 +244,26 @@ def notify_test_result(
         # ── Email ─────────────────────────────────────────────────────────
         if cfg.get("email_enabled", False):
             recipients = cfg.get("recipients", [])
-            for recipient in (recipients or ["operator"]):
+            if recipients:
+                # Invia una sola email a tutti i destinatari, poi registra
+                # una riga per destinatario (audit trail).
                 ok, err = _send_email(cfg, subject, body)
-                _write_notification(
-                    notification_type=notification_type,
-                    channel="email",
-                    recipient=recipient,
-                    subject=subject,
-                    body=body,
-                    errata_id=errata_id,
-                    queue_id=queue_id,
-                    test_id=test_id,
-                    delivered=ok,
-                    error_message=err if not ok else None,
-                )
+                for recipient in recipients:
+                    _write_notification(
+                        notification_type=notification_type,
+                        channel="email",
+                        recipient=recipient,
+                        subject=subject,
+                        body=body,
+                        errata_id=errata_id,
+                        queue_id=queue_id,
+                        test_id=test_id,
+                        delivered=ok,
+                        error_message=err if not ok else None,
+                    )
                 if not ok:
                     logger.warning(
-                        f"NotificationManager: email to {recipient!r} failed: {err}"
+                        f"NotificationManager: email send failed: {err}"
                     )
         else:
             # Email non configurata: scrivi solo in DB con delivered=False.

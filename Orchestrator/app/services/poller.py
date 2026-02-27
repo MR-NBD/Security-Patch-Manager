@@ -410,7 +410,7 @@ def trigger_sync() -> dict:
 # Init scheduler
 # ─────────────────────────────────────────────
 
-def init_scheduler() -> None:
+def init_scheduler() -> BackgroundScheduler:
     """
     Avvia APScheduler con job periodico per il polling UYUNI.
     Esegue anche un sync iniziale 15 secondi dopo lo startup.

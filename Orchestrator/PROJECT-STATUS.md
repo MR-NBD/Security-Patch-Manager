@@ -1,7 +1,7 @@
 # SPM-Orchestrator — Project Status & Development Notes
 
 > Documento vivente. Aggiornare ad ogni sessione di sviluppo.
-> Ultima modifica: 2026-02-23 (sessione 2)
+> Ultima modifica: 2026-02-26 (sessione 3)
 
 ---
 
@@ -127,7 +127,7 @@ Vedi [Sezione 8 — Backlog](#8-da-fare--backlog) per dettagli e priorità.
 | Production Deployment | ~~Media~~ **FATTO** ✓ |
 | NVD Enrichment severity | Bassa (nota futura) |
 | Notifiche email | Bassa |
-| Streamlit Dashboard | Bassa |
+| Streamlit Dashboard | **Media** (prossimo passo) |
 
 ---
 

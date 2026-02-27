@@ -23,6 +23,7 @@ Rollback type:
 
 import json
 import logging
+import threading
 import time
 from datetime import datetime, timezone
 from typing import Optional
@@ -39,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 # ── Stato globale ────────────────────────────────────────────────
 _testing: bool = False
+_testing_lock = threading.Lock()
 _last_result: Optional[dict] = None
 
 
@@ -714,23 +716,28 @@ def run_next_test() -> dict:
     """
     Entry point pubblico: esegue il prossimo test in coda.
     Ritorna immediatamente se un test è già in corso o la coda è vuota.
+    Thread-safe: usa _testing_lock per prevenire esecuzioni concorrenti
+    (es. scheduler + trigger manuale API simultanei).
     """
     global _testing, _last_result
 
-    if _testing:
-        return {"status": "skipped", "reason": "test already running"}
+    with _testing_lock:
+        if _testing:
+            return {"status": "skipped", "reason": "test already running"}
 
-    item = _pick_next_queued()
-    if not item:
-        return {"status": "skipped", "reason": "no items in queue"}
+        item = _pick_next_queued()
+        if not item:
+            return {"status": "skipped", "reason": "no items in queue"}
 
-    _testing = True
+        _testing = True
+
     try:
         result = _execute_test(item)
         _last_result = result
         return result
     finally:
-        _testing = False
+        with _testing_lock:
+            _testing = False
 
 
 def get_engine_status() -> dict:
