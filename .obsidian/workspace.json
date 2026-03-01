@@ -8,20 +8,6 @@
         "type": "tabs",
         "children": [
           {
-            "id": "fe3b881e7983d217",
-            "type": "leaf",
-            "state": {
-              "type": "markdown",
-              "state": {
-                "file": "CLAUDE.md",
-                "mode": "source",
-                "source": false
-              },
-              "icon": "lucide-file",
-              "title": "CLAUDE"
-            }
-          },
-          {
             "id": "0494461eba0dd3f6",
             "type": "leaf",
             "state": {
@@ -212,12 +198,12 @@
   },
   "left-ribbon": {
     "hiddenItems": {
-      "bases:Crea nuova Base": false,
+      "bases:Crea nuova Base": true,
       "switcher:Apri selezione rapida": false,
       "graph:Apri vista grafo": false,
       "canvas:Crea nuova lavagna": true,
       "daily-notes:Apri nota del giorno": true,
-      "templates:Inserisci modello": false,
+      "templates:Inserisci modello": true,
       "command-palette:Apri riquadro comandi": false,
       "obsidian-git:Open Git source control": false,
       "tasknotes:Open mini calendar": false,
@@ -230,8 +216,12 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "fe3b881e7983d217",
+  "active": "fcae071421e98e82",
   "lastOpenFiles": [
+    "Senza nome 1.base",
+    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
+    "Senza nome.base",
+    "CLAUDE.md",
     "TaskNotes/Views/relationships.base",
     "TaskNotes/Views/agenda-default.base",
     "TaskNotes/Views/calendar-default.base",
@@ -240,15 +230,11 @@
     "TaskNotes/Views/mini-calendar-default.base",
     "TaskNotes/Views",
     "TaskNotes",
-    "Orchestrator/app/services/notification_manager.py.tmp.49740.1772129146920",
-    "Orchestrator/app/services/test_engine.py.tmp.49740.1772129133362",
     "README.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Uyuni/Deployment/UYUNI-Proxy-Cascata.md",
-    "Uyuni/Deployment/AzureAD-SAML-Authentication.md.tmp.44095.1772112558817",
     "Uyuni/Teoria/Supported-Clients.md",
     "Update/25-2-2026.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/Configurazione-VHM-Azure.md",
     "Uyuni/Deployment/OpenSCAP-Uyuni-RHEL9.md",
     "Uyuni/Teoria/PKI-TLS-HLD.md",
@@ -265,7 +251,6 @@
     "Orchestrator/README.md",
     "Thesys/cap3/capitolo3.md",
     "Uyuni/Teoria/Amministrazione-e-Troubleshooting.md",
-    "CLAUDE.md",
     "Thesys/cap4/cap4_draft.md",
     "Thesys/cap2/cap2_draft.md",
     "Senza nome.canvas",
