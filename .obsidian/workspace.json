@@ -218,6 +218,7 @@
   },
   "active": "0494461eba0dd3f6",
   "lastOpenFiles": [
+    "Uyuni/Infrastructure-Design/UYUNI-Infrastructure - Copy.drawio",
     "GeneralDocumentation/~$AI_IT_Operations_n8n.pptx",
     "GeneralDocumentation/AI_IT_Operations_n8n.pptx",
     "GeneralDocumentation/gen_presentation.py",
@@ -236,7 +237,6 @@
     "TaskNotes/Views/agenda-default.base",
     "TaskNotes/Views/calendar-default.base",
     "TaskNotes/Views/tasks-default.base",
-    "TaskNotes/Views/kanban-default.base",
     "README.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Uyuni/Deployment/UYUNI-Proxy-Cascata.md",
