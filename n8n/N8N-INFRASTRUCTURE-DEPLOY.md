@@ -1,5 +1,3 @@
-# n8n Infrastructure — Deploy Guide
-
 ## Infrastruttura
 
 ```
@@ -21,11 +19,6 @@ Stack:
 | n8n        | http://10.172.2.5:5678       | admin / N8nSecure2024!  |
 | Grafana    | http://10.172.2.5:3000       | admin / GrafanaSecure2024! |
 | Prometheus | http://10.172.2.5:9090       | solo dalla VM           |
-
-> Accesso alla VM: Azure Bastion → vm-n8n
-
----
-
 ## Struttura file sul VM
 
 ```
@@ -47,11 +40,6 @@ Stack:
             └── dashboards/
                 └── dashboard.yml
 ```
-
----
-
-## Deploy da zero
-
 ### Prerequisiti
 
 - VM Ubuntu 24.04 nella VNET Azure
@@ -66,7 +54,6 @@ curl -fsSL https://get.docker.com | sudo sh
 sudo usermod -aG docker azureuser
 # logout + login per applicare i permessi
 ```
-
 ### 2. Crea struttura directory
 
 ```bash
@@ -74,7 +61,6 @@ mkdir -p /home/azureuser/n8n-prod/prometheus
 mkdir -p /home/azureuser/n8n-prod/grafana/provisioning/datasources
 mkdir -p /home/azureuser/n8n-prod/grafana/provisioning/dashboards
 ```
-
 ### 3. Crea i file di configurazione
 
 Usa Python per evitare problemi di encoding da copy-paste via Bastion:
@@ -84,7 +70,6 @@ python3 - << 'PYEOF'
 # incolla il contenuto del file target (vedi sezione File di configurazione)
 PYEOF
 ```
-
 ### 4. Avvia lo stack
 
 ```bash
@@ -289,9 +274,6 @@ providers:
     options:
       path: /etc/grafana/provisioning/dashboards
 ```
-
----
-
 ## Migrazione SQLite → PostgreSQL
 
 Da eseguire quando si ha già un'istanza n8n con SQLite e si vuole migrare.
@@ -338,7 +320,6 @@ docker exec n8n n8n import:credentials \
 > Il workflow viene importato come **disattivato** — riattivarlo manualmente dalla UI.
 
 ---
-
 ## Grafana — Dashboard
 
 Il datasource Prometheus è già configurato automaticamente al primo avvio.
@@ -367,52 +348,3 @@ Aggiungere i seguenti pannelli:
 > poi tornare in **Code** per completare la query.
 
 Salvare come `n8n Overview`.
-
----
-
-## Operazioni quotidiane
-
-```bash
-# Stato stack
-cd /home/azureuser/n8n-prod && docker compose ps
-
-# Log in tempo reale
-docker compose logs n8n -f
-docker compose logs n8n-grafana -f
-
-# Riavvio
-docker compose restart
-
-# Aggiornamento immagini
-docker compose pull && docker compose up -d
-
-# Backup PostgreSQL
-docker exec n8n-postgres pg_dump -U n8n n8n > backup_$(date +%Y%m%d).sql
-
-# Restore PostgreSQL
-docker exec -i n8n-postgres psql -U n8n n8n < backup_20260101.sql
-```
-
----
-
-## Troubleshooting
-
-| Problema | Causa probabile | Soluzione |
-|---|---|---|
-| n8n non si avvia | PostgreSQL non healthy | `docker compose logs n8n-postgres` |
-| Metriche non in Prometheus | n8n non espone /metrics | Verifica `N8N_METRICS=true` in .env |
-| Grafana non vede dati | Datasource mal configurato | Grafana → Datasources → Test |
-| Credenziali non funzionano dopo import | Encryption key diversa | Verifica che `/home/azureuser/.n8n/config` sia lo stesso dell'originale |
-| YAML error su docker compose | Encoding da copy-paste Bastion | Usa il metodo Python per scrivere i file |
-| Query Grafana CPU con errore `unexpected identifier "idle"` | Virgolette tipografiche nel browser | Usa Builder mode per inserire il filtro, poi torna in Code |
-| Dashboard n8n ID non trovato | Nessun dashboard community stabile | Creare manualmente (vedi sezione Grafana) |
-| Workflow importato inattivo | Import disattiva sempre i workflow | Aprire il workflow → clicca **Publish** |
-
----
-
-## Note importanti
-
-- **`/home/azureuser/.n8n/config`** contiene l'encryption key delle credenziali — non eliminare mai, non sovrascrivere
-- **`.env`** non va mai committato su git
-- Prometheus è esposto solo su `127.0.0.1:9090` — non raggiungibile dall'esterno della VM
-- I file YAML su questa VM vanno scritti via Python (`python3 - << 'PYEOF'`) per evitare problemi di encoding da Bastion

@@ -1,12 +1,3 @@
-# Uyuni — Guida Amministrazione e Troubleshooting
-
-> Ambiente: **UYUNI 2025.10** su **openSUSE Leap 15.6**, deployment containerizzato con **Podman**, Azure.
-> Server: `10.172.2.17` | Proxy: `10.172.2.20`
-
----
-
-## Architettura di Riferimento
-
 ### Server (2 container)
 
 | Container | Funzione |
@@ -43,9 +34,9 @@ sdb → /proxy_storage      (cache Squid, LVM: vg_proxy_cache/lv_cache)
 
 ---
 
-## Diagnostica Rapida — Primo Intervento
+## Diagnostica Rapida
 
-### 1. Stato generale (primo comando da eseguire sempre)
+### Stato generale (primo comando da eseguire sempre)
 
 ```bash
 # Server
@@ -55,7 +46,7 @@ mgradm status
 mgrpxy status
 ```
 
-### 2. Stato container
+### Stato container
 
 ```bash
 podman ps                  # Container attivi
@@ -80,7 +71,7 @@ proxy-ssh            Up (healthy)
 proxy-tftpd          Up (healthy)
 ```
 
-### 3. Stato servizi systemd
+### Stato servizi systemd
 
 ```bash
 # Server
@@ -92,7 +83,7 @@ systemctl status uyuni-proxy-pod
 systemctl status uyuni-proxy-httpd
 ```
 
-### 4. Stato storage (causa piu' comune di crash)
+### Stato storage (causa piu' comune di crash)
 
 ```bash
 df -h                                         # Panoramica tutti i dischi
@@ -100,10 +91,7 @@ df -h /manager_storage /pgsql_storage /       # Server: dischi critici
 df -h /proxy_storage /                        # Proxy: dischi critici
 ```
 
-> **REGOLA**: Se qualsiasi disco e' al 100%, Podman smette di funzionare completamente.
-> Il sintomo e' `Error: updating container state: unable to open database file`.
-
-### 5. Log container
+### Log container
 
 ```bash
 podman logs uyuni-server --tail 100
@@ -121,7 +109,7 @@ podman logs -f uyuni-server
 podman logs -f proxy-httpd
 ```
 
-### 6. Log systemd
+### Log systemd
 
 ```bash
 journalctl -u uyuni-server -f
@@ -601,20 +589,3 @@ pvresize /dev/sdb1                         # Aggiorna PV dopo growpart
 lvextend -l +100%FREE /dev/vg_uyuni_repo/lv_repo  # Espandi LV
 xfs_growfs /manager_storage               # Espandi filesystem XFS
 ```
-
----
-
-## Tabella Diagnostica — Errore → Causa → Azione
-
-| Errore / Sintomo | Causa probabile | Prima azione |
-|---|---|---|
-| `unable to open database file` | Disco pieno (Podman DB su disco saturo) | `df -h` → libera spazio |
-| `Start request repeated too quickly` | Systemd ha esaurito i tentativi | `systemctl reset-failed` |
-| HTTP 500 sui client via proxy | Checksum mismatch systemid | Vedi Problema 8 |
-| `FileNotFoundError: systemid` | Directory `/etc/sysconfig/rhn` mancante | `mkdir -p /etc/sysconfig/rhn && chmod 755` |
-| Salt client offline | DNS, porte firewall, master config | `nc -zv server 4505` dal client |
-| `Could not resolve hostname` | DNS non configurato nel container | Aggiungi a `/etc/hosts` host, usa Azure DNS |
-| Container `Exited (137)` | OOM kill | `free -h` → la VM ha poca RAM |
-| `System clock synchronized: no` | NTP non sincronizzato | `systemctl restart chronyd` |
-| Web UI non risponde | Tomcat down | `mgrctl exec -- systemctl status tomcat` |
-| Repo sync lento/bloccato | Disco quasi pieno o rete | `df -h` + `podman logs uyuni-server` |

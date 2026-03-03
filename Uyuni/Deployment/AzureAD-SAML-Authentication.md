@@ -150,7 +150,6 @@ mgrctl exec -- head -3 /etc/rhn/azure-ad-metadata.xml
 > Azure AD invia sempre il valore in minuscolo, indipendentemente da come è salvato nel portale.
 
 ---
-
 ## FASE 4 — Configura SSO in rhn.conf
 
 Tutti i parametri SSO vanno in `/etc/rhn/rhn.conf` con il prefisso `java.sso.onelogin.saml2.*`.
@@ -210,7 +209,6 @@ mgradm restart
 > Solo `mgradm restart` ricarica correttamente tutta la stack containerizzata.
 
 ---
-
 ## FASE 5 — Test
 
 Dopo il riavvio (attendere 60-90 secondi):
@@ -234,7 +232,6 @@ Apri il browser su `https://uyuni-server-test.uyuni.internal` — il login deve 
 | Metadata restituisce HTML invece di XML | Bug noto Uyuni 2025.10 (fix in release post-Feb 2026) | Il login SSO funziona comunque — ignorare |
 
 ---
-
 ## FASE 6 — Assegna il ruolo SUSE Manager Administrator all'utente SSO
 
 Con SSO attivo, l'utente `admin` non può fare login via browser, quindi il ruolo non può essere
@@ -275,7 +272,6 @@ per le chiamate XML-RPC (`UYUNI_USER=admin` nel `.env`). Con SSO attivo è comun
 inaccessibile via browser.
 
 ---
-
 ## Procedura di emergenza — Disabilita SSO
 
 Se rimani bloccato fuori da Uyuni con SSO attivo:
@@ -314,6 +310,9 @@ Dopo il riavvio il login locale torna attivo.
 - [Microsoft — Azure AD SAML Integration](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/add-application-portal-setup-sso)
 - [Uyuni GitHub Issue #6793 — SSO metadata returns HTML](https://github.com/uyuni-project/uyuni/issues/6793)
 
+
+---
+ASL06
 
 Login URL : https://login.microsoftonline.com/fae8df93-7cf5-40da-b480-f272e15b6242/saml2
 Microsoft Entra Identifier : https://sts.windows.net/fae8df93-7cf5-40da-b480-f272e15b6242/

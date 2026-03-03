@@ -1,20 +1,6 @@
-# UYUNI Proxy in Cascata
 
 Guida alle **sole differenze** rispetto all'installazione di un proxy singolo.
-Prerequisito: seguire integralmente `Installazione-UYUNI-Proxy.md` con le eccezioni indicate qui sotto.
-
----
-
-## Architettura
-
-```
-Client
-  → Proxy-Due  (10.172.2.23)   ← nuovo
-      → Proxy-Uno  (10.172.2.20)   ← parent
-          → Server UYUNI  (10.172.2.17)
-```
-
----
+Seguire integralmente `Installazione-UYUNI-Proxy.md` con le eccezioni indicate qui sotto.
 
 ## Differenze rispetto a un proxy singolo
 
@@ -30,7 +16,6 @@ Il proxy in cascata **non parla direttamente con il server**. Le regole outbound
 Nessuna regola outbound verso `10.172.2.17`.
 
 ---
-
 ### 2. Salt minion — master
 
 Il minion del proxy in cascata deve puntare al **proxy parent**, non al server.
@@ -53,7 +38,6 @@ ss -tnp | grep ESTAB | grep -E '4505|4506'
 ```
 
 ---
-
 ### 3. Generazione config.tar.gz — parent proxy
 
 Il secondo argomento di `proxy_container_config_generate_cert` è il **parent**.
@@ -74,7 +58,6 @@ mgrctl exec -ti 'spacecmd proxy_container_config_generate_cert -- \
 ```
 
 ---
-
 ### 4. Installazione container
 
 Identica al proxy singolo, con il tar.gz generato al punto precedente:

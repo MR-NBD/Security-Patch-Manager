@@ -446,5 +446,10 @@
         "defaultCollapsed": false
       }
     ]
-  }
+  },
+  "pomodoroState": {
+    "isRunning": false,
+    "timeRemaining": 1500
+  },
+  "lastPomodoroDate": "2026-03-02"
 }
