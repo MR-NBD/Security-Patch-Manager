@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Orchestrator/CLAUDE.md",
+                "file": "tools/GUIDA.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "CLAUDE"
+              "title": "GUIDA"
             }
           },
           {
@@ -216,8 +216,9 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "fcae071421e98e82",
+  "active": "0494461eba0dd3f6",
   "lastOpenFiles": [
+    "Orchestrator/CLAUDE.md",
     "README.md",
     "Uyuni/Teoria/Amministrazione-e-Troubleshooting.md",
     "Uyuni/Teoria/UYUNI.md",
@@ -246,7 +247,6 @@
     "GeneralDocumentation/CAPITOLI_TESI.md",
     "Update/18-2-2026.md",
     "GeneralDocumentation/AI_for_IT_Operations.pptx",
-    "Update/25-2-2026.md",
     "tools/GUIDA.md.tmp.9547.1772539916363",
     "tools/azure-poc-manager.py.tmp.9547.1772538713324",
     "tools/azure-poc-manager.py.tmp.9547.1772538709352",

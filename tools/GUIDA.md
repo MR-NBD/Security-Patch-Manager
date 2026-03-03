@@ -1,9 +1,3 @@
-# Azure POC Manager — Guida rapida
-
-Spegni e accendi tutte le risorse Azure del POC con un comando solo.
-
----
-
 ## Prerequisiti (una volta sola)
 
 ```bash
@@ -15,8 +9,7 @@ python3 --version
 ```
 
 ---
-
-## Comandi principali
+### Comandi principali
 
 ```bash
 cd tools/
@@ -30,10 +23,7 @@ python3 azure-poc-manager.py start
 # Controlla lo stato
 python3 azure-poc-manager.py status
 ```
-
----
-
-## Filtrare per tipo o nome
+### Filtrare per tipo o nome
 
 ```bash
 # Solo le VM
@@ -48,10 +38,7 @@ python3 azure-poc-manager.py stop --filter uyuni
 # Solo il PostgreSQL
 python3 azure-poc-manager.py status --filter postgres
 ```
-
----
-
-## Dry-run (zero rischi)
+### Dry-run (zero rischi)
 
 Mostra cosa verrebbe fatto senza toccare nulla:
 
