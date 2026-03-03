@@ -1,0 +1,69 @@
+{
+  "_comment": "Copia questo file in poc-resources.json e adatta ai tuoi nomi reali.",
+
+  "resources": [
+    {
+      "name":           "vm-spm-orchestrator",
+      "type":           "vm",
+      "resource_group": "rg-poc-spm"
+    },
+    {
+      "name":           "vm-spm-uyuni",
+      "type":           "vm",
+      "resource_group": "rg-poc-spm"
+    },
+    {
+      "name":           "vm-spm-test-ubuntu",
+      "type":           "vm",
+      "resource_group": "rg-poc-spm"
+    },
+    {
+      "name":           "vm-spm-test-rhel",
+      "type":           "vm",
+      "resource_group": "rg-poc-spm"
+    },
+
+    {
+      "_comment":       "ACI: il container group si chiama come 'name'",
+      "name":           "aci-poc-api",
+      "type":           "aci",
+      "resource_group": "rg-poc-spm"
+    },
+
+    {
+      "_comment":       "AKS: il cluster Kubernetes",
+      "name":           "aks-poc-cluster",
+      "type":           "aks",
+      "resource_group": "rg-poc-spm"
+    },
+
+    {
+      "_comment":       "App Service (webapp o appservice, equivalenti)",
+      "name":           "poc-dashboard",
+      "type":           "webapp",
+      "resource_group": "rg-poc-spm"
+    },
+
+    {
+      "name":           "poc-function-alerts",
+      "type":           "functionapp",
+      "resource_group": "rg-poc-spm"
+    },
+
+    {
+      "_comment":       "SQL serverless: richiede il campo 'server' (logical server name)",
+      "name":           "poc-db",
+      "type":           "sql",
+      "resource_group": "rg-poc-spm",
+      "server":         "sql-server-poc-spm"
+    },
+
+    {
+      "_comment":       "Risorsa in una subscription diversa — campo 'subscription' opzionale",
+      "name":           "vm-altro-progetto",
+      "type":           "vm",
+      "resource_group": "rg-altro",
+      "subscription":   "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    }
+  ]
+}
