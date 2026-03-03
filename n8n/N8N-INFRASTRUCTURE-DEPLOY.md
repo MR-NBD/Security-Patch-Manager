@@ -339,16 +339,34 @@ docker exec n8n n8n import:credentials \
 
 ---
 
-## Grafana — Dashboard consigliati
-
-Importare da Grafana UI → `+` → `Import dashboard`:
-
-| Dashboard            | ID    | Contenuto                              |
-|----------------------|-------|----------------------------------------|
-| Node Exporter Full   | 1860  | CPU, RAM, disco, rete della VM         |
-| n8n                  | cerca "n8n" su grafana.com/dashboards  |
+## Grafana — Dashboard
 
 Il datasource Prometheus è già configurato automaticamente al primo avvio.
+
+### Dashboard 1 — Node Exporter Full (metriche VM)
+
+**Dashboards** → **New** → **Import** → ID `1860` → **Load** → **Import**
+
+### Dashboard 2 — n8n Overview (dashboard manuale)
+
+Non esiste un dashboard community stabile per n8n. Creare manualmente:
+
+**Dashboards** → **New** → **New dashboard** → **Add visualization**
+
+Aggiungere i seguenti pannelli:
+
+| Pannello | Query | Unit | Tipo |
+|---|---|---|---|
+| Memoria n8n | `n8n_process_resident_memory_bytes` | bytes (SI) | Time series |
+| CPU n8n | `rate(n8n_process_cpu_seconds_total[5m])` | percent (0.0-1.0) | Time series |
+| Esecuzioni workflow | `n8n_workflow_executions_total` | — | Stat |
+| CPU VM | `100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)` | percent (0-100) | Gauge |
+
+> **Attenzione**: Il campo query di Grafana via browser può convertire le virgolette dritte in tipografiche.
+> Per il pannello CPU VM usare la modalità **Builder** per inserire il filtro `mode="idle"`,
+> poi tornare in **Code** per completare la query.
+
+Salvare come `n8n Overview`.
 
 ---
 
@@ -386,6 +404,9 @@ docker exec -i n8n-postgres psql -U n8n n8n < backup_20260101.sql
 | Grafana non vede dati | Datasource mal configurato | Grafana → Datasources → Test |
 | Credenziali non funzionano dopo import | Encryption key diversa | Verifica che `/home/azureuser/.n8n/config` sia lo stesso dell'originale |
 | YAML error su docker compose | Encoding da copy-paste Bastion | Usa il metodo Python per scrivere i file |
+| Query Grafana CPU con errore `unexpected identifier "idle"` | Virgolette tipografiche nel browser | Usa Builder mode per inserire il filtro, poi torna in Code |
+| Dashboard n8n ID non trovato | Nessun dashboard community stabile | Creare manualmente (vedi sezione Grafana) |
+| Workflow importato inattivo | Import disattiva sempre i workflow | Aprire il workflow → clicca **Publish** |
 
 ---
 
