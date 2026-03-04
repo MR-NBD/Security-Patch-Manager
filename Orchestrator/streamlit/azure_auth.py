@@ -20,7 +20,7 @@ CLIENT_SECRET = os.environ.get("AZURE_CLIENT_SECRET", "")
 REDIRECT_URI = os.environ.get("AZURE_REDIRECT_URI", "http://10.172.2.22:8501")
 
 AUTHORITY = f"https://login.microsoftonline.com/{TENANT_ID}"
-SCOPES    = ["openid", "profile", "email", "User.Read"]
+SCOPES    = ["User.Read"]
 
 
 def is_configured() -> bool:
