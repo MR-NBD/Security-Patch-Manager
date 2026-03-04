@@ -9,7 +9,7 @@ import logging
 import time
 import xmlrpc.client
 import requests
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from app.config import Config
 from app.services.db import check_db_health
@@ -133,3 +133,104 @@ def _ssl_context():
         ctx.verify_mode = ssl.CERT_NONE
         return ctx
     return None
+
+
+# ----------------------------------------------------------
+# Notifiche non lette
+# ----------------------------------------------------------
+
+@health_bp.route("/api/v1/notifications", methods=["GET"])
+def notifications():
+    """
+    GET /api/v1/notifications
+
+    Ritorna le notifiche non lette (delivered=False) da orchestrator_notifications.
+    La dashboard le mostra come banner di attenzione.
+
+    Query params:
+      limit  (default 20)
+      mark_read  (default false) — se true marca le notifiche come delivered=True
+    """
+    from app.services.db import get_db
+    from datetime import datetime, date
+    from decimal import Decimal
+
+    try:
+        limit     = min(int(request.args.get("limit", 20)), 100)
+        mark_read = request.args.get("mark_read", "false").lower() == "true"
+    except ValueError:
+        return jsonify({"error": "Invalid query params"}), 400
+
+    def _ser(v):
+        if isinstance(v, (datetime, date)):
+            return v.isoformat()
+        if isinstance(v, Decimal):
+            return float(v)
+        return v
+
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT id, notification_type, errata_id, queue_id, test_id,
+                       channel, recipient, subject, body,
+                       delivered, error_message, sent_at
+                FROM orchestrator_notifications
+                WHERE delivered = FALSE
+                ORDER BY sent_at DESC
+                LIMIT %s
+                """,
+                (limit,),
+            )
+            rows = [{k: _ser(v) for k, v in row.items()} for row in cur.fetchall()]
+
+            total_unread = 0
+            cur.execute(
+                "SELECT COUNT(*) AS n FROM orchestrator_notifications WHERE delivered = FALSE"
+            )
+            total_unread = cur.fetchone()["n"]
+
+            if mark_read and rows:
+                ids = [r["id"] for r in rows]
+                cur.execute(
+                    "UPDATE orchestrator_notifications SET delivered = TRUE WHERE id = ANY(%s)",
+                    (ids,),
+                )
+
+        return jsonify({"total_unread": total_unread, "items": rows})
+
+    except Exception as e:
+        logger.error(f"GET /notifications failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@health_bp.route("/api/v1/notifications/mark-read", methods=["POST"])
+def mark_notifications_read():
+    """
+    POST /api/v1/notifications/mark-read
+
+    Body: { "ids": [1, 2, 3] }  oppure {}  per marcare tutte come lette.
+    """
+    from app.services.db import get_db
+
+    body = request.get_json(silent=True) or {}
+    ids  = body.get("ids")
+
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            if ids:
+                cur.execute(
+                    "UPDATE orchestrator_notifications SET delivered = TRUE WHERE id = ANY(%s)",
+                    (ids,),
+                )
+            else:
+                cur.execute(
+                    "UPDATE orchestrator_notifications SET delivered = TRUE WHERE delivered = FALSE"
+                )
+            updated = cur.rowcount
+        return jsonify({"marked_read": updated})
+    except Exception as e:
+        logger.error(f"POST /notifications/mark-read failed: {e}")
+        return jsonify({"error": str(e)}), 500
