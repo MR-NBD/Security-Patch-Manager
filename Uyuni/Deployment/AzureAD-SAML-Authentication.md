@@ -32,7 +32,6 @@ ad Azure AD. Il form di login locale non funziona più via browser.
 Le API XML-RPC continuano a usare le credenziali locali.
 
 ---
-
 ## Prerequisiti
 
 - Accesso a **Azure Portal** con ruolo `Application Administrator` o `Global Administrator`

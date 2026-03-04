@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Installazione-UYUNI-Proxy-PRODUZIONE.md",
+                "file": "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installazione-UYUNI-Proxy-PRODUZIONE"
+              "title": "AzureAD-SAML-Authentication"
             }
           }
         ]
@@ -204,7 +204,9 @@
   },
   "active": "d0984873d53a6218",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
+    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy-PRODUZIONE.md",
     "Uyuni/Deployment/Configurazione-VHM-Azure.md",
     "Utenze/n8n.md",
@@ -221,7 +223,6 @@
     "Uyuni/Deployment/Onbording/Mass-Onboarding-Tested-Procedures.md",
     "Uyuni/Deployment/Onbording",
     "Uyuni/Deployment/Onbording/Mass-Onboarding-Strategy.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
     "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
@@ -231,7 +232,6 @@
     "n8n/N8N-SERVICE-REMEDIATION.md",
     "n8n/N8N-INFRASTRUCTURE-DEPLOY.md",
     "GeneralDocumentation/Tabella_Comparativa.md",
-    "GeneralDocumentation/Patch Management Metrics.md",
     "GeneralDocumentation/AI_for_IT_Operations.pptx",
     "tools/GUIDA.md.tmp.9547.1772539916363",
     "tools/azure-poc-manager.py.tmp.9547.1772538713324",
