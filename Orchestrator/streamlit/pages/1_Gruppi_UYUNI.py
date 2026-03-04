@@ -14,13 +14,12 @@ import api_client as api
 
 st.title("🖥 Gruppi UYUNI")
 
-# ── Verifica credenziali in sidebar ───────────────────────────────
 username = st.session_state.get("uyuni_username", "")
 password = st.session_state.get("uyuni_password", "")
+org_name = st.session_state.get("uyuni_org_name", "")
 
-if not username or not password:
-    st.warning("Inserisci le credenziali UYUNI nella **sidebar** per caricare i gruppi della tua organizzazione.", icon="🔑")
-    st.stop()
+if org_name:
+    st.caption(f"Organizzazione: **{org_name}**")
 
 # ── Carica gruppi (con credenziali operatore → org-scoped) ────────
 with st.spinner("Caricamento gruppi UYUNI..."):
@@ -29,11 +28,6 @@ with st.spinner("Caricamento gruppi UYUNI..."):
 if gerr:
     st.error(f"Errore API: {gerr}")
     st.stop()
-
-# ── Mostra org corrente ───────────────────────────────────────────
-org = (gdata or {}).get("org", {})
-if org.get("org_name"):
-    st.caption(f"Organizzazione: **{org['org_name']}** (ID: {org.get('org_id', '?')})")
 
 groups = (gdata or {}).get("groups", [])
 if not groups:

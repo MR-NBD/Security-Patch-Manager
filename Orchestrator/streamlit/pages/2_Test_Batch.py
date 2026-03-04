@@ -183,14 +183,11 @@ group_name = (
 username = st.session_state.get("uyuni_username", "")
 password = st.session_state.get("uyuni_password", "")
 
-if not username or not password:
-    st.warning("Inserisci le credenziali UYUNI nella **sidebar** prima di avviare il batch.", icon="🔑")
-else:
-    st.info(
-        f"Sessione UYUNI come **{username}** — "
-        "scheduleApplyErrata e addNote risulteranno a tuo nome nel log UYUNI.",
-        icon="🔑",
-    )
+st.info(
+    f"Sessione UYUNI come **{username}** — "
+    "scheduleApplyErrata e addNote risulteranno a tuo nome nel log UYUNI.",
+    icon="🔑",
+)
 
 can_run = (
     bool(selected_qids) and bool(group_name)
