@@ -1,14 +1,3 @@
-## Per ambiente di Produzione
-
-Installazione di **UYUNI 2025.10** su **openSUSE Leap 15.6** in ambiente **Azure** con deployment containerizzato tramite **Podman**.
-
-> **NOTA**: Questo documento è la versione **PRODUZIONE** derivata da `Installazione-UYUNI-Server.md`. Le sezioni o valori che differiscono dall'ambiente di test sono marcati con il tag **`[PROD]`**. I passaggi non marcati sono identici all'ambiente di test.
-
----
-
-> UYUNI è un progetto open-source upstream di SUSE Manager. Dalla versione 2024.10, UYUNI utilizza esclusivamente il deployment containerizzato basato su Podman. La versione 2025.10 introduce un'architettura a **2 container separati** (uno per il server e uno per il database PostgreSQL).
-
-> A partire da UYUNI 2025.10, l'OS ufficialmente validato è **openSUSE Tumbleweed**. Tuttavia, **openSUSE Leap 15.6 è pienamente supportato dal progetto** in quanto si basa su quello per costruire le immagini container UYUNI stesse.
 
 ### Requisiti Hardware
 
@@ -24,32 +13,45 @@ Installazione di **UYUNI 2025.10** su **openSUSE Leap 15.6** in ambiente **Azure
 
 #### UYUNI SERVER - Host Container (openSUSE Leap 15.6)
 
-In produzione l'architettura prevede **VM separate** per il server UYUNI e per il database PostgreSQL:
+In produzione il database PostgreSQL NON deve risiedere sulla stessa VM del server UYUNI. Sono disponibili due opzioni:
+
+**Opzione A — VM dedicata** (IaaS): VM separata con container `uyuni-db`
+**Opzione B — Azure Database for PostgreSQL Flexible Server** (PaaS): servizio gestito Azure *(raccomandato)*
 
 ```
+Opzione A: VM dedicata
 ┌─────────────────────────────────────┐     ┌──────────────────────────────────┐
 │  VM: uyuni-server-prod (10.172.2.X) │     │  VM: uyuni-db-prod (10.172.2.Z)  │
-│                                     │     │                                  │
-│  Container: uyuni-server            │────▶│  Container: uyuni-db             │
-│  (Salt, Tomcat, Apache, Cobbler)    │5432 │  (PostgreSQL)                    │
-│                                     │     │                                  │
-│  Disco OS:   128 GB Premium SSD     │     │  Disco OS:   64 GB Premium SSD   │
-│  Disco Repo: 500 GB Premium SSD     │     │  Disco PgSQL: 100 GB Premium NVMe│
+│  Container: uyuni-server            │────▶│  Container: uyuni-db (PostgreSQL)│
+│  Disco Repo: 500 GB Premium SSD     │5432 │  Disco PgSQL: 100 GB Premium NVMe│
 └─────────────────────────────────────┘     └──────────────────────────────────┘
+
+Opzione B: Azure PaaS (raccomandato)
+┌─────────────────────────────────────┐     ┌──────────────────────────────────────┐
+│  VM: uyuni-server-prod (10.172.2.X) │     │  Azure DB for PostgreSQL             │
+│  Container: uyuni-server            │────▶│  Flexible Server (Private Endpoint)  │
+│  Disco Repo: 500 GB Premium SSD     │5432 │  Gestito da Azure (backup, HA, patch)│
+└─────────────────────────────────────┘     └──────────────────────────────────────┘
 ```
 
-> **[PROD] PostgreSQL su VM dedicata**: In produzione il container `uyuni-db` NON deve risiedere sulla stessa VM del server UYUNI. Vedere la **sezione dedicata alla VM PostgreSQL** in fondo al documento per la configurazione completa. Questa separazione garantisce:
-> - Risorse CPU/RAM dedicate al DB senza contendere con Salt Master e Tomcat
-> - Backup indipendente e più efficiente del solo database
-> - Possibilità di scalare DB e applicazione indipendentemente
-> - Resilienza separata: un problema sulla VM Server non compromette il DB
+| Aspetto              | Opzione A — VM dedicata          | Opzione B — Azure PaaS *(raccomandato)* |
+| -------------------- | -------------------------------- | --------------------------------------- |
+| Gestione OS/patch    | Manuale                          | Zero — gestito da Azure                 |
+| Backup               | Script cron custom               | Integrato, point-in-time restore        |
+| Alta disponibilità   | Configurazione manuale           | Zone redundancy nativa (99.99% SLA)     |
+| Monitoring           | Azure Monitor + configurazione   | Integrato out-of-the-box                |
+| Costo                | VM + disco                       | Più alto, ma zero ops                   |
+| Private connectivity | IP privato della VM              | Private Endpoint                        |
+| Scaling              | Resize VM + disco (con downtime) | Scaling indipendente senza downtime     |
+
+> **[PROD]**: Questa separazione garantisce risorse dedicate al DB, backup indipendente, scalabilità separata e resilienza isolata dal Server UYUNI. Vedere la **sezione dedicata al database** in fondo al documento per entrambe le configurazioni.
 
 ##### Componenti Container (UYUNI 2025.10):
 
-| Container        | Immagine                                               | Funzione                      | VM `[PROD]`    |
-|------------------|--------------------------------------------------------|-------------------------------|----------------|
-| **uyuni-server** | `registry.opensuse.org/uyuni/server:latest`            | Server principale UYUNI       | uyuni-server-prod |
-| **uyuni-db**     | `registry.opensuse.org/uyuni/server-postgresql:latest` | Database PostgreSQL dedicato  | **uyuni-db-prod** |
+| Container        | Immagine                                               | Funzione                      | VM `[PROD]`                          |
+|------------------|--------------------------------------------------------|-------------------------------|--------------------------------------|
+| **uyuni-server** | `registry.opensuse.org/uyuni/server:latest`            | Server principale UYUNI       | uyuni-server-prod                    |
+| **uyuni-db**     | `registry.opensuse.org/uyuni/server-postgresql:latest` | Database PostgreSQL dedicato  | **uyuni-db-prod** oppure **Azure PaaS** |
 
 ##### Servizi nel container uyuni-server:
 - Salt Master
@@ -117,7 +119,6 @@ sdb (Data Disk - 500GB) [LVM] [PROD: Premium SSD]
 > **[PROD]**: Limitare la porta 22 esclusivamente all'IP del servizio Azure Bastion. Non aprire SSH a tutta la subnet.
 
 ---
-
 ## FASE 1: Preparazione del Sistema Base
 
 ### 1.1 Dalla VM
@@ -159,7 +160,6 @@ zypper install -y \
 > **[PROD]**: Valutare l'aggiunta di `audit` (auditd) per il logging di compliance richiesto da framework come ISO 27001 o NIS2.
 
 ---
-
 ## FASE 2: Configurazione NTP con Chrony
 
 La sincronizzazione temporale è **CRITICA** per il corretto funzionamento di UYUNI, Salt, e i certificati SSL.
@@ -223,7 +223,6 @@ NTP service: active
 ```
 
 ---
-
 ## FASE 3: Configurazione Hostname e DNS
 
 UYUNI **RICHIEDE** un DNS funzionante con risoluzione diretta e inversa. Il comando `hostname -f` deve restituire l'FQDN completo.
@@ -285,7 +284,6 @@ ping -c 2 uyuni-db-prod.dominio.aziendale
 ```
 
 ---
-
 ## FASE 4: Configurazione Sicurezza
 
 ### 4.1 Verificare Stato Servizi Base
@@ -315,7 +313,6 @@ systemctl restart sshd
 - **Timeout sessione Web UI**: 900 secondi (configurabile in Admin → General Configuration)
 
 ---
-
 ## FASE 5: Configurazione Storage Dedicato
 
 ### 5.1 Identificare i Dischi Disponibili
@@ -381,7 +378,6 @@ vgs
 > **[PROD]**: Configurare alert Azure Monitor sulla VM per notifica al 70% e 85% di utilizzo del disco `/manager_storage`. Il repository pacchetti cresce nel tempo con la sincronizzazione dei canali.
 
 ---
-
 ## FASE 6: Configurazione Firewall
 
 ### 6.1 Abilitare Firewalld
@@ -423,7 +419,6 @@ ports: 80/tcp 443/tcp 4505/tcp 4506/tcp
 > ```
 
 ---
-
 ## FASE 7: Installazione Repository UYUNI
 
 ### 7.1 Aggiungere Repository UYUNI Stable per openSUSE Leap 15.6
@@ -463,7 +458,9 @@ systemctl enable --now podman.socket
 
 > **[PROD] ATTENZIONE — Certificati SSL**: I certificati SSL devono essere forniti **durante questa fase**, non dopo. Se si installa prima con certificati self-signed e si sostituiscono successivamente, è necessario ridistribuire la nuova CA su **tutti i Salt minion** già registrati e su tutti i Proxy. Questo può causare interruzioni di servizio e richiede operazioni manuali su ogni client. **Procurarsi i certificati aziendali firmati dalla CA aziendale PRIMA di eseguire questa fase.**
 
-> **[PROD] ATTENZIONE — Database esterno**: Prima di eseguire questa fase, la **VM `uyuni-db-prod` deve essere già operativa** con il container PostgreSQL in esecuzione e raggiungibile. Verificare con `nc -zv 10.172.2.Z 5432` che la porta sia aperta e raggiungibile dalla VM Server.
+> **[PROD] ATTENZIONE — Database esterno**: Prima di eseguire questa fase il database deve essere già operativo e raggiungibile dalla VM Server:
+> - **Opzione A (VM)**: verificare con `nc -zv 10.172.2.Z 5432`
+> - **Opzione B (Azure PaaS)**: verificare con `nc -zv <nome>.postgres.database.azure.com 5432` e che il Private Endpoint sia configurato
 
 ### 8.1 Preparazione Certificati SSL per Produzione
 
@@ -492,6 +489,7 @@ mgradm install podman $(hostname -f)
 
 ### 8.3 Esegui Deployment [PROD — con DB esterno e certificati custom]
 
+**Opzione A — VM dedicata:**
 ```bash
 mgradm install podman $(hostname -f) \
   --db-host uyuni-db-prod.dominio.aziendale \
@@ -503,6 +501,26 @@ mgradm install podman $(hostname -f) \
   --ssl-server-cert /tmp/ssl/server.crt \
   --ssl-server-key /tmp/ssl/server.key
 ```
+
+**Opzione B — Azure Database for PostgreSQL Flexible Server:**
+```bash
+mgradm install podman $(hostname -f) \
+  --db-host <nome-server>.postgres.database.azure.com \
+  --db-port 5432 \
+  --db-name susemanager \
+  --db-user susemanager \
+  --db-password '<PASSWORD_DB_SICURA>' \
+  --db-sslmode require \
+  --ssl-ca-root /tmp/ssl/ca-root.pem \
+  --ssl-server-cert /tmp/ssl/server.crt \
+  --ssl-server-key /tmp/ssl/server.key
+```
+
+> **[PROD] Opzione B — Note importanti**:
+> - Il nome utente su Azure PaaS è nella forma `susemanager` (senza `@nomeserver`, a differenza di versioni legacy di Azure PostgreSQL Single Server)
+> - `--db-sslmode require` è necessario perché Flexible Server impone SSL
+> - Il database `susemanager` e l'utente `susemanager` devono essere creati sul Flexible Server **prima** di questo comando (vedere sezione database in fondo)
+> - Verificare che `mgradm --help` mostri il flag `--db-sslmode`; se non disponibile, configurare SSL nel file `pg_service.conf` del container
 
 Il sistema chiederà:
 - **Password CA key**: necessaria solo se si usa la CA interna UYUNI (non con certificati aziendali)
@@ -583,11 +601,15 @@ podman exec uyuni-server psql -h uyuni-db-prod.dominio.aziendale -U susemanager 
 
 ---
 
-## [PROD] Configurazione VM e Container PostgreSQL Dedicati
+## [PROD] Configurazione Database PostgreSQL Esterno
 
-Questa sezione descrive la preparazione della VM `uyuni-db-prod` **prima** del deployment del Server UYUNI.
+Questa sezione descrive la configurazione del database **prima** del deployment del Server UYUNI. Scegliere una delle due opzioni.
 
-### Configurazione VM Azure — uyuni-db-prod
+---
+
+### Opzione A — VM Dedicata (IaaS)
+
+#### Configurazione VM Azure — uyuni-db-prod
 
 | Parametro          | Valore                                           |
 | ------------------ | ------------------------------------------------ |
@@ -603,7 +625,7 @@ Questa sezione descrive la preparazione della VM `uyuni-db-prod` **prima** del d
 | **Public IP**      | None                                             |
 | **NSG**            | uyuni-db-prod-nsg                                |
 
-### NSG per uyuni-db-prod
+#### NSG per uyuni-db-prod
 
 | Priority | Nome              | Port | Protocol | Source      | Destination | Action |
 | -------- | ----------------- | ---- | -------- | ----------- | ----------- | ------ |
@@ -611,11 +633,9 @@ Questa sezione descrive la preparazione della VM `uyuni-db-prod` **prima** del d
 | 110      | AllowSSH_Bastion  | 22   | TCP      | IP Bastion  | 10.172.2.Z  | Allow  |
 | 4096     | DenyAll           | *    | *        | *           | *           | Deny   |
 
-### Preparazione VM uyuni-db-prod
+#### Preparazione VM uyuni-db-prod
 
 Eseguire sulla VM `uyuni-db-prod` le stesse FASI 1-4 del documento (OS update, NTP, hostname, firewall), poi procedere con:
-
-#### Configurazione Storage Disco PostgreSQL
 
 ```bash
 # Disco PostgreSQL (es. /dev/sdb)
@@ -634,15 +654,12 @@ echo "/dev/mapper/vg_uyuni_pgsql-lv_pgsql /pgsql_storage xfs defaults,nofail 0 0
 systemctl daemon-reload
 ```
 
-#### Installazione e Avvio Container PostgreSQL UYUNI
+#### Installazione Container PostgreSQL UYUNI
 
 ```bash
-# Aggiungere repository UYUNI
 zypper ar https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Stable/images/repo/Uyuni-Server-POOL-$(arch)-Media1/ uyuni-server-stable
 zypper --gpg-auto-import-keys refresh
 zypper install -y mgradm mgrctl podman
-
-# Abilitare Podman
 systemctl enable --now podman.socket
 
 # Avviare solo il container database
@@ -651,7 +668,7 @@ mgradm install podman --db-only \
   $(hostname -f)
 ```
 
-> Se il parametro `--db-only` non fosse disponibile nella versione corrente di mgradm, avviare il container PostgreSQL manualmente:
+> Se il parametro `--db-only` non fosse disponibile, avviare il container manualmente:
 > ```bash
 > podman run -d \
 >   --name uyuni-db \
@@ -661,22 +678,17 @@ mgradm install podman --db-only \
 >   -v /pgsql_storage:/var/lib/postgresql/data \
 >   -p 5432:5432 \
 >   registry.opensuse.org/uyuni/server-postgresql:latest
+> systemctl enable uyuni-db
 > ```
 
-#### Verificare Accessibilità dal Server
+#### Verifica Accessibilità dal Server (Opzione A)
 
-Dalla VM `uyuni-server-prod`:
 ```bash
 nc -zv 10.172.2.Z 5432
 ```
 Output atteso: `Connection to 10.172.2.Z 5432 port [tcp/postgresql] succeeded!`
 
-#### Configurare Avvio Automatico Container DB
-```bash
-systemctl enable uyuni-db
-```
-
-### Backup PostgreSQL
+#### Backup PostgreSQL (Opzione A)
 
 ```bash
 cat > /etc/cron.daily/backup-uyuni-db <<'EOF'
@@ -685,13 +697,86 @@ BACKUP_DIR="/backup/postgresql"
 DATE=$(date +%Y%m%d_%H%M%S)
 mkdir -p $BACKUP_DIR
 podman exec uyuni-db pg_dump -U susemanager susemanager | gzip > $BACKUP_DIR/susemanager_$DATE.sql.gz
-# Mantenere solo gli ultimi 7 backup locali
 find $BACKUP_DIR -name "*.sql.gz" -mtime +7 -delete
 EOF
 chmod +x /etc/cron.daily/backup-uyuni-db
 ```
 
-> **[PROD]**: Integrare i backup con **Azure Backup** o un job che trasferisce su **Azure Blob Storage** con retention configurata. Testare il restore su una VM separata almeno una volta ogni 3 mesi.
+> **[PROD]**: Integrare con **Azure Blob Storage** per retention off-VM. Testare il restore periodicamente.
+
+---
+
+### Opzione B — Azure Database for PostgreSQL Flexible Server (PaaS) *(Raccomandato)*
+
+Non richiede provisioning di VM, OS, patch o storage. Azure gestisce backup, HA e aggiornamenti minori automaticamente.
+
+#### Provisioning Flexible Server dal Portale Azure
+
+1. Cercare **Azure Database for PostgreSQL Flexible Server**
+2. **Create → Flexible server**
+
+| Parametro                | Valore consigliato                              |
+| ------------------------ | ----------------------------------------------- |
+| **Resource Group**       | prod_group                                      |
+| **Server name**          | uyuni-db-prod                                   |
+| **Region**               | Italy North                                     |
+| **PostgreSQL version**   | 16 (o la versione usata internamente da UYUNI)  |
+| **Workload type**        | Production                                      |
+| **Compute tier**         | General Purpose                                 |
+| **Compute size**         | Standard_D4ds_v5 (4 vCore, 16 GB RAM) minimo    |
+| **Storage**              | 128 GB+ con auto-grow abilitato                 |
+| **HA**                   | Zone-redundant standby *(99.99% SLA)*           |
+| **Backup retention**     | 7+ giorni, Geo-redundant backup abilitato       |
+| **Authentication**       | PostgreSQL authentication only                  |
+| **Admin username**       | `pgadmin` *(NON usare `susemanager` come admin)*|
+| **Admin password**       | Salvare in Azure Key Vault                      |
+
+3. Tab **Networking**:
+   - **Connectivity method**: `Private access (VNet Integration)`
+   - **VNet**: ASL0603-spoke10-spoke-italynorth
+   - **Subnet**: subnet dedicata (delegata a `Microsoft.DBforPostgreSQL/flexibleServers`)
+   - **Private DNS zone**: creare una nuova zona privata (es. `uyuni-db-prod.private.postgres.database.azure.com`) — Azure la crea automaticamente
+
+4. **Disable public access**: assicurarsi che **Public access** sia `Disabled`
+
+> **[PROD]**: Con VNet Integration il Flexible Server ottiene un IP privato nella subnet e non è mai raggiungibile da internet. Non è necessario configurare NSG separato — la comunicazione avviene interamente nella VNet.
+
+#### Creazione Database e Utente UYUNI
+
+Connettersi al Flexible Server tramite Azure Bastion → psql, oppure dal portale con **Cloud Shell**:
+
+```sql
+-- Connettersi come admin (pgadmin)
+CREATE USER susemanager WITH PASSWORD '<PASSWORD_DB_SICURA>';
+CREATE DATABASE susemanager OWNER susemanager;
+
+-- Abilitare le estensioni richieste da UYUNI
+\c susemanager
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+```
+
+> **[PROD]**: Le estensioni `uuid-ossp` e `pgcrypto` devono essere abilitate prima del deployment UYUNI. Verificare che siano presenti in `SHOW azure.extensions;` sul Flexible Server. In caso contrario abilitarle da **Server parameters → azure.extensions**.
+
+#### Verifica Accessibilità dal Server (Opzione B)
+
+Dalla VM `uyuni-server-prod`:
+```bash
+# Verificare risoluzione DNS del Flexible Server (via Private DNS Zone)
+host uyuni-db-prod.private.postgres.database.azure.com
+
+# Verificare connettività porta 5432
+nc -zv uyuni-db-prod.private.postgres.database.azure.com 5432
+```
+
+#### Backup PostgreSQL (Opzione B)
+
+Il backup è **gestito automaticamente da Azure**:
+- Backup automatici giornalieri inclusi nel servizio
+- Point-in-time restore fino a 35 giorni (configurabile)
+- Geo-redundant backup abilitabile per DR in altra region
+
+Non è necessario configurare cron job. Verificare la policy di retention da **Azure Portal → Flexible Server → Backup and restore**.
 
 ---
 
@@ -705,17 +790,39 @@ mgradm restart
 ```
 
 ### Il database non è raggiungibile
+
+**Opzione A — VM dedicata:**
 ```bash
-# [PROD] — il DB è sulla VM separata
+# Verifica connettività
 nc -zv uyuni-db-prod.dominio.aziendale 5432
 
 # Verificare NSG tra le due VM in Azure Portal
-# Verificare che il container DB sia attivo sulla VM uyuni-db-prod
-# (accedere alla VM uyuni-db-prod via Bastion)
+# Verificare che il container DB sia attivo (accedere alla VM uyuni-db-prod via Bastion)
 podman ps | grep uyuni-db
+podman logs uyuni-db --tail 30
 
 # Test connessione PostgreSQL
 podman exec -it uyuni-db psql -U susemanager -c "SELECT 1;"
+```
+
+**Opzione B — Azure PaaS:**
+```bash
+# Verificare risoluzione DNS (Private DNS Zone)
+host uyuni-db-prod.private.postgres.database.azure.com
+
+# Verifica connettività porta
+nc -zv uyuni-db-prod.private.postgres.database.azure.com 5432
+
+# Se nc fallisce: verificare in Azure Portal che
+# - Il Flexible Server sia in stato "Available"
+# - La VNet Integration sia configurata sulla subnet corretta
+# - La subnet sia delegata a Microsoft.DBforPostgreSQL/flexibleServers
+# - La Private DNS Zone sia linkata alla VNet della VM Server
+
+# Test connessione autenticata (dalla VM Server)
+psql "host=uyuni-db-prod.private.postgres.database.azure.com \
+  port=5432 dbname=susemanager user=susemanager sslmode=require" \
+  -c "SELECT 1;"
 ```
 
 ### Problemi Certificati SSL
@@ -839,3 +946,6 @@ podman system df               # Uso storage container
 - [Client Configuration Guide](https://www.uyuni-project.org/uyuni-docs/en/uyuni/client-configuration/uyuni-client-config-overview.html)
 - [GitHub UYUNI Project](https://github.com/uyuni-project/uyuni)
 - [UYUNI Release Notes 2025.10](https://www.uyuni-project.org/pages/stable-version.html)
+- [Azure Database for PostgreSQL Flexible Server](https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/overview)
+- [Flexible Server — Private Access (VNet Integration)](https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/concepts-networking-private)
+- [Flexible Server — Extensions](https://learn.microsoft.com/en-us/azure/postgresql/flexible-server/concepts-extensions)
