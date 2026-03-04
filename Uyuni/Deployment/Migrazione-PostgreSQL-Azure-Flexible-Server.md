@@ -2,26 +2,53 @@
 
 Prima di toccare qualsiasi cosa, raccogliere informazioni sul setup corrente.
 
+### Recuperare le credenziali del container DB
+
+Il `pg_hba.conf` del container `uyuni-db` accetta **solo connessioni TCP** (non Unix socket) con autenticazione `scram-sha-256`. Le password sono nelle variabili d'ambiente del container:
+
+```bash
+podman inspect uyuni-db --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -i pass
+```
+
+Output atteso (le password sono in chiaro):
+```
+MANAGER_PASS=<password utente susemanager>
+POSTGRES_PASSWORD=<password superuser postgres>
+REPORT_DB_PASS=<password utente report>
+```
+
+Salvare questi valori — servono per il dump e per configurare il restore.
+
+Definire le variabili per i comandi successivi:
+```bash
+PG_SUPERPASS=$(podman inspect uyuni-db --format '{{range .Config.Env}}{{println .}}{{end}}' | grep POSTGRES_PASSWORD | cut -d= -f2)
+PG_MGRPASS=$(podman inspect uyuni-db --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^MANAGER_PASS' | cut -d= -f2)
+```
+
 ### Verificare la versione PostgreSQL nel container
 
 ```bash
-podman exec uyuni-db psql -U susemanager -c "SELECT version();"
+# ✅ Metodo corretto: TCP + superuser postgres
+podman exec -e PGPASSWORD="$PG_SUPERPASS" \
+  uyuni-db psql -h localhost -U postgres -d susemanager -c "SELECT version();"
 ```
 
-Annotare la versione major (es. `PostgreSQL 16.x`). Il Flexible Server deve essere creato con la **stessa versione major**.
+> **Versione rilevata nel setup attuale: PostgreSQL 16.9** — il Flexible Server Azure deve essere creato con **PostgreSQL 16**.
 
 ### Verificare le estensioni installate
 
 ```bash
-podman exec uyuni-db psql -U susemanager -d susemanager -c "\dx"
+podman exec -e PGPASSWORD="$PG_SUPERPASS" \
+  uyuni-db psql -h localhost -U postgres -d susemanager -c "\dx"
 ```
 
-Annotare tutte le estensioni presenti — devono essere abilitate sul Flexible Server prima del restore.
+Annotare tutte le estensioni — devono essere abilitate sul Flexible Server prima del restore.
 
 ### Verificare la dimensione del database
 
 ```bash
-podman exec uyuni-db psql -U susemanager -d susemanager \
+podman exec -e PGPASSWORD="$PG_SUPERPASS" \
+  uyuni-db psql -h localhost -U postgres -d susemanager \
   -c "SELECT pg_size_pretty(pg_database_size('susemanager'));"
 ```
 
@@ -30,8 +57,7 @@ Utile per stimare i tempi di dump/restore e il dimensionamento dello storage Azu
 ### Verificare la configurazione di connessione attuale
 
 ```bash
-# Dove il container server si connette al DB
-podman exec uyuni-server cat /etc/rhn/rhn.conf | grep -E "db_host|db_port|db_name|db_user|db_password"
+podman exec uyuni-server grep -E "db_host|db_port|db_name|db_user|db_password" /etc/rhn/rhn.conf
 ```
 
 Annotare i valori. Questi sono i parametri che andremo a modificare.
@@ -54,7 +80,7 @@ Dal portale Azure, creare uno snapshot dei dischi della VM prima di procedere. I
 | **Resource Group**     | test_group *(stesso della VM UYUNI)*                     |
 | **Server name**        | `uyuni-db-test-azure`                                    |
 | **Region**             | Italy North *(stessa della VM UYUNI)*                    |
-| **PostgreSQL version** | **16** *(o la versione annotata nella FASE 0)*           |
+| **PostgreSQL version** | **16** *(versione rilevata: 16.9)*                       |
 | **Workload type**      | Development *(per il test)*                              |
 | **Compute tier**       | Burstable                                                |
 | **Compute size**       | Standard_B2ms (2 vCore, 8 GB) — sufficiente per il test |
@@ -154,8 +180,11 @@ mkdir -p /manager_storage/db-backup
 podman start uyuni-db
 sleep 5  # attendere che PostgreSQL sia pronto
 
-podman exec uyuni-db pg_dump \
-  -U susemanager \
+PG_SUPERPASS=$(podman inspect uyuni-db --format '{{range .Config.Env}}{{println .}}{{end}}' | grep POSTGRES_PASSWORD | cut -d= -f2)
+
+podman exec -e PGPASSWORD="$PG_SUPERPASS" uyuni-db pg_dump \
+  -h localhost \
+  -U postgres \
   -d susemanager \
   -Fc \
   -f /tmp/susemanager_dump.pgdump

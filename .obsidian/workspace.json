@@ -218,6 +218,7 @@
   },
   "active": "d0984873d53a6218",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Migrazione-PostgreSQL-Azure-Flexible-Server.md.tmp.16762.1772620086010",
     "tools/GUIDA.md",
     "Uyuni/Deployment/Migrazione-PostgreSQL-Azure-Flexible-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
@@ -249,7 +250,6 @@
     "TaskNotes/Views/agenda-default.base",
     "Orchestrator/PROJECT-STATUS.md",
     "n8n/N8N-SERVICE-REMEDIATION.md",
-    "n8n/N8N-INFRASTRUCTURE-DEPLOY.md",
     "GeneralDocumentation/AI_for_IT_Operations.pptx",
     "tools/GUIDA.md.tmp.9547.1772539916363",
     "tools/azure-poc-manager.py.tmp.9547.1772538713324",
