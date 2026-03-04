@@ -12,10 +12,11 @@ import logging
 from datetime import datetime, date
 from decimal import Decimal
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from app.services.db import get_db
-from app.services.test_engine import run_next_test, get_engine_status
+from app.services.test_engine import run_next_test, get_engine_status, run_batch_tests
+from app.services.uyuni_client import UyuniSession
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,92 @@ def trigger_test():
         status_code = 500
     elif result.get("status") == "skipped":
         status_code = 202  # Accepted — nessun lavoro da fare
+
+    return jsonify(result), status_code
+
+
+# ─────────────────────────────────────────────
+# POST /api/v1/tests/validate-operator
+# ─────────────────────────────────────────────
+
+@tests_bp.route("/validate-operator", methods=["POST"])
+def validate_operator():
+    """
+    Verifica credenziali AD/UYUNI dell'operatore.
+
+    Body: { "username": "...", "password": "..." }
+    Risposta: { "valid": true/false, "username": "..." }
+    """
+    body = request.get_json(silent=True) or {}
+    username = (body.get("username") or "").strip()
+    password = body.get("password") or ""
+
+    if not username or not password:
+        return jsonify({"error": "username e password obbligatori"}), 400
+
+    valid = UyuniSession.validate_credentials(username, password)
+    return jsonify({"valid": valid, "username": username})
+
+
+# ─────────────────────────────────────────────
+# POST /api/v1/tests/batch
+# ─────────────────────────────────────────────
+
+@tests_bp.route("/batch", methods=["POST"])
+def run_batch():
+    """
+    Esegue un batch di test su una lista di queue_id.
+    Usa le credenziali operatore per la sessione UYUNI (audit trail).
+    Aggiunge nota UYUNI su tutti i sistemi del gruppo al termine.
+
+    Body:
+    {
+      "queue_ids":  [1, 2, 3],
+      "group_name": "test-ubuntu-2404",
+      "username":   "operatore@asl06.org",
+      "password":   "..."
+    }
+
+    Risposta:
+    {
+      "status": "completed",
+      "group": "...",
+      "operator": "...",
+      "total": 3,
+      "passed": 2,
+      "failed": 1,
+      "results": [...]
+    }
+    """
+    body       = request.get_json(silent=True) or {}
+    queue_ids  = body.get("queue_ids", [])
+    group_name = (body.get("group_name") or "").strip()
+    username   = (body.get("username") or "").strip()
+    password   = body.get("password") or ""
+
+    if not queue_ids:
+        return jsonify({"error": "queue_ids obbligatorio"}), 400
+    if not group_name:
+        return jsonify({"error": "group_name obbligatorio"}), 400
+    if not username or not password:
+        return jsonify({"error": "username e password obbligatori"}), 400
+
+    # Valida credenziali prima di avviare il batch
+    if not UyuniSession.validate_credentials(username, password):
+        return jsonify({
+            "error": "Credenziali non valide o utente non autorizzato in UYUNI"
+        }), 401
+
+    logger.info(
+        f"Batch test triggered: {len(queue_ids)} items | "
+        f"group={group_name!r} | operator={username!r}"
+    )
+
+    result = run_batch_tests(queue_ids, group_name, username, password)
+
+    status_code = 200
+    if result.get("status") == "error":
+        status_code = 500
 
     return jsonify(result), status_code
 

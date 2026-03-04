@@ -59,17 +59,47 @@ class UyuniSession:
     - 1 login/logout per ciclo (non per call)
     - Thread-safe: ogni thread ottiene il proprio ServerProxy via
       threading.local(), ma condividono self._key (read-only dopo login)
+    - Supporta credenziali operatore (username/password opzionali;
+      default: Config.UYUNI_USER / Config.UYUNI_PASSWORD)
 
     Uso:
         with UyuniSession() as session:
             groups = session.get_test_groups()
-            ...
+
+        with UyuniSession(username="op@asl06.org", password="...") as session:
+            session.add_note(system_id, subject, body)
     """
 
-    def __init__(self):
-        self._url = f"{Config.UYUNI_URL}/rpc/api"
+    def __init__(self, username: str = None, password: str = None):
+        self._url      = f"{Config.UYUNI_URL}/rpc/api"
+        self._username = username or Config.UYUNI_USER
+        self._password = password or Config.UYUNI_PASSWORD
         self._key: Optional[str] = None
         self._local = threading.local()
+
+    @staticmethod
+    def validate_credentials(username: str, password: str) -> bool:
+        """
+        Verifica credenziali UYUNI/AD: auth.login + logout immediato.
+        Ritorna True se valide, False altrimenti.
+        """
+        url = f"{Config.UYUNI_URL}/rpc/api"
+        if not Config.UYUNI_VERIFY_SSL:
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            transport = xmlrpc.client.SafeTransport(context=ctx)
+        else:
+            transport = None
+        proxy = xmlrpc.client.ServerProxy(url, transport=transport)
+        try:
+            key = proxy.auth.login(username, password)
+            proxy.auth.logout(key)
+            logger.debug(f"UYUNI: credentials valid for {username!r}")
+            return True
+        except Exception as e:
+            logger.debug(f"UYUNI: credential validation failed for {username!r}: {e}")
+            return False
 
     def _make_proxy(self) -> xmlrpc.client.ServerProxy:
         """Crea ServerProxy rispettando Config.UYUNI_VERIFY_SSL."""
@@ -90,8 +120,8 @@ class UyuniSession:
         return self._local.proxy
 
     def __enter__(self) -> "UyuniSession":
-        self._key = self._proxy.auth.login(Config.UYUNI_USER, Config.UYUNI_PASSWORD)
-        logger.debug("UYUNI session opened")
+        self._key = self._proxy.auth.login(self._username, self._password)
+        logger.debug(f"UYUNI session opened (user={self._username!r})")
         return self
 
     def __exit__(self, *_) -> None:
@@ -156,6 +186,19 @@ class UyuniSession:
                 f"UYUNI get_errata_cves({advisory_name!r}) failed: {e}"
             )
             return []
+
+    def add_note(self, system_id: int, subject: str, body: str) -> None:
+        """
+        Aggiunge nota persistente a un sistema UYUNI (system.addNote).
+        Solo gli amministratori possono eliminare le note → audit trail robusto.
+        Raises: Exception se la chiamata UYUNI fallisce.
+        """
+        try:
+            self._proxy.system.addNote(self._key, system_id, subject, body)
+            logger.debug(f"UYUNI: note added to system {system_id}")
+        except Exception as e:
+            logger.warning(f"UYUNI add_note(system_id={system_id}) failed: {e}")
+            raise
 
     def get_errata_packages(self, advisory_name: str) -> list:
         """

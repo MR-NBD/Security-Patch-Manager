@@ -21,11 +21,10 @@ with st.sidebar:
     st.title("🔒 SPM")
     st.caption(f"API: `{api.base_url()}`")
     st.divider()
-    st.page_link("app.py",                       label="🏠 Overview")
-    st.page_link("pages/1_Coda_Patch.py",        label="📋 Coda Patch")
-    st.page_link("pages/2_Approvazioni.py",      label="✅ Approvazioni")
-    st.page_link("pages/3_Test_Engine.py",       label="🧪 Test Engine")
-    st.page_link("pages/4_Deployments.py",       label="🚀 Deployments")
+    st.page_link("app.py",                        label="🏠 Overview")
+    st.page_link("pages/1_Gruppi_UYUNI.py",       label="🖥 Gruppi UYUNI")
+    st.page_link("pages/2_Test_Batch.py",         label="🧪 Test Batch")
+    st.page_link("pages/3_Approvazioni.py",       label="✅ Approvazioni")
     st.divider()
     if "operator" not in st.session_state:
         st.session_state.operator = ""
@@ -250,6 +249,6 @@ with ac2:
             f"**{pa_count} patch** in attesa di approvazione.",
             icon="⏳",
         )
-        st.page_link("pages/2_Approvazioni.py", label="→ Vai alle Approvazioni")
+        st.page_link("pages/3_Approvazioni.py", label="→ Vai alle Approvazioni")
     else:
         st.info("Nessuna patch in attesa di approvazione.", icon="✅")

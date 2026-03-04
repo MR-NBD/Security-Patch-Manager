@@ -132,7 +132,13 @@ class UyuniPatchClient:
 
     _POLL_INTERVAL = 10  # secondi tra polling azioni UYUNI
 
-    def __init__(self, system_id: int, system_name: str):
+    def __init__(
+        self,
+        system_id: int,
+        system_name: str,
+        username: str = None,
+        password: str = None,
+    ):
         if not system_id:
             raise ValueError(
                 f"system_id obbligatorio per operazioni UYUNI patch "
@@ -141,10 +147,12 @@ class UyuniPatchClient:
             )
         self._system_id   = int(system_id)
         self._system_name = system_name
+        self._username    = username  # None → UyuniSession usa Config default
+        self._password    = password
         self._session: Optional[UyuniSession] = None
 
     def __enter__(self):
-        self._session = UyuniSession()
+        self._session = UyuniSession(username=self._username, password=self._password)
         self._session.__enter__()
         return self
 

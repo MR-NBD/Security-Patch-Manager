@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(chmod +x:*)"
+      "Bash(chmod +x:*)",
+      "WebSearch",
+      "WebFetch(domain:www.uyuni-project.org)",
+      "WebFetch(domain:security.opensuse.org)"
     ]
   }
 }

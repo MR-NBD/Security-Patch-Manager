@@ -256,6 +256,38 @@ def deployment_rollback(dep_id: int, initiated_by: str, reason: str):
 
 
 # ─────────────────────────────────────────────
+# Groups (UYUNI test groups + patches per group)
+# ─────────────────────────────────────────────
+
+def groups_list():
+    return _get("/api/v1/groups")
+
+
+def group_patches(group_name: str):
+    return _get(f"/api/v1/groups/{group_name}/patches")
+
+
+# ─────────────────────────────────────────────
+# Test Batch
+# ─────────────────────────────────────────────
+
+def validate_operator(username: str, password: str):
+    return _post("/api/v1/tests/validate-operator", {
+        "username": username,
+        "password": password,
+    })
+
+
+def run_batch(queue_ids: list, group_name: str, username: str, password: str):
+    return _post("/api/v1/tests/batch", {
+        "queue_ids":  queue_ids,
+        "group_name": group_name,
+        "username":   username,
+        "password":   password,
+    })
+
+
+# ─────────────────────────────────────────────
 # Notifications (lettura diretta — non è un endpoint API,
 # ma per ora usiamo health/detail per sapere se ci sono)
 # ─────────────────────────────────────────────

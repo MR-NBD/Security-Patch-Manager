@@ -413,32 +413,45 @@ L'installazione:
 - Configura il pod `uyuni-proxy-pod`
 - Crea il servizio systemd
 - Abilita IPv4/IPv6 forwarding
-### Fix Bug: Volume mount mancante per systemid
+### Workaround Bug: `/etc/sysconfig/rhn/systemid` — FileNotFoundError
 
-> L'immagine `proxy-httpd` esegue all'avvio lo script `uyuni-configure.py` che legge il `system_id` dal file `httpd.yaml` (contenuto nel config.tar.gz) e lo scrive in `/etc/sysconfig/rhn/systemid`. Tuttavia la directory `/etc/sysconfig/rhn/` non viene montata dal servizio systemd generato da `mgrpxy`. Senza questo fix, il container httpd crasha con errore `FileNotFoundError: '/etc/sysconfig/rhn/systemid'`.
+> **Stato bug**: Aperto e confermato — [uyuni-tools issue #730](https://github.com/uyuni-project/uyuni-tools/issues/730)
+> **Fix upstream**: commit `c36b30d` nel repo `uyuni-tools` — la `proxy-httpd` image creerà la directory `/etc/sysconfig/rhn/` internamente prima di scrivere il systemid.
+> **Versioni affette**: `proxy-httpd` image `5.2.5` (da branch Master/`:latest`) con `mgrpxy 5.2.4` — il bug è presente nonostante `bsc#1246789` fosse ritenuto risolto.
+> **Quando il workaround non sarà più necessario**: quando l'immagine `:latest` includerà il commit `c36b30d`. Verificare con `podman image inspect registry.opensuse.org/uyuni/proxy-httpd:latest --format '{{index .Labels "org.opencontainers.image.version"}}'` dopo un `podman pull`.
 
-> Creare SOLO la directory, **NON** il file `systemid`. Lo script `uyuni-configure.py` controlla `if not os.path.exists("/etc/sysconfig/rhn/systemid")` prima di scrivere: se trova un file già esistente (anche vuoto), **salta la scrittura** e il systemid resta vuoto. Il file deve essere creato dallo script stesso al primo avvio del container.
+**Descrizione**: `uyuni-configure.py` (dentro il container) legge il `system_id` da `httpd.yaml` (contenuto nel config.tar.gz) e lo scrive in `/etc/sysconfig/rhn/systemid` ad ogni avvio. La directory `/etc/sysconfig/rhn/` non esiste né nell'immagine né sull'host → crash con `FileNotFoundError`. Il volume mount **non è la soluzione corretta** (confermato dal maintainer: "There should be no mount") — il fix corretto è che l'immagine crei la directory internamente. Il workaround sotto è temporaneo fino all'uscita dell'immagine aggiornata.
 
-#### Creare SOLO la directory sull'host (NON il file)
+> **Nota**: il systemid non ha bisogno di essere persistito sull'host — viene rigenerato da `httpd.yaml` ad ogni avvio del container. Per questo motivo il volume mount non è necessario nella soluzione definitiva.
+
+#### Prima di avviare: verificare se il workaround è ancora necessario
+```bash
+# Controllare la versione dell'immagine disponibile localmente
+podman image inspect registry.opensuse.org/uyuni/proxy-httpd:latest \
+  --format '{{index .Labels "org.opencontainers.image.version"}}' 2>/dev/null || echo "immagine non ancora pullata"
+
+# Verificare se il service file ha già il mount rhn (workaround già applicato in precedenza)
+grep sysconfig /etc/systemd/system/uyuni-proxy-httpd.service
+```
+
+Se il service file mostra **solo** `-v /etc/sysconfig/proxy:...` senza la riga rhn → applicare il workaround sotto.
+
+#### Workaround (temporaneo — finché commit c36b30d non è nell'immagine :latest)
+
+**Step 1**: Creare la directory sull'host (NON il file `systemid`)
 ```bash
 mkdir -p /etc/sysconfig/rhn
 chmod 755 /etc/sysconfig/rhn
 # NON eseguire: touch /etc/sysconfig/rhn/systemid
-# Il file verrà creato automaticamente dal container con il contenuto corretto
+# Se il file esiste già (anche vuoto), uyuni-configure.py salta la scrittura → systemid vuoto
 ```
 
-> La directory DEVE avere permessi `755` e il file systemid (una volta creato dal container) deve avere permessi `644`. Con permessi restrittivi (`750` sulla directory o `640` sul file), il processo Apache (wwwrun) all'interno del container non può leggere il systemid e restituisce l'errore `unable to access /etc/sysconfig/rhn/systemid` o `systemid has wrong permissions`.
-> Se dopo un bootstrap Salt i permessi cambiano, correggerli con:
-> ```bash
-> chmod 755 /etc/sysconfig/rhn
-> chmod 644 /etc/sysconfig/rhn/systemid
-> podman restart uyuni-proxy-httpd
-> ```
-#### Aggiungere il volume mount al service file
+**Step 2**: Aggiungere il volume mount al service file
 ```bash
 sed -i 's|-v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro|-v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro \\\n-v /etc/sysconfig/rhn:/etc/sysconfig/rhn|' /etc/systemd/system/uyuni-proxy-httpd.service
 ```
-#### Verificare la modifica
+
+**Step 3**: Verificare la modifica
 ```bash
 grep sysconfig /etc/systemd/system/uyuni-proxy-httpd.service
 ```
@@ -447,6 +460,7 @@ Output atteso:
 -v /etc/sysconfig/proxy:/etc/sysconfig/proxy:ro \
 -v /etc/sysconfig/rhn:/etc/sysconfig/rhn \
 ```
+
 #### Ricaricare e avviare
 ```bash
 systemctl daemon-reload
@@ -454,11 +468,19 @@ systemctl start uyuni-proxy-pod
 sleep 2
 systemctl start uyuni-proxy-httpd
 ```
+
 #### Verificare che il systemid sia stato popolato
 ```bash
 cat /etc/sysconfig/rhn/systemid
 ```
-Output atteso: XML contenente `<string>ID-XXXXXXXXXX</string>` con l'ID del sistema proxy. Se il file è vuoto, verificare che non sia stato creato manualmente prima dell'avvio del container.
+Output atteso: XML contenente `<string>ID-XXXXXXXXXX</string>` con l'ID del sistema proxy.
+
+> Se dopo un bootstrap Salt i permessi di `/etc/sysconfig/rhn/` cambiano e Apache (wwwrun) non riesce a leggere il systemid (`systemid has wrong permissions`), correggerli con:
+> ```bash
+> chmod 755 /etc/sysconfig/rhn
+> chmod 644 /etc/sysconfig/rhn/systemid
+> podman restart uyuni-proxy-httpd
+> ```
 ### Verificare Container Attivi
 ```bash
 podman ps

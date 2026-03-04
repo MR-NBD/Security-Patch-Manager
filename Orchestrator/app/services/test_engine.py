@@ -550,7 +550,11 @@ def _execute_test(queue_item: dict) -> dict:
     )
 
     try:
-        with UyuniPatchClient(system_id, system_name) as uyuni:
+        with UyuniPatchClient(
+            system_id, system_name,
+            username=queue_item.get("_operator_username"),
+            password=queue_item.get("_operator_password"),
+        ) as uyuni:
             prom = PrometheusClient()
 
             # Verifica sistema raggiungibile prima di partire
@@ -745,6 +749,147 @@ def get_engine_status() -> dict:
     return {
         "testing":     _testing,
         "last_result": _last_result,
+    }
+
+
+def _add_batch_note(group_name: str, results: list, operator: str) -> None:
+    """
+    Aggiunge nota di riepilogo batch su TUTTI i sistemi del gruppo UYUNI.
+    Best-effort: non blocca il flusso anche se fallisce.
+    """
+    from datetime import date
+    from app.services.uyuni_client import UyuniSession
+
+    try:
+        today   = date.today().isoformat()
+        passed  = sum(1 for r in results if r.get("status") == "pending_approval")
+        failed  = sum(1 for r in results if r.get("status") in ("failed", "error"))
+        total   = len(results)
+
+        lines = [
+            f"SPM Batch Test — {today} — {operator}",
+            f"Gruppo: {group_name}",
+            f"Totale: {total} | Superati: {passed} | Falliti: {failed}",
+            "",
+        ]
+        for r in results:
+            icon    = "+" if r.get("status") == "pending_approval" else "-"
+            errata  = r.get("errata_id", "?")
+            status  = r.get("status", "?")
+            dur     = r.get("duration_s", "?")
+            phase   = r.get("failure_phase") or ""
+            line    = f"{icon} {errata} [{status}] ({dur}s)"
+            if phase:
+                line += f" — fase: {phase}"
+            lines.append(line)
+
+        subject = f"SPM Test {today} [{operator}]"
+        body    = "\n".join(lines)
+
+        with UyuniSession() as session:
+            groups = session.get_test_groups()
+            for group in groups:
+                if group.get("name") == group_name:
+                    systems = session.get_systems_in_group(group_name)
+                    for sys in systems:
+                        sid = sys.get("id")
+                        if sid:
+                            try:
+                                session.add_note(sid, subject, body)
+                                logger.info(
+                                    f"TestEngine: note added to system {sid} "
+                                    f"(group={group_name!r})"
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    f"TestEngine: add_note failed for system {sid}: {e}"
+                                )
+                    break
+
+    except Exception as e:
+        logger.warning(f"TestEngine: _add_batch_note failed: {e}")
+
+
+def run_batch_tests(
+    queue_ids: list,
+    group_name: str,
+    operator_username: str,
+    operator_password: str,
+) -> dict:
+    """
+    Esegue una sequenza di test (batch) su una lista di queue_id.
+    Usa le credenziali dell'operatore per aprire la sessione UYUNI → audit trail.
+    Al termine aggiunge nota su tutti i sistemi del gruppo.
+
+    Thread-safe: usa _testing_lock — ritorna errore se test già in corso.
+    """
+    global _testing, _last_result
+
+    with _testing_lock:
+        if _testing:
+            return {
+                "status": "error",
+                "error": "Test engine già in esecuzione — riprova tra qualche minuto",
+            }
+        _testing = True
+
+    batch_results = []
+    try:
+        for qid in queue_ids:
+            # Fetch elemento dalla coda (solo se ancora in stato 'queued')
+            with get_db() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    SELECT
+                        q.id, q.errata_id, q.target_os,
+                        q.success_score, q.priority_override, q.queued_at,
+                        COALESCE(rp.requires_reboot, FALSE) AS requires_reboot,
+                        COALESCE(rp.affects_kernel,  FALSE) AS affects_kernel
+                    FROM patch_test_queue q
+                    LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id
+                    WHERE q.id = %s AND q.status = 'queued'
+                    """,
+                    (qid,),
+                )
+                row = cur.fetchone()
+
+            if not row:
+                batch_results.append({
+                    "queue_id": qid,
+                    "status":   "skipped",
+                    "reason":   "Non trovato o non in stato queued",
+                })
+                continue
+
+            # Inietta credenziali operatore nel queue_item (campo privato _)
+            item = dict(row)
+            item["_operator_username"] = operator_username
+            item["_operator_password"] = operator_password
+
+            result = _execute_test(item)
+            _last_result = result
+            batch_results.append(result)
+
+        # Aggiunge nota UYUNI su tutti i sistemi del gruppo (best-effort)
+        _add_batch_note(group_name, batch_results, operator_username)
+
+    finally:
+        with _testing_lock:
+            _testing = False
+
+    passed = sum(1 for r in batch_results if r.get("status") == "pending_approval")
+    failed = sum(
+        1 for r in batch_results if r.get("status") in ("failed", "error")
+    )
+    return {
+        "status":   "completed",
+        "group":    group_name,
+        "operator": operator_username,
+        "total":    len(batch_results),
+        "passed":   passed,
+        "failed":   failed,
+        "results":  batch_results,
     }
 
 
