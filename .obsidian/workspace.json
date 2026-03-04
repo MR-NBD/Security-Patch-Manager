@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Teoria/HA-Architecture-UYUNI.md",
+                "file": "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "HA-Architecture-UYUNI"
+              "title": "AzureAD-SAML-Authentication"
             }
           },
           {
@@ -232,6 +232,10 @@
   },
   "active": "d0984873d53a6218",
   "lastOpenFiles": [
+    "Orchestrator/streamlit/app.py.tmp.18828.1772645466544",
+    "Orchestrator/streamlit/azure_auth.py",
+    "Orchestrator/streamlit/azure_auth.py.tmp.18828.1772645407604",
+    "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "tools/GUIDA.md",
     "Orchestrator/streamlit/pages/2_Test_Batch.py.tmp.18828.1772644921511",
     "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.18828.1772644915111",
@@ -241,13 +245,10 @@
     "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.18828.1772644034812",
     "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.18828.1772644030711",
     "Orchestrator/streamlit/api_client.py.tmp.18828.1772644020988",
-    "Orchestrator/streamlit/api_client.py.tmp.18828.1772644016058",
-    "Orchestrator/app/api/groups.py.tmp.18828.1772644007322",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
-    "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "Uyuni/Deployment/Migrazione-PostgreSQL-Azure-Flexible-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy-PRODUZIONE.md",
     "Uyuni/Deployment/Configurazione-VHM-Azure.md",
