@@ -103,7 +103,7 @@ def _build_cache_row(
     description = "" (fetchabile on-demand se necessario)
     """
     advisory_type = base.get("advisory_type", "")
-    synopsis = base.get("synopsis", "")
+    synopsis = base.get("advisory_synopsis") or base.get("synopsis", "")
     issue_date = _parse_uyuni_date(base.get("date"))
     severity = _severity_from_advisory_type(advisory_type)
 

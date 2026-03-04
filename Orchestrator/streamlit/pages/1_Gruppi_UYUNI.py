@@ -13,15 +13,27 @@ import pandas as pd
 import api_client as api
 
 st.title("🖥 Gruppi UYUNI")
-st.caption("Patch applicabili ai sistemi di test, organizzate per gruppo.")
 
-# ── Carica gruppi ─────────────────────────────────────────────────
+# ── Verifica credenziali in sidebar ───────────────────────────────
+username = st.session_state.get("uyuni_username", "")
+password = st.session_state.get("uyuni_password", "")
+
+if not username or not password:
+    st.warning("Inserisci le credenziali UYUNI nella **sidebar** per caricare i gruppi della tua organizzazione.", icon="🔑")
+    st.stop()
+
+# ── Carica gruppi (con credenziali operatore → org-scoped) ────────
 with st.spinner("Caricamento gruppi UYUNI..."):
-    gdata, gerr = api.groups_list()
+    gdata, gerr = api.groups_list(username=username, password=password)
 
 if gerr:
     st.error(f"Errore API: {gerr}")
     st.stop()
+
+# ── Mostra org corrente ───────────────────────────────────────────
+org = (gdata or {}).get("org", {})
+if org.get("org_name"):
+    st.caption(f"Organizzazione: **{org['org_name']}** (ID: {org.get('org_id', '?')})")
 
 groups = (gdata or {}).get("groups", [])
 if not groups:
@@ -52,7 +64,7 @@ st.divider()
 
 # ── Carica patch del gruppo ───────────────────────────────────────
 with st.spinner(f"Caricamento patch per {selected_group}..."):
-    pdata, perr = api.group_patches(selected_group)
+    pdata, perr = api.group_patches(selected_group, username=username, password=password)
 
 if perr:
     st.error(f"Errore patch: {perr}")

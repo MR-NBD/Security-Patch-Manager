@@ -11,13 +11,24 @@ GET /api/v1/groups/<group_name>/patches
 """
 
 import logging
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from app.services.uyuni_client import UyuniSession, os_from_group
 
 logger = logging.getLogger(__name__)
 
 groups_bp = Blueprint("groups", __name__, url_prefix="/api/v1/groups")
+
+
+def _uyuni_session_from_request() -> UyuniSession:
+    """
+    Crea UyuniSession con le credenziali dell'operatore se presenti negli header
+    (X-UYUNI-Username / X-UYUNI-Password), altrimenti usa le credenziali admin
+    da Config (fallback per compatibilità).
+    """
+    username = request.headers.get("X-UYUNI-Username")
+    password = request.headers.get("X-UYUNI-Password")
+    return UyuniSession(username=username or None, password=password or None)
 
 
 # ─────────────────────────────────────────────
@@ -43,7 +54,8 @@ def list_groups():
     }
     """
     try:
-        with UyuniSession() as session:
+        with _uyuni_session_from_request() as session:
+            org = session.get_current_org()
             groups = session.get_test_groups()
             result = []
             for group in groups:
@@ -80,7 +92,7 @@ def list_groups():
                     "patch_count":  len(seen_errata),
                 })
 
-        return jsonify({"groups": result})
+        return jsonify({"org": org, "groups": result})
 
     except Exception as e:
         logger.error(f"GET /groups failed: {e}")
@@ -113,7 +125,7 @@ def group_patches(group_name: str):
     }
     """
     try:
-        with UyuniSession() as session:
+        with _uyuni_session_from_request() as session:
             # Verifica che il gruppo esista
             all_groups = session.get_test_groups()
             matching = [g for g in all_groups if g.get("name") == group_name]
@@ -137,7 +149,7 @@ def group_patches(group_name: str):
                         patches_by_name[name] = {
                             "advisory_name":  name,
                             "advisory_type":  e.get("advisory_type", ""),
-                            "synopsis":       e.get("synopsis", ""),
+                            "synopsis":       e.get("advisory_synopsis") or e.get("synopsis", ""),
                             "date":           str(e.get("date", "") or ""),
                             "systems_affected": [],
                         }

@@ -15,9 +15,17 @@ _BASE = os.environ.get("SPM_API_URL", "http://10.172.2.22:5001")
 _TIMEOUT = 15  # secondi
 
 
-def _get(path: str, params: dict = None):
+def _uyuni_headers(username: str = None, password: str = None) -> dict:
+    """Restituisce headers con credenziali UYUNI se fornite."""
+    if username and password:
+        return {"X-UYUNI-Username": username, "X-UYUNI-Password": password}
+    return {}
+
+
+def _get(path: str, params: dict = None, headers: dict = None):
     try:
-        r = requests.get(f"{_BASE}{path}", params=params, timeout=_TIMEOUT)
+        r = requests.get(f"{_BASE}{path}", params=params,
+                         headers=headers, timeout=_TIMEOUT)
         r.raise_for_status()
         return r.json(), None
     except requests.exceptions.ConnectionError:
@@ -259,12 +267,13 @@ def deployment_rollback(dep_id: int, initiated_by: str, reason: str):
 # Groups (UYUNI test groups + patches per group)
 # ─────────────────────────────────────────────
 
-def groups_list():
-    return _get("/api/v1/groups")
+def groups_list(username: str = None, password: str = None):
+    return _get("/api/v1/groups", headers=_uyuni_headers(username, password))
 
 
-def group_patches(group_name: str):
-    return _get(f"/api/v1/groups/{group_name}/patches")
+def group_patches(group_name: str, username: str = None, password: str = None):
+    return _get(f"/api/v1/groups/{group_name}/patches",
+                headers=_uyuni_headers(username, password))
 
 
 # ─────────────────────────────────────────────

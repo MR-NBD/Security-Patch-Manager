@@ -387,8 +387,8 @@ def _phase_services(
     Retry 3×10s per tollerare servizi in riavvio (es. openssh-server dopo patch).
     Raises: RuntimeError se uno o più servizi sono DOWN dopo tutti i tentativi.
     """
-    _SERVICE_RETRIES    = 3
-    _SERVICE_RETRY_WAIT = 10  # secondi tra tentativi
+    _SERVICE_RETRIES    = 6
+    _SERVICE_RETRY_WAIT = 20  # secondi tra tentativi (totale max ~2 min)
 
     phase_id = _create_phase(test_id, "services")
     try:
@@ -572,22 +572,16 @@ def _execute_test(queue_item: dict) -> dict:
                 raise RuntimeError(failure_reason)
 
             # ① SNAPSHOT
-            # Se requires_reboot=True (kernel) lo snapshot è obbligatorio per
-            # il rollback. Altrimenti è best-effort: se snapper non disponibile
-            # si usa il rollback package.
+            # Best-effort: se snapper non disponibile (es. Ubuntu 24.04) si
+            # passa automaticamente a package rollback, anche per patch kernel.
             try:
                 snapshot_id = _phase_snapshot(test_id, uyuni, errata_id)
             except RuntimeError as e:
-                if requires_reboot:
-                    failure_reason = str(e)
-                    failure_phase  = "snapshot"
-                    raise
-                else:
-                    logger.warning(
-                        f"TestEngine: snapshot failed (snapper not available?), "
-                        f"switching to package rollback: {e}"
-                    )
-                    rollback_type = "package"
+                logger.warning(
+                    f"TestEngine: snapshot failed (snapper not available?), "
+                    f"switching to package rollback: {e}"
+                )
+                rollback_type = "package"
 
             # Baseline metriche (best-effort, Prometheus opzionale)
             baseline_metrics = {}

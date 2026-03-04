@@ -204,6 +204,24 @@ class UyuniSession:
             logger.warning(f"UYUNI add_note(system_id={system_id}) failed: {e}")
             raise
 
+    def get_current_org(self) -> dict:
+        """
+        Ritorna l'organizzazione dell'utente corrente.
+        Chiama user.getDetails() + org.getDetails() per ottenere id e nome.
+        """
+        try:
+            user_details = self._proxy.user.getDetails(self._key, self._username)
+            org_id = user_details.get("org_id", 1)
+            try:
+                org_details = self._proxy.org.getDetails(self._key, org_id)
+                org_name = org_details.get("name", f"Org {org_id}")
+            except Exception:
+                org_name = f"Org {org_id}"
+            return {"org_id": org_id, "org_name": org_name}
+        except Exception as e:
+            logger.warning(f"UYUNI get_current_org failed: {e}")
+            return {"org_id": None, "org_name": ""}
+
     def get_errata_packages(self, advisory_name: str) -> list:
         """
         Pacchetti dell'errata.

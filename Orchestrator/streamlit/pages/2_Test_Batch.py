@@ -174,25 +174,23 @@ st.subheader("Autenticazione e avvio")
 gdata, _ = api.groups_list()
 group_names = [g["name"] for g in (gdata or {}).get("groups", [])]
 
-col_grp, col_user = st.columns(2)
-with col_grp:
-    group_name = (
-        st.selectbox("Gruppo UYUNI target", group_names)
-        if group_names
-        else st.text_input("Gruppo UYUNI target", placeholder="test-ubuntu-2404")
-    )
-with col_user:
-    username = st.text_input(
-        "Username (UPN)", placeholder="nome.cognome@asl06.medus.local"
-    )
-
-password = st.text_input("Password AD", type="password")
-
-st.info(
-    "Le credenziali aprono la sessione UYUNI come te: "
-    "scheduleApplyErrata e addNote risulteranno a tuo nome nel log UYUNI.",
-    icon="🔑",
+group_name = (
+    st.selectbox("Gruppo UYUNI target", group_names)
+    if group_names
+    else st.text_input("Gruppo UYUNI target", placeholder="test-ubuntu-2404")
 )
+
+username = st.session_state.get("uyuni_username", "")
+password = st.session_state.get("uyuni_password", "")
+
+if not username or not password:
+    st.warning("Inserisci le credenziali UYUNI nella **sidebar** prima di avviare il batch.", icon="🔑")
+else:
+    st.info(
+        f"Sessione UYUNI come **{username}** — "
+        "scheduleApplyErrata e addNote risulteranno a tuo nome nel log UYUNI.",
+        icon="🔑",
+    )
 
 can_run = (
     bool(selected_qids) and bool(group_name)
