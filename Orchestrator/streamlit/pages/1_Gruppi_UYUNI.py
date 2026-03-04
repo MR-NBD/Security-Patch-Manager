@@ -14,16 +14,13 @@ import api_client as api
 
 st.title("🖥 Gruppi UYUNI")
 
-username = st.session_state.get("uyuni_username", "")
-password = st.session_state.get("uyuni_password", "")
 org_name = st.session_state.get("uyuni_org_name", "")
-
 if org_name:
     st.caption(f"Organizzazione: **{org_name}**")
 
-# ── Carica gruppi (con credenziali operatore → org-scoped) ────────
+# ── Carica gruppi (account admin di servizio da .env) ─────────────
 with st.spinner("Caricamento gruppi UYUNI..."):
-    gdata, gerr = api.groups_list(username=username, password=password)
+    gdata, gerr = api.groups_list()
 
 if gerr:
     st.error(f"Errore API: {gerr}")
@@ -58,7 +55,7 @@ st.divider()
 
 # ── Carica patch del gruppo ───────────────────────────────────────
 with st.spinner(f"Caricamento patch per {selected_group}..."):
-    pdata, perr = api.group_patches(selected_group, username=username, password=password)
+    pdata, perr = api.group_patches(selected_group)
 
 if perr:
     st.error(f"Errore patch: {perr}")
@@ -120,9 +117,7 @@ target_os = os_map.get(g.get("os", ""), "ubuntu")
 
 col_by, col_prio = st.columns(2)
 with col_by:
-    created_by = st.text_input(
-        "Creato da (tuo nome/cognome)", placeholder="nome.cognome"
-    )
+    created_by = st.session_state.get("user_upn", "")
 with col_prio:
     priority = st.number_input("Priorità", min_value=0, max_value=10, value=0)
 

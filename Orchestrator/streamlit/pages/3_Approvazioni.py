@@ -39,9 +39,7 @@ with tab_pending:
     else:
         st.info(f"**{total}** patch in attesa di approvazione.")
 
-    op = st.session_state.get("operator", "").strip()
-    if not op and total > 0:
-        st.warning("Inserisci il tuo nome nel campo 'Operatore' nella barra laterale per effettuare azioni.")
+    op = st.session_state.get("user_upn", "").strip()
 
     for item in items:
         queue_id   = item.get("queue_id")

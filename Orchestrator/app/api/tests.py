@@ -121,22 +121,16 @@ def run_batch():
     body       = request.get_json(silent=True) or {}
     queue_ids  = body.get("queue_ids", [])
     group_name = (body.get("group_name") or "").strip()
-    username   = (body.get("username") or "").strip()
-    password   = body.get("password") or ""
+    operator   = (body.get("operator") or "").strip()
 
     if not queue_ids:
         return jsonify({"error": "queue_ids obbligatorio"}), 400
     if not group_name:
         return jsonify({"error": "group_name obbligatorio"}), 400
-    if not username or not password:
-        return jsonify({"error": "username e password obbligatori"}), 400
+    if not operator:
+        return jsonify({"error": "operator obbligatorio"}), 400
 
-    if not UyuniSession.validate_credentials(username, password):
-        return jsonify({
-            "error": "Credenziali non valide o utente non autorizzato in UYUNI"
-        }), 401
-
-    batch_id = start_batch(queue_ids, group_name, username, password)
+    batch_id = start_batch(queue_ids, group_name, operator)
     if batch_id is None:
         return jsonify({"error": "Test engine già in esecuzione"}), 409
 

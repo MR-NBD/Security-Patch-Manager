@@ -555,11 +555,7 @@ def _execute_test(queue_item: dict) -> dict:
     )
 
     try:
-        with UyuniPatchClient(
-            system_id, system_name,
-            username=queue_item.get("_operator_username"),
-            password=queue_item.get("_operator_password"),
-        ) as uyuni:
+        with UyuniPatchClient(system_id, system_name) as uyuni:
             prom = PrometheusClient()
 
             # Verifica sistema raggiungibile prima di partire
@@ -834,8 +830,7 @@ def _run_batch_background(
     batch_id: str,
     queue_ids: list,
     group_name: str,
-    operator_username: str,
-    operator_password: str,
+    operator: str,
 ) -> None:
     """Thread worker: esegue i test del batch e aggiorna _batches in tempo reale."""
     global _testing, _last_result
@@ -850,8 +845,6 @@ def _run_batch_background(
                     "reason":   "Non trovato o non in stato queued",
                 }
             else:
-                row["_operator_username"] = operator_username
-                row["_operator_password"] = operator_password
                 result = _execute_test(row)
                 _last_result = result
 
@@ -867,7 +860,7 @@ def _run_batch_background(
         # Nota UYUNI su tutti i sistemi del gruppo
         with _batches_lock:
             results_snapshot = list(_batches[batch_id]["results"])
-        _add_batch_note(group_name, results_snapshot, operator_username)
+        _add_batch_note(group_name, results_snapshot, operator)
 
         with _batches_lock:
             _batches[batch_id]["status"] = "completed"
@@ -888,12 +881,13 @@ def _run_batch_background(
 def start_batch(
     queue_ids: list,
     group_name: str,
-    operator_username: str,
-    operator_password: str,
+    operator: str,
 ) -> Optional[str]:
     """
     Avvia il batch in background. Ritorna immediatamente con batch_id.
     Ritorna None se il test engine è già occupato.
+    Le operazioni UYUNI usano l'account admin da Config (.env).
+    L'operatore (UPN Azure AD) è registrato nell'audit trail SPM.
     """
     global _testing
 
@@ -909,7 +903,7 @@ def start_batch(
             "batch_id":    batch_id,
             "status":      "running",
             "group":       group_name,
-            "operator":    operator_username,
+            "operator":    operator,
             "total":       len(queue_ids),
             "completed":   0,
             "passed":      0,
@@ -921,7 +915,7 @@ def start_batch(
 
     threading.Thread(
         target=_run_batch_background,
-        args=(batch_id, queue_ids, group_name, operator_username, operator_password),
+        args=(batch_id, queue_ids, group_name, operator),
         daemon=True,
         name=f"batch-{batch_id}",
     ).start()

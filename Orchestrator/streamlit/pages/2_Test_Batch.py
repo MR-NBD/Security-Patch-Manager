@@ -168,8 +168,8 @@ else:
 
 st.divider()
 
-# ── Autenticazione + lancio ───────────────────────────────────────
-st.subheader("Autenticazione e avvio")
+# ── Avvio batch ───────────────────────────────────────────────────
+st.subheader("Avvio")
 
 gdata, _ = api.groups_list()
 group_names = [g["name"] for g in (gdata or {}).get("groups", [])]
@@ -180,18 +180,16 @@ group_name = (
     else st.text_input("Gruppo UYUNI target", placeholder="test-ubuntu-2404")
 )
 
-username = st.session_state.get("uyuni_username", "")
-password = st.session_state.get("uyuni_password", "")
-
+# Operatore = utente autenticato via Azure AD
+operator = st.session_state.get("user_upn", "")
 st.info(
-    f"Sessione UYUNI come **{username}** — "
-    "scheduleApplyErrata e addNote risulteranno a tuo nome nel log UYUNI.",
+    f"Operazione avviata da **{st.session_state.get('user_name', operator)}** "
+    f"({operator}) — registrato nel log SPM.",
     icon="🔑",
 )
 
 can_run = (
     bool(selected_qids) and bool(group_name)
-    and bool(username) and bool(password)
     and not ts.get("engine_running")
 )
 
@@ -201,17 +199,8 @@ if st.button(
     disabled=not can_run,
     use_container_width=True,
 ):
-    with st.spinner("Validazione credenziali UYUNI..."):
-        vdata, verr = api.validate_operator(username, password)
-
-    if verr or not (vdata or {}).get("valid"):
-        st.error("❌ Credenziali non valide o utente non autorizzato in UYUNI.")
-        st.stop()
-
-    st.success(f"✓ Credenziali valide per **{username}**")
-
     with st.spinner("Avvio batch..."):
-        bdata, berr = api.start_batch(selected_qids, group_name, username, password)
+        bdata, berr = api.start_batch(selected_qids, group_name, operator)
 
     if berr:
         st.error(f"Errore avvio batch: {berr}")
