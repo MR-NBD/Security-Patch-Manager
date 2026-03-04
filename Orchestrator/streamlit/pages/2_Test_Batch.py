@@ -1,15 +1,15 @@
 """
 SPM Dashboard — Test Batch
 
-Avvia un batch di test su patch in coda.
-Richiede autenticazione AD con credenziali UYUNI valide.
-Le credenziali vengono usate per la sessione UYUNI → audit trail per operatore.
-Alla fine dei test viene aggiunta una nota su tutti i sistemi del gruppo.
+Avvia un batch di test su patch in coda con autenticazione AD/UYUNI.
+Il batch gira in background — la pagina fa polling ogni 5s e mostra
+il progresso patch per patch in tempo reale.
 """
 
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import time
 import streamlit as st
 import pandas as pd
 import api_client as api
@@ -28,18 +28,106 @@ with st.sidebar:
 
 st.title("🧪 Test Batch")
 
+_STATUS_ICON = {
+    "pending_approval": "✅",
+    "failed":           "❌",
+    "error":            "🔥",
+    "skipped":          "⏭",
+}
 
-# ── Stato engine ──────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────────────
+# Monitor batch in corso (polling asincrono)
+# ─────────────────────────────────────────────────────────────────
+
+def render_monitor(batch_id: str):
+    """Mostra progresso batch in tempo reale con auto-refresh ogni 5s."""
+    st.subheader(f"🔄 Batch in corso — ID: `{batch_id}`")
+
+    status_data, err = api.batch_status(batch_id)
+    if err:
+        st.error(f"Errore polling: {err}")
+        if st.button("Annulla monitoraggio"):
+            del st.session_state["active_batch_id"]
+            st.rerun()
+        return
+
+    b             = status_data or {}
+    batch_status  = b.get("status", "running")
+    total         = b.get("total", 0)
+    completed     = b.get("completed", 0)
+    passed        = b.get("passed", 0)
+    failed        = b.get("failed", 0)
+    results       = b.get("results", [])
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Totale",      total)
+    c2.metric("Completati",  f"{completed}/{total}")
+    c3.metric("Superati",    passed)
+    c4.metric("Falliti",     failed)
+
+    st.caption(
+        f"Gruppo: **{b.get('group')}** | Operatore: **{b.get('operator')}** | "
+        f"Avviato: {(b.get('started_at') or '')[:16].replace('T',' ')}"
+    )
+
+    if total > 0:
+        st.progress(completed / total, text=f"{completed}/{total} patch completate")
+
+    if results:
+        rows = []
+        for r in results:
+            s = r.get("status", "?")
+            rows.append({
+                "Stato":   f"{_STATUS_ICON.get(s,'⬜')} {s}",
+                "Errata":  r.get("errata_id", "?"),
+                "Durata":  f"{r.get('duration_s','?')}s",
+                "Fase":    r.get("failure_phase") or "—",
+                "Motivo":  (r.get("failure_reason") or "")[:80],
+            })
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    if batch_status == "completed":
+        st.success(f"✅ Batch completato — {passed}/{total} patch superate.")
+        if passed > 0:
+            st.info(f"**{passed} patch** in attesa di approvazione.", icon="⏳")
+            st.page_link("pages/3_Approvazioni.py", label="→ Vai ad Approvazioni")
+        st.info("Nota di riepilogo aggiunta su tutti i sistemi del gruppo UYUNI.", icon="📝")
+        if st.button("✚ Nuovo batch"):
+            del st.session_state["active_batch_id"]
+            st.rerun()
+
+    elif batch_status == "error":
+        st.error(f"❌ Batch fallito: {b.get('error','errore sconosciuto')}")
+        if st.button("Chiudi"):
+            del st.session_state["active_batch_id"]
+            st.rerun()
+
+    else:
+        st.info("🔄 Test in corso — aggiornamento automatico ogni 5 secondi...")
+        time.sleep(5)
+        st.rerun()
+
+
+# ── Se c'è un batch attivo, mostra solo il monitor ───────────────
+if "active_batch_id" in st.session_state:
+    render_monitor(st.session_state["active_batch_id"])
+    st.stop()
+
+
+# ─────────────────────────────────────────────────────────────────
+# FORM: selezione patch + autenticazione + lancio
+# ─────────────────────────────────────────────────────────────────
+
 ts, ts_err = api.tests_status()
 if ts_err:
     st.error(f"Errore API: {ts_err}")
     st.stop()
 
-running = ts.get("engine_running", False)
-if running:
-    st.warning("🔄 **Test engine in esecuzione** — attendi il completamento prima di avviare un nuovo batch.")
+if ts.get("engine_running"):
+    st.warning("🔄 Test engine già in esecuzione. Attendi il completamento.")
 
-# ── Selezione patch dalla coda ────────────────────────────────────
+# ── Patch in coda ─────────────────────────────────────────────────
 st.subheader("Patch in coda (status: queued)")
 
 qdata, qerr = api.queue_list(status="queued", limit=100)
@@ -48,21 +136,16 @@ if qerr:
     st.stop()
 
 items = (qdata or {}).get("items", [])
-
 if not items:
-    st.info("Nessuna patch in coda con status 'queued'. Aggiungile dalla pagina **Gruppi UYUNI**.")
+    st.info("Nessuna patch in coda. Aggiungile dalla pagina **Gruppi UYUNI**.")
     st.page_link("pages/1_Gruppi_UYUNI.py", label="→ Vai a Gruppi UYUNI")
     st.stop()
 
-# Raggruppa per OS per identificare il gruppo
-os_set = set(it.get("target_os", "") for it in items)
-
-# Tabella con selezione
 _SEV_ICON = {"Critical": "🔴", "High": "🟠", "Medium": "🟡", "Low": "🔵"}
 
 rows = []
 for it in items:
-    sev  = it.get("severity") or "?"
+    sev = it.get("severity") or "?"
     rows.append({
         "Seleziona": False,
         "QID":       it.get("queue_id"),
@@ -73,9 +156,8 @@ for it in items:
         "Score":     it.get("success_score"),
     })
 
-df = pd.DataFrame(rows)
 edited = st.data_editor(
-    df,
+    pd.DataFrame(rows),
     use_container_width=True,
     hide_index=True,
     column_config={
@@ -90,61 +172,44 @@ edited = st.data_editor(
 
 selected_rows = edited[edited["Seleziona"] == True]
 selected_qids = selected_rows["QID"].tolist()
-selected_os   = selected_rows["OS"].unique().tolist() if not selected_rows.empty else []
 
 if selected_qids:
-    st.success(f"**{len(selected_qids)}** patch selezionate per il test.")
-    if len(selected_os) > 1:
-        st.warning(
-            f"⚠ Hai selezionato patch per OS diversi: {', '.join(selected_os)}. "
-            "I batch dovrebbero essere per un solo OS alla volta."
-        )
+    st.success(f"**{len(selected_qids)}** patch selezionate.")
 else:
-    st.caption("Seleziona le patch da testare nella colonna 'Seleziona'.")
+    st.caption("Seleziona le patch da testare.")
 
 st.divider()
 
-# ── Selezione gruppo e autenticazione ────────────────────────────
-st.subheader("Autenticazione operatore")
+# ── Autenticazione + lancio ───────────────────────────────────────
+st.subheader("Autenticazione e avvio")
 
-st.info(
-    "Le tue credenziali AD vengono usate direttamente con UYUNI XML-RPC. "
-    "Tutte le azioni (scheduleApplyErrata, scheduleScriptRun, addNote) "
-    "risulteranno a tuo nome nel log UYUNI.",
-    icon="🔑",
-)
-
-# Carica gruppi per la selezione
-gdata, gerr = api.groups_list()
-groups = (gdata or {}).get("groups", [])
-group_names = [g["name"] for g in groups]
+gdata, _ = api.groups_list()
+group_names = [g["name"] for g in (gdata or {}).get("groups", [])]
 
 col_grp, col_user = st.columns(2)
 with col_grp:
-    if group_names:
-        group_name = st.selectbox("Gruppo UYUNI target", group_names)
-    else:
-        group_name = st.text_input("Gruppo UYUNI target", placeholder="test-ubuntu-2404")
-
+    group_name = (
+        st.selectbox("Gruppo UYUNI target", group_names)
+        if group_names
+        else st.text_input("Gruppo UYUNI target", placeholder="test-ubuntu-2404")
+    )
 with col_user:
     username = st.text_input(
-        "Username (UPN)",
-        placeholder="nome.cognome@asl06.medus.local",
+        "Username (UPN)", placeholder="nome.cognome@asl06.medus.local"
     )
 
 password = st.text_input("Password AD", type="password")
 
-st.divider()
-
-# ── Avvio batch ───────────────────────────────────────────────────
-st.subheader("Avvio batch test")
+st.info(
+    "Le credenziali aprono la sessione UYUNI come te: "
+    "scheduleApplyErrata e addNote risulteranno a tuo nome nel log UYUNI.",
+    icon="🔑",
+)
 
 can_run = (
-    bool(selected_qids)
-    and bool(group_name)
-    and bool(username)
-    and bool(password)
-    and not running
+    bool(selected_qids) and bool(group_name)
+    and bool(username) and bool(password)
+    and not ts.get("engine_running")
 )
 
 if st.button(
@@ -152,109 +217,26 @@ if st.button(
     type="primary",
     disabled=not can_run,
     use_container_width=True,
-    help=(
-        "Seleziona patch, inserisci credenziali e premi per avviare il test batch."
-        if not can_run else ""
-    ),
 ):
-    # Step 1: valida credenziali
-    with st.spinner("Validazione credenziali..."):
+    with st.spinner("Validazione credenziali UYUNI..."):
         vdata, verr = api.validate_operator(username, password)
 
-    if verr:
-        st.error(f"Errore di connessione: {verr}")
-        st.stop()
-
-    if not (vdata or {}).get("valid"):
-        st.error(
-            "❌ Credenziali non valide o utente non autorizzato in UYUNI. "
-            "Verifica username e password AD."
-        )
+    if verr or not (vdata or {}).get("valid"):
+        st.error("❌ Credenziali non valide o utente non autorizzato in UYUNI.")
         st.stop()
 
     st.success(f"✓ Credenziali valide per **{username}**")
 
-    # Step 2: avvia batch (bloccante — può richiedere decine di minuti)
-    with st.spinner(
-        f"Batch test in corso — {len(selected_qids)} patch... "
-        "(questa operazione può richiedere diversi minuti)"
-    ):
-        result, err = api.run_batch(selected_qids, group_name, username, password)
+    with st.spinner("Avvio batch..."):
+        bdata, berr = api.start_batch(selected_qids, group_name, username, password)
 
-    if err:
-        st.error(f"Errore batch: {err}")
+    if berr:
+        st.error(f"Errore avvio batch: {berr}")
         st.stop()
 
-    # ── Report risultati ──────────────────────────────────────────
-    if result:
-        passed = result.get("passed", 0)
-        failed = result.get("failed", 0)
-        total  = result.get("total", 0)
-
-        st.divider()
-        st.subheader("📊 Report batch")
-
-        r1, r2, r3 = st.columns(3)
-        r1.metric("Totale testati",  total)
-        r2.metric("Superati",        passed, delta=passed if passed > 0 else None)
-        r3.metric("Falliti / Errori", failed, delta=-failed if failed > 0 else None, delta_color="inverse")
-
-        st.caption(
-            f"Gruppo: **{result.get('group')}** | "
-            f"Operatore: **{result.get('operator')}**"
-        )
-
-        results_list = result.get("results", [])
-        if results_list:
-            _STATUS_ICON = {
-                "pending_approval": "✅",
-                "failed":           "❌",
-                "error":            "🔥",
-                "skipped":          "⏭",
-            }
-            report_rows = []
-            for r in results_list:
-                status = r.get("status", "?")
-                report_rows.append({
-                    "Stato":      f"{_STATUS_ICON.get(status,'⬜')} {status}",
-                    "Errata":     r.get("errata_id", "?"),
-                    "Durata":     f"{r.get('duration_s','?')}s",
-                    "Fase":       r.get("failure_phase") or "—",
-                    "Motivo":     (r.get("failure_reason") or "")[:80],
-                })
-            st.dataframe(pd.DataFrame(report_rows), use_container_width=True, hide_index=True)
-
-        if passed > 0:
-            st.info(
-                f"**{passed} patch** superano i test e sono in attesa di approvazione. "
-                "Vai su **Approvazioni** per approvare o rifiutare.",
-                icon="⏳",
-            )
-            st.page_link("pages/3_Approvazioni.py", label="→ Vai ad Approvazioni")
-
-        st.success(
-            "Nota di riepilogo aggiunta su tutti i sistemi UYUNI del gruppo.",
-            icon="📝",
-        )
-
-
-# ── Stato corrente test engine ────────────────────────────────────
-st.divider()
-st.subheader("Stato engine")
-
-stats24 = ts.get("stats_24h", {}) or {}
-c1, c2, c3, c4 = st.columns(4)
-c1.metric("Passati (24h)",  stats24.get("passed_24h", 0))
-c2.metric("Falliti (24h)",  stats24.get("failed_24h", 0))
-c3.metric("Errori (24h)",   stats24.get("error_24h", 0))
-c4.metric("Durata media",   f"{stats24.get('avg_duration_s') or 0}s")
-
-last = ts.get("last_result")
-if last and isinstance(last, dict):
-    s   = last.get("status", "?")
-    eid = last.get("errata_id", "?")
-    dur = last.get("duration_s", "?")
-    icons = {"pending_approval": "✅", "failed": "❌", "error": "🔥", "skipped": "⏭"}
-    st.caption(
-        f"**Ultimo risultato:** {icons.get(s,'ℹ')} **{eid}** → `{s}` ({dur}s)"
-    )
+    bid = (bdata or {}).get("batch_id")
+    if bid:
+        st.session_state["active_batch_id"] = bid
+        st.rerun()
+    else:
+        st.error((bdata or {}).get("error", "Errore sconosciuto nell'avvio"))

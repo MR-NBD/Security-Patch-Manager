@@ -270,35 +270,3 @@ class SaltSession:
         return False
 
 
-# ─────────────────────────────────────────────
-# Helper: carica servizi critici da orchestrator_config
-# ─────────────────────────────────────────────
-
-def get_critical_services(target_os: str) -> list:
-    """
-    Ritorna la lista dei servizi critici da monitorare per il target_os.
-    Carica da orchestrator_config (key='critical_services'), fallback su defaults.
-
-    target_os: 'ubuntu' | 'rhel'
-    """
-    defaults = {
-        "ubuntu": ["ssh", "cron", "rsyslog", "systemd-journald"],
-        "rhel":   ["sshd", "crond", "rsyslog", "systemd-journald"],
-    }
-    try:
-        from app.services.db import get_db
-        with get_db() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT value FROM orchestrator_config"
-                " WHERE key = 'critical_services'"
-            )
-            row = cur.fetchone()
-            if row and row["value"]:
-                cfg = row["value"]
-                if target_os in cfg:
-                    return cfg[target_os]
-    except Exception as e:
-        logger.warning(f"Could not load critical_services from DB: {e}")
-
-    return defaults.get(target_os, defaults["ubuntu"])

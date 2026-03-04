@@ -7,33 +7,18 @@ Endpoint per il Test Engine:
   GET  /api/v1/tests/<id>        → dettaglio test con fasi
 """
 
-import json
 import logging
-from datetime import datetime, date
-from decimal import Decimal
 
 from flask import Blueprint, jsonify, request
 
 from app.services.db import get_db
-from app.services.test_engine import run_next_test, get_engine_status, run_batch_tests
+from app.services.test_engine import run_next_test, get_engine_status, start_batch, get_batch_status
 from app.services.uyuni_client import UyuniSession
+from app.utils.serializers import serialize_row as _serialize_row
 
 logger = logging.getLogger(__name__)
 
 tests_bp = Blueprint("tests", __name__, url_prefix="/api/v1/tests")
-
-
-def _serialize(obj):
-    """Serializzazione JSON per tipi PostgreSQL."""
-    if isinstance(obj, (datetime, date)):
-        return obj.isoformat()
-    if isinstance(obj, Decimal):
-        return float(obj)
-    return obj
-
-
-def _serialize_row(row: dict) -> dict:
-    return {k: _serialize(v) for k, v in row.items()}
 
 
 # ─────────────────────────────────────────────
@@ -124,28 +109,14 @@ def validate_operator():
 @tests_bp.route("/batch", methods=["POST"])
 def run_batch():
     """
-    Esegue un batch di test su una lista di queue_id.
+    POST /api/v1/tests/batch
+
+    Avvia un batch di test in background. Ritorna immediatamente con batch_id.
     Usa le credenziali operatore per la sessione UYUNI (audit trail).
-    Aggiunge nota UYUNI su tutti i sistemi del gruppo al termine.
 
-    Body:
-    {
-      "queue_ids":  [1, 2, 3],
-      "group_name": "test-ubuntu-2404",
-      "username":   "operatore@asl06.org",
-      "password":   "..."
-    }
-
-    Risposta:
-    {
-      "status": "completed",
-      "group": "...",
-      "operator": "...",
-      "total": 3,
-      "passed": 2,
-      "failed": 1,
-      "results": [...]
-    }
+    Body: { "queue_ids": [1,2,3], "group_name": "test-ubuntu-2404",
+            "username": "op@asl06.org", "password": "..." }
+    Risposta: { "batch_id": "abc123", "status": "started", "total": 3 }
     """
     body       = request.get_json(silent=True) or {}
     queue_ids  = body.get("queue_ids", [])
@@ -160,24 +131,33 @@ def run_batch():
     if not username or not password:
         return jsonify({"error": "username e password obbligatori"}), 400
 
-    # Valida credenziali prima di avviare il batch
     if not UyuniSession.validate_credentials(username, password):
         return jsonify({
             "error": "Credenziali non valide o utente non autorizzato in UYUNI"
         }), 401
 
-    logger.info(
-        f"Batch test triggered: {len(queue_ids)} items | "
-        f"group={group_name!r} | operator={username!r}"
-    )
+    batch_id = start_batch(queue_ids, group_name, username, password)
+    if batch_id is None:
+        return jsonify({"error": "Test engine già in esecuzione"}), 409
 
-    result = run_batch_tests(queue_ids, group_name, username, password)
+    return jsonify({
+        "batch_id": batch_id,
+        "status":   "started",
+        "total":    len(queue_ids),
+    }), 202
 
-    status_code = 200
-    if result.get("status") == "error":
-        status_code = 500
 
-    return jsonify(result), status_code
+@tests_bp.route("/batch/<batch_id>/status", methods=["GET"])
+def batch_status(batch_id: str):
+    """
+    GET /api/v1/tests/batch/<batch_id>/status
+
+    Stato corrente del batch (polling dalla dashboard).
+    """
+    status = get_batch_status(batch_id)
+    if status is None:
+        return jsonify({"error": f"Batch {batch_id!r} not found"}), 404
+    return jsonify(status)
 
 
 # ─────────────────────────────────────────────

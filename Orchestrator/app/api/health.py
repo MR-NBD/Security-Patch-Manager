@@ -13,6 +13,7 @@ from flask import Blueprint, jsonify, request
 
 from app.config import Config
 from app.services.db import check_db_health
+from app.services.uyuni_client import make_uyuni_ssl_context
 
 logger = logging.getLogger(__name__)
 
@@ -78,9 +79,11 @@ def health_detail():
 def _check_uyuni() -> dict:
     """Verifica raggiungibilità UYUNI XML-RPC"""
     try:
+        ctx = make_uyuni_ssl_context()
+        transport = xmlrpc.client.SafeTransport(context=ctx) if ctx else None
         client = xmlrpc.client.ServerProxy(
             f"{Config.UYUNI_URL}/rpc/api",
-            context=_ssl_context(),
+            transport=transport,
         )
         api_version = client.api.getVersion()
         return {
@@ -122,17 +125,6 @@ def _check_prometheus() -> dict:
             "message": "Timeout",
             "url": Config.PROMETHEUS_URL,
         }
-
-
-def _ssl_context():
-    """SSL context per UYUNI (gestisce verify_ssl=false)"""
-    import ssl
-    if not Config.UYUNI_VERIFY_SSL:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        return ctx
-    return None
 
 
 # ----------------------------------------------------------

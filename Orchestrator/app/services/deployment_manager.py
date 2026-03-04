@@ -26,34 +26,18 @@ Snapshot non garantito in produzione.
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime, timezone, date
-from decimal import Decimal
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.config import Config
 from app.services.db import get_db
 from app.services.salt_client import SaltSession
+from app.utils.serializers import serialize_row as _serialize_row
 
 logger = logging.getLogger(__name__)
 
 # Worker paralleli per deployment multi-sistema
 _DEPLOY_WORKERS = 5
-
-
-# ─────────────────────────────────────────────
-# Serializzazione
-# ─────────────────────────────────────────────
-
-def _serialize(obj):
-    if isinstance(obj, (datetime, date)):
-        return obj.isoformat()
-    if isinstance(obj, Decimal):
-        return float(obj)
-    return obj
-
-
-def _serialize_row(row: dict) -> dict:
-    return {k: _serialize(v) for k, v in row.items()}
 
 
 # ─────────────────────────────────────────────

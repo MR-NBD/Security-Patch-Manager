@@ -25,6 +25,7 @@ import json
 import logging
 import threading
 import time
+import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -42,6 +43,10 @@ logger = logging.getLogger(__name__)
 _testing: bool = False
 _testing_lock = threading.Lock()
 _last_result: Optional[dict] = None
+
+# ── Stato batch asincroni ────────────────────────────────────────
+_batches: dict = {}           # batch_id → stato corrente
+_batches_lock = threading.Lock()
 
 
 # ─────────────────────────────────────────────
@@ -810,87 +815,135 @@ def _add_batch_note(group_name: str, results: list, operator: str) -> None:
         logger.warning(f"TestEngine: _add_batch_note failed: {e}")
 
 
-def run_batch_tests(
+def _fetch_queue_item(queue_id: int) -> Optional[dict]:
+    """Legge un item dalla coda solo se ancora in stato 'queued'."""
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT
+                q.id, q.errata_id, q.target_os,
+                q.success_score, q.priority_override, q.queued_at,
+                COALESCE(rp.requires_reboot, FALSE) AS requires_reboot,
+                COALESCE(rp.affects_kernel,  FALSE) AS affects_kernel
+            FROM patch_test_queue q
+            LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id
+            WHERE q.id = %s AND q.status = 'queued'
+            """,
+            (queue_id,),
+        )
+        row = cur.fetchone()
+        return dict(row) if row else None
+
+
+def _run_batch_background(
+    batch_id: str,
     queue_ids: list,
     group_name: str,
     operator_username: str,
     operator_password: str,
-) -> dict:
-    """
-    Esegue una sequenza di test (batch) su una lista di queue_id.
-    Usa le credenziali dell'operatore per aprire la sessione UYUNI → audit trail.
-    Al termine aggiunge nota su tutti i sistemi del gruppo.
-
-    Thread-safe: usa _testing_lock — ritorna errore se test già in corso.
-    """
+) -> None:
+    """Thread worker: esegue i test del batch e aggiorna _batches in tempo reale."""
     global _testing, _last_result
 
-    with _testing_lock:
-        if _testing:
-            return {
-                "status": "error",
-                "error": "Test engine già in esecuzione — riprova tra qualche minuto",
-            }
-        _testing = True
-
-    batch_results = []
     try:
         for qid in queue_ids:
-            # Fetch elemento dalla coda (solo se ancora in stato 'queued')
-            with get_db() as conn:
-                cur = conn.cursor()
-                cur.execute(
-                    """
-                    SELECT
-                        q.id, q.errata_id, q.target_os,
-                        q.success_score, q.priority_override, q.queued_at,
-                        COALESCE(rp.requires_reboot, FALSE) AS requires_reboot,
-                        COALESCE(rp.affects_kernel,  FALSE) AS affects_kernel
-                    FROM patch_test_queue q
-                    LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id
-                    WHERE q.id = %s AND q.status = 'queued'
-                    """,
-                    (qid,),
-                )
-                row = cur.fetchone()
-
+            row = _fetch_queue_item(qid)
             if not row:
-                batch_results.append({
+                result = {
                     "queue_id": qid,
                     "status":   "skipped",
                     "reason":   "Non trovato o non in stato queued",
-                })
-                continue
+                }
+            else:
+                row["_operator_username"] = operator_username
+                row["_operator_password"] = operator_password
+                result = _execute_test(row)
+                _last_result = result
 
-            # Inietta credenziali operatore nel queue_item (campo privato _)
-            item = dict(row)
-            item["_operator_username"] = operator_username
-            item["_operator_password"] = operator_password
+            with _batches_lock:
+                b = _batches[batch_id]
+                b["results"].append(result)
+                b["completed"] += 1
+                if result.get("status") == "pending_approval":
+                    b["passed"] += 1
+                elif result.get("status") in ("failed", "error"):
+                    b["failed"] += 1
 
-            result = _execute_test(item)
-            _last_result = result
-            batch_results.append(result)
+        # Nota UYUNI su tutti i sistemi del gruppo
+        with _batches_lock:
+            results_snapshot = list(_batches[batch_id]["results"])
+        _add_batch_note(group_name, results_snapshot, operator_username)
 
-        # Aggiunge nota UYUNI su tutti i sistemi del gruppo (best-effort)
-        _add_batch_note(group_name, batch_results, operator_username)
+        with _batches_lock:
+            _batches[batch_id]["status"] = "completed"
+            _batches[batch_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
+
+    except Exception as e:
+        logger.exception(f"Batch {batch_id} background error")
+        with _batches_lock:
+            _batches[batch_id]["status"] = "error"
+            _batches[batch_id]["error"] = str(e)
+            _batches[batch_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
 
     finally:
         with _testing_lock:
             _testing = False
 
-    passed = sum(1 for r in batch_results if r.get("status") == "pending_approval")
-    failed = sum(
-        1 for r in batch_results if r.get("status") in ("failed", "error")
+
+def start_batch(
+    queue_ids: list,
+    group_name: str,
+    operator_username: str,
+    operator_password: str,
+) -> Optional[str]:
+    """
+    Avvia il batch in background. Ritorna immediatamente con batch_id.
+    Ritorna None se il test engine è già occupato.
+    """
+    global _testing
+
+    with _testing_lock:
+        if _testing:
+            return None
+        _testing = True
+
+    batch_id = uuid.uuid4().hex[:12]
+
+    with _batches_lock:
+        _batches[batch_id] = {
+            "batch_id":    batch_id,
+            "status":      "running",
+            "group":       group_name,
+            "operator":    operator_username,
+            "total":       len(queue_ids),
+            "completed":   0,
+            "passed":      0,
+            "failed":      0,
+            "results":     [],
+            "started_at":  datetime.now(timezone.utc).isoformat(),
+            "completed_at": None,
+        }
+
+    threading.Thread(
+        target=_run_batch_background,
+        args=(batch_id, queue_ids, group_name, operator_username, operator_password),
+        daemon=True,
+        name=f"batch-{batch_id}",
+    ).start()
+
+    logger.info(
+        f"Batch {batch_id} started: {len(queue_ids)} items | "
+        f"group={group_name!r} | operator={operator_username!r}"
     )
-    return {
-        "status":   "completed",
-        "group":    group_name,
-        "operator": operator_username,
-        "total":    len(batch_results),
-        "passed":   passed,
-        "failed":   failed,
-        "results":  batch_results,
-    }
+    return batch_id
+
+
+def get_batch_status(batch_id: str) -> Optional[dict]:
+    """Ritorna lo stato corrente del batch, None se non trovato."""
+    with _batches_lock:
+        b = _batches.get(batch_id)
+        return dict(b) if b else None
 
 
 def init_test_scheduler(scheduler) -> None:

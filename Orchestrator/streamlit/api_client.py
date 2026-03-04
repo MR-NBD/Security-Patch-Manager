@@ -278,13 +278,19 @@ def validate_operator(username: str, password: str):
     })
 
 
-def run_batch(queue_ids: list, group_name: str, username: str, password: str):
+def start_batch(queue_ids: list, group_name: str, username: str, password: str):
+    """Avvia batch in background. Ritorna {batch_id, status, total}."""
     return _post("/api/v1/tests/batch", {
         "queue_ids":  queue_ids,
         "group_name": group_name,
         "username":   username,
         "password":   password,
     })
+
+
+def batch_status(batch_id: str):
+    """Polling stato batch. Ritorna {status, completed, passed, failed, results, ...}."""
+    return _get(f"/api/v1/tests/batch/{batch_id}/status")
 
 
 # ─────────────────────────────────────────────

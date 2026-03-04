@@ -10,12 +10,11 @@ Gestisce la coda di test patch:
 
 import json
 import logging
-from datetime import datetime, date
-from decimal import Decimal
 from typing import Optional
 
 from app.services.db import get_db
 from app.services import uyuni_client
+from app.utils.serializers import serialize_row as _serialize_row
 
 logger = logging.getLogger(__name__)
 
@@ -228,22 +227,6 @@ def _upsert_risk_profile(errata_id: str, analysis: dict) -> dict:
         cur = conn.cursor()
         cur.execute(_UPSERT_PROFILE_SQL, params)
         return dict(cur.fetchone())
-
-
-# ─────────────────────────────────────────────
-# Serialization helper
-# ─────────────────────────────────────────────
-
-def _serialize_row(row: dict) -> dict:
-    result = {}
-    for k, v in row.items():
-        if isinstance(v, (datetime, date)):
-            result[k] = v.isoformat()
-        elif isinstance(v, Decimal):
-            result[k] = float(v)
-        else:
-            result[k] = v
-    return result
 
 
 # ─────────────────────────────────────────────

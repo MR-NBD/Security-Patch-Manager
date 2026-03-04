@@ -15,29 +15,13 @@ quando snooze_until è scaduto (via process_snoozed(), chiamato dallo scheduler)
 
 import json
 import logging
-from datetime import datetime, timezone, date
-from decimal import Decimal
+from datetime import datetime, timezone
 from typing import Optional
 
 from app.services.db import get_db
+from app.utils.serializers import serialize_row as _serialize_row
 
 logger = logging.getLogger(__name__)
-
-
-# ─────────────────────────────────────────────
-# Serializzazione helper
-# ─────────────────────────────────────────────
-
-def _serialize(obj):
-    if isinstance(obj, (datetime, date)):
-        return obj.isoformat()
-    if isinstance(obj, Decimal):
-        return float(obj)
-    return obj
-
-
-def _serialize_row(row: dict) -> dict:
-    return {k: _serialize(v) for k, v in row.items()}
 
 
 # ─────────────────────────────────────────────

@@ -49,6 +49,24 @@ def _severity_from_advisory_type(advisory_type: str) -> str:
 
 
 # ─────────────────────────────────────────────
+# SSL helper (condiviso con health.py)
+# ─────────────────────────────────────────────
+
+def make_uyuni_ssl_context():
+    """
+    Crea SSL context per connessioni UYUNI XML-RPC.
+    Rispetta Config.UYUNI_VERIFY_SSL: se False, disabilita verifica certificato.
+    Ritorna None se SSL verification è abilitata (usa default di sistema).
+    """
+    if Config.UYUNI_VERIFY_SSL:
+        return None
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    return ctx
+
+
+# ─────────────────────────────────────────────
 # UyuniSession — thread-safe, single login/logout
 # ─────────────────────────────────────────────
 
@@ -80,21 +98,12 @@ class UyuniSession:
     @staticmethod
     def validate_credentials(username: str, password: str) -> bool:
         """
-        Verifica credenziali UYUNI/AD: auth.login + logout immediato.
+        Verifica credenziali UYUNI/AD: tenta auth.login + logout immediato.
         Ritorna True se valide, False altrimenti.
         """
-        url = f"{Config.UYUNI_URL}/rpc/api"
-        if not Config.UYUNI_VERIFY_SSL:
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            transport = xmlrpc.client.SafeTransport(context=ctx)
-        else:
-            transport = None
-        proxy = xmlrpc.client.ServerProxy(url, transport=transport)
         try:
-            key = proxy.auth.login(username, password)
-            proxy.auth.logout(key)
+            with UyuniSession(username=username, password=password):
+                pass
             logger.debug(f"UYUNI: credentials valid for {username!r}")
             return True
         except Exception as e:
@@ -103,13 +112,8 @@ class UyuniSession:
 
     def _make_proxy(self) -> xmlrpc.client.ServerProxy:
         """Crea ServerProxy rispettando Config.UYUNI_VERIFY_SSL."""
-        if Config.UYUNI_VERIFY_SSL:
-            transport = None
-        else:
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            transport = xmlrpc.client.SafeTransport(context=ctx)
+        ctx = make_uyuni_ssl_context()
+        transport = xmlrpc.client.SafeTransport(context=ctx) if ctx else None
         return xmlrpc.client.ServerProxy(self._url, transport=transport)
 
     @property
