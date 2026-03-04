@@ -231,8 +231,11 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "1044af1749dcd905",
+  "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
+    "Orchestrator/streamlit/pages/3_Test_Engine.py.tmp.18828.1772634423985",
+    "Orchestrator/streamlit/pages/1_Coda_Patch.py.tmp.18828.1772634388502",
+    "Orchestrator/streamlit/app.py.tmp.18828.1772634353344",
     "Orchestrator/streamlit/app.py.tmp.18828.1772632403560",
     "Orchestrator/streamlit/api_client.py.tmp.18828.1772632392195",
     "Orchestrator/app/api/health.py.tmp.18828.1772632379447",
@@ -241,9 +244,6 @@
     "Orchestrator/streamlit/pages/4_Deployments.py",
     "Orchestrator/streamlit/pages/3_Test_Engine.py.tmp.18828.1772632262063",
     "Orchestrator/streamlit/pages/3_Test_Engine.py",
-    "Orchestrator/streamlit/pages/3_Test_Engine.py.tmp.18828.1772632256084",
-    "Orchestrator/streamlit/pages/2_Approvazioni.py",
-    "Orchestrator/streamlit/pages/2_Approvazioni.py.tmp.18828.1772632216432",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
     "tools/GUIDA.md",

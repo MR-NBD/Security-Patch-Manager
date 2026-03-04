@@ -1,12 +1,5 @@
 """
 SPM Dashboard — Overview (Home)
-
-Mostra:
-  • Stato sistema (health componenti)
-  • Notifiche non lette
-  • Statistiche coda e sync UYUNI
-  • Stats test ultime 24h
-  • Azioni rapide: trigger sync, trigger test
 """
 
 import sys
@@ -23,32 +16,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Stili ────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-.metric-card {
-    background: #1e1e2e;
-    border-radius: 8px;
-    padding: 16px;
-    text-align: center;
-}
-.status-ok    { color: #4ade80; font-weight: bold; }
-.status-warn  { color: #facc15; font-weight: bold; }
-.status-err   { color: #f87171; font-weight: bold; }
-.badge-critical { background:#7f1d1d; color:#fca5a5; border-radius:4px; padding:2px 8px; font-size:12px; }
-.badge-high     { background:#7c2d12; color:#fdba74; border-radius:4px; padding:2px 8px; font-size:12px; }
-.badge-medium   { background:#713f12; color:#fde68a; border-radius:4px; padding:2px 8px; font-size:12px; }
-.badge-low      { background:#1e3a5f; color:#93c5fd; border-radius:4px; padding:2px 8px; font-size:12px; }
-</style>
-""", unsafe_allow_html=True)
-
-
 # ── Sidebar ──────────────────────────────────────────────────────
 with st.sidebar:
     st.title("🔒 SPM")
-    st.caption(f"Orchestrator: `{api.base_url()}`")
+    st.caption(f"API: `{api.base_url()}`")
     st.divider()
-    st.page_link("app.py",                       label="🏠 Overview",      icon=None)
+    st.page_link("app.py",                       label="🏠 Overview")
     st.page_link("pages/1_Coda_Patch.py",        label="📋 Coda Patch")
     st.page_link("pages/2_Approvazioni.py",      label="✅ Approvazioni")
     st.page_link("pages/3_Test_Engine.py",       label="🧪 Test Engine")
@@ -57,56 +30,53 @@ with st.sidebar:
     if "operator" not in st.session_state:
         st.session_state.operator = ""
     st.session_state.operator = st.text_input(
-        "Operatore", value=st.session_state.operator,
+        "Operatore",
+        value=st.session_state.operator,
         placeholder="nome.cognome",
         help="Usato per approvazioni e deployments",
     )
 
 
-# ── Titolo ───────────────────────────────────────────────────────
 st.title("Security Patch Manager — Overview")
 
-# ── Health system ────────────────────────────────────────────────
+# ── Verifica connessione ─────────────────────────────────────────
 health, err = api.health_detail()
-
 if err:
-    st.error(f"Orchestrator non raggiungibile: {err}")
+    st.error(f"Orchestrator non raggiungibile ({api.base_url()}): {err}")
     st.stop()
 
-overall = health.get("status", "unknown")
+# ── Stato componenti ─────────────────────────────────────────────
 components = health.get("components", {})
+c1, c2, c3, c4 = st.columns(4)
 
-col_db, col_uyuni, col_prom, col_up = st.columns(4)
+def _status_label(comp: dict) -> str:
+    s = comp.get("status", "unknown")
+    icons = {"connected": "🟢", "unavailable": "🟡", "error": "🔴"}
+    return f"{icons.get(s, '⚪')} {s.upper()}"
 
-def _comp_icon(c: dict) -> str:
-    s = c.get("status", "unknown")
-    return "🟢" if s == "connected" else ("🟡" if s == "unavailable" else "🔴")
-
-with col_db:
+with c1:
     db = components.get("database", {})
-    s = db.get("status", "?")
-    st.metric("Database", s.upper(), delta=None)
-    if s == "error":
-        st.caption(f"⚠ {db.get('message','')}")
+    st.metric("Database", _status_label(db))
+    if db.get("message"):
+        st.caption(f"⚠ {db['message'][:60]}")
 
-with col_uyuni:
+with c2:
     uy = components.get("uyuni", {})
-    s = uy.get("status", "?")
-    st.metric("UYUNI", s.upper())
-    if s == "connected":
+    st.metric("UYUNI", _status_label(uy))
+    if uy.get("status") == "connected":
         st.caption(f"API v{uy.get('api_version','?')}")
-    else:
-        st.caption(f"⚠ {uy.get('message','')[:60]}")
+    elif uy.get("message"):
+        st.caption(f"⚠ {uy['message'][:60]}")
 
-with col_prom:
+with c3:
     pr = components.get("prometheus", {})
-    s = pr.get("status", "?")
-    st.metric("Prometheus", s.upper())
-    if s == "unavailable":
-        st.caption("Non critico — skipped")
+    st.metric("Prometheus", _status_label(pr))
+    if pr.get("status") == "unavailable":
+        st.caption("Non critico")
 
-with col_up:
-    st.metric("Uptime", f"{health.get('uptime_seconds', 0) // 60} min")
+with c4:
+    uptime_min = health.get("uptime_seconds", 0) // 60
+    st.metric("Uptime", f"{uptime_min} min")
     st.caption(f"v{health.get('version','?')}")
 
 
@@ -114,182 +84,172 @@ st.divider()
 
 # ── Notifiche non lette ──────────────────────────────────────────
 notif_data, _ = api.notifications(limit=10)
-if notif_data:
-    total_unread = notif_data.get("total_unread", 0)
-    notif_items  = notif_data.get("items", [])
-    if total_unread > 0:
-        with st.container():
-            for n in notif_items[:5]:
-                ntype = n.get("notification_type", "?")
-                icon  = "⏳" if ntype == "pending_approval" else "❌"
-                subj  = n.get("subject", "")
-                st.warning(f"{icon} {subj}", icon=None)
-            if total_unread > 5:
-                st.caption(f"+ altre {total_unread - 5} notifiche non lette")
-            if st.button("✓ Segna tutte come lette", key="mark_read_banner"):
-                api.notifications_mark_read()
-                st.rerun()
+if notif_data and notif_data.get("total_unread", 0) > 0:
+    total_unread = notif_data["total_unread"]
+    items_notif  = notif_data.get("items", [])
+    for n in items_notif[:5]:
+        ntype = n.get("notification_type", "")
+        icon  = "⏳" if ntype == "pending_approval" else "❌"
+        st.warning(f"{icon} {n.get('subject','')}")
+    if total_unread > 5:
+        st.caption(f"+ altre {total_unread - 5} notifiche non lette")
+    if st.button("✓ Segna tutte come lette"):
+        api.notifications_mark_read()
+        st.rerun()
 
-# ── Stats coda ───────────────────────────────────────────────────
-col_left, col_right = st.columns(2)
+# ── Coda e test stats ────────────────────────────────────────────
+left, right = st.columns(2)
 
-with col_left:
+with left:
     st.subheader("Coda patch")
     stats, err = api.queue_stats()
     if err:
         st.error(err)
     elif stats:
-        by_status = stats.get("by_status", {})
-        by_os     = stats.get("by_os", {})
-        total     = stats.get("total", 0)
+        # queue_stats ritorna un dict piatto
+        s1, s2, s3, s4 = st.columns(4)
+        s1.metric("Totale",     stats.get("total", 0))
+        s2.metric("In coda",    stats.get("queued", 0))
+        s3.metric("In test",    stats.get("testing", 0))
+        s4.metric("Approvaz.",  stats.get("pending_approval", 0))
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Totale", total)
-        c2.metric("In coda", by_status.get("queued", 0))
-        c3.metric("In test", by_status.get("testing", 0))
-        c4.metric("Approv.", by_status.get("pending_approval", 0))
+        ubuntu = stats.get("ubuntu", 0)
+        rhel   = stats.get("rhel", 0)
+        passed = stats.get("passed", 0)
+        failed = stats.get("failed", 0)
+        st.caption(
+            f"Ubuntu: **{ubuntu}**  |  RHEL: **{rhel}**  |  "
+            f"Passati: **{passed}**  |  Falliti: **{failed}**"
+        )
 
-        if by_os:
-            st.caption(
-                f"Ubuntu: {by_os.get('ubuntu', 0)}  |  "
-                f"RHEL: {by_os.get('rhel', 0)}"
-            )
-
-        # Stato workflow
-        workflow_states = {
-            "passed": by_status.get("passed", 0),
-            "approved": by_status.get("approved", 0),
-            "failed": by_status.get("failed", 0),
-            "rejected": by_status.get("rejected", 0),
-            "completed": by_status.get("completed", 0),
-        }
-        non_zero = {k: v for k, v in workflow_states.items() if v > 0}
-        if non_zero:
-            st.caption("  ".join(f"{k}: **{v}**" for k, v in non_zero.items()))
-
-with col_right:
+with right:
     st.subheader("Test Engine — ultime 24h")
     ts, err = api.tests_status()
     if err:
         st.error(err)
     elif ts:
         running = ts.get("engine_running", False)
-        stats24 = ts.get("stats_24h", {})
+        stats24 = ts.get("stats_24h", {}) or {}
 
         if running:
             st.info("🔄 Test in corso...")
         else:
             st.success("✅ Engine inattivo")
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Passati", stats24.get("passed_24h", 0), delta=None)
-        c2.metric("Falliti", stats24.get("failed_24h", 0))
-        c3.metric("Errori",  stats24.get("error_24h",  0))
-        c4.metric("Durata media", f"{stats24.get('avg_duration_s') or 0}s")
+        t1, t2, t3, t4 = st.columns(4)
+        t1.metric("Passati",      stats24.get("passed_24h", 0))
+        t2.metric("Falliti",      stats24.get("failed_24h", 0))
+        t3.metric("Errori",       stats24.get("error_24h", 0))
+        t4.metric("Durata media", f"{stats24.get('avg_duration_s') or 0}s")
 
         last = ts.get("last_result")
-        if last:
-            r = last.get("status", "?")
+        if last and isinstance(last, dict):
+            r   = last.get("status", "?")
             eid = last.get("errata_id", "?")
-            icon = "✅" if r == "pending_approval" else ("❌" if r == "failed" else "ℹ")
-            st.caption(f"Ultimo: {icon} **{eid}** → {r}")
+            icons = {"pending_approval": "✅", "failed": "❌", "error": "🔥", "skipped": "⏭"}
+            st.caption(f"Ultimo: {icons.get(r,'ℹ')} **{eid}** → {r}")
 
 
 st.divider()
 
 # ── Sync UYUNI ───────────────────────────────────────────────────
 st.subheader("Sync UYUNI")
+sc1, sc2 = st.columns(2)
 
-sync_col, errata_col = st.columns(2)
-
-with sync_col:
+with sc1:
     ss, err = api.sync_status()
     if err:
         st.error(err)
     elif ss:
-        running = ss.get("running", False)
-        last    = ss.get("last_sync", {}) or {}
-
-        if running:
+        # sync_status ritorna dict piatto
+        if ss.get("sync_running"):
             st.info("🔄 Sync in corso...")
         else:
-            last_at = last.get("completed_at") or last.get("started_at") or "mai"
-            if isinstance(last_at, str) and len(last_at) > 16:
-                last_at = last_at[:16].replace("T", " ")
-            st.caption(f"Ultimo sync: **{last_at}**")
-            if last.get("status") == "success":
-                st.caption(
-                    f"Errata sincronizzate: **{last.get('errata_count', 0)}**  |  "
-                    f"Durata: {last.get('duration_s', '?')}s"
-                )
-            elif last.get("status") == "error":
-                st.caption(f"⚠ Errore: {last.get('error','?')[:80]}")
+            last_sync = ss.get("last_sync")  # ISO string o None
+            if last_sync:
+                last_str = str(last_sync)[:16].replace("T", " ")
+                st.caption(f"Ultimo sync: **{last_str}**")
+                if ss.get("last_error"):
+                    st.caption(f"⚠ {ss['last_error'][:80]}")
+                else:
+                    st.caption(
+                        f"Inseriti: **{ss.get('last_inserted', 0)}**  |  "
+                        f"Aggiornati: **{ss.get('last_updated', 0)}**  |  "
+                        f"Durata: **{ss.get('last_duration_seconds', '?')}s**"
+                    )
+            else:
+                st.caption("Nessun sync eseguito ancora")
 
     if st.button("🔄 Sync manuale", use_container_width=True):
         with st.spinner("Sync in corso..."):
-            res, err = api.sync_trigger()
-        if err:
-            st.error(f"Sync fallito: {err}")
+            res, e2 = api.sync_trigger()
+        if e2:
+            st.error(f"Sync fallito: {e2}")
         else:
             st.success(
-                f"Sync completato — {res.get('errata_count', '?')} errata "
-                f"in {res.get('duration_s', '?')}s"
+                f"Sync completato — "
+                f"{res.get('errata_count') or res.get('inserted',0) + res.get('updated',0)} errata  |  "
+                f"{res.get('duration_s') or res.get('duration_seconds','?')}s"
             )
             st.rerun()
 
-with errata_col:
+with sc2:
     cs, err = api.errata_cache_stats()
     if err:
         st.error(err)
     elif cs:
         bysev = cs.get("by_severity", {})
         byos  = cs.get("by_os", {})
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Totale errata", cs.get("total", 0))
-        c2.metric("Critical + High",
-                  (bysev.get("critical", 0) or 0) + (bysev.get("high", 0) or 0))
-        c3.metric("Ubuntu", byos.get("ubuntu", 0))
-
-        last_sync = cs.get("last_synced")
-        if last_sync:
-            st.caption(f"Ultimo sync: {str(last_sync)[:16].replace('T',' ')}")
+        e1, e2, e3 = st.columns(3)
+        e1.metric("Errata totali", cs.get("total", 0))
+        e2.metric("Critical+High",
+                  (bysev.get("critical") or 0) + (bysev.get("high") or 0))
+        e3.metric("Ubuntu", byos.get("ubuntu", 0))
+        if cs.get("last_synced"):
+            st.caption(f"Aggiornato: {str(cs['last_synced'])[:16].replace('T',' ')}")
 
 
 st.divider()
 
-# ── Azione rapida: trigger test ──────────────────────────────────
+# ── Azioni rapide ────────────────────────────────────────────────
 st.subheader("Azioni rapide")
+ac1, ac2 = st.columns(2)
 
-c1, c2 = st.columns(2)
-with c1:
+with ac1:
+    ts_check = api.tests_status()[0]
+    engine_running = ts_check.get("engine_running", False) if ts_check else False
+
     if st.button("▶ Esegui prossimo test", use_container_width=True,
-                 help="Prende il primo elemento 'queued' dalla coda e lo testa"):
-        with st.spinner("Test in corso — potrebbe richiedere alcuni minuti..."):
-            res, err = api.tests_run()
-        if err:
-            st.error(f"Errore: {err}")
+                 disabled=engine_running,
+                 help="Prende il primo elemento 'queued' e lo testa"):
+        with st.spinner("Test in corso — può richiedere alcuni minuti..."):
+            res, e2 = api.tests_run()
+        if e2:
+            st.error(f"Errore: {e2}")
         else:
-            status = res.get("status", "?")
-            if status == "skipped":
-                st.info(f"Nessun test eseguito: {res.get('reason','?')}")
-            elif status in ("pending_approval", "passed"):
-                st.success(
-                    f"Test superato — **{res.get('errata_id')}**  "
-                    f"({res.get('duration_s', '?')}s)"
-                )
-            elif status in ("failed", "error"):
+            s = res.get("status", "?")
+            if s == "skipped":
+                st.info(f"Nessun test: {res.get('reason')}")
+            elif s in ("pending_approval", "passed"):
+                st.success(f"Test superato — **{res.get('errata_id')}** ({res.get('duration_s','?')}s)")
+            elif s in ("failed", "error"):
                 st.error(
-                    f"Test fallito — **{res.get('errata_id')}**  "
+                    f"Fallito — **{res.get('errata_id')}**  "
                     f"fase: {res.get('failure_phase','?')}  "
-                    f"motivo: {res.get('failure_reason','?')}"
+                    f"motivo: {(res.get('failure_reason') or '')[:100]}"
                 )
-            else:
-                st.info(f"Risultato: {status}")
             st.rerun()
 
-with c2:
-    st.info(
-        "Per aggiungere patch in coda o gestire le approvazioni, "
-        "usa le pagine dedicate nel menu laterale.",
-        icon="💡",
-    )
+with ac2:
+    pa_count = 0
+    pd2, _ = api.approvals_pending(limit=1)
+    if pd2:
+        pa_count = pd2.get("total", 0)
+    if pa_count > 0:
+        st.warning(
+            f"**{pa_count} patch** in attesa di approvazione.",
+            icon="⏳",
+        )
+        st.page_link("pages/2_Approvazioni.py", label="→ Vai alle Approvazioni")
+    else:
+        st.info("Nessuna patch in attesa di approvazione.", icon="✅")
