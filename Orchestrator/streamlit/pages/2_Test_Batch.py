@@ -14,18 +14,6 @@ import streamlit as st
 import pandas as pd
 import api_client as api
 
-st.set_page_config(page_title="Test Batch — SPM", page_icon="🧪", layout="wide")
-
-with st.sidebar:
-    st.title("🔒 SPM")
-    st.caption(f"API: `{api.base_url()}`")
-    st.divider()
-    st.page_link("app.py",                        label="🏠 Overview")
-    st.page_link("pages/1_Gruppi_UYUNI.py",        label="🖥 Gruppi UYUNI")
-    st.page_link("pages/2_Test_Batch.py",          label="🧪 Test Batch")
-    st.page_link("pages/3_Approvazioni.py",        label="✅ Approvazioni")
-    st.divider()
-
 st.title("🧪 Test Batch")
 
 _STATUS_ICON = {

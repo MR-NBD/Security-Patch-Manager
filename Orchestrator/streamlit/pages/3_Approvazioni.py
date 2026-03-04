@@ -17,28 +17,6 @@ import pandas as pd
 import streamlit as st
 import api_client as api
 
-st.set_page_config(
-    page_title="Approvazioni — SPM",
-    page_icon="✅",
-    layout="wide",
-)
-
-with st.sidebar:
-    st.title("🔒 SPM")
-    st.caption(f"Orchestrator: `{api.base_url()}`")
-    st.divider()
-    st.page_link("app.py",                        label="🏠 Overview")
-    st.page_link("pages/1_Gruppi_UYUNI.py",        label="🖥 Gruppi UYUNI")
-    st.page_link("pages/2_Test_Batch.py",          label="🧪 Test Batch")
-    st.page_link("pages/3_Approvazioni.py",        label="✅ Approvazioni")
-    st.divider()
-    if "operator" not in st.session_state:
-        st.session_state.operator = ""
-    st.session_state.operator = st.text_input(
-        "Operatore", value=st.session_state.operator, placeholder="nome.cognome",
-        help="Nome usato per approvazioni (obbligatorio)",
-    )
-
 st.title("✅ Approvazioni Patch")
 
 tab_pending, tab_history = st.tabs(["⏳ In attesa", "📜 Storico"])

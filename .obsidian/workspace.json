@@ -231,8 +231,11 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "38925d3c58c04823",
+  "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
+    "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.18828.1772639210978",
+    "Orchestrator/streamlit/app.py.tmp.18828.1772639204587",
+    "Orchestrator/streamlit/pages/0_Home.py",
     "Orchestrator/streamlit/pages/2_Test_Batch.py.tmp.18828.1772638819754",
     "Orchestrator/streamlit/pages/2_Test_Batch.py.tmp.18828.1772638780246",
     "Orchestrator/streamlit/api_client.py.tmp.18828.1772638735311",
@@ -241,9 +244,6 @@
     "Orchestrator/app/services/test_engine.py.tmp.18828.1772638676637",
     "Orchestrator/app/services/test_engine.py.tmp.18828.1772638671697",
     "Orchestrator/streamlit/pages/2_Approvazioni.py.tmp.18828.1772638462293",
-    "Orchestrator/app/services/salt_client.py.tmp.18828.1772638457243",
-    "Orchestrator/app/api/health.py.tmp.18828.1772638448710",
-    "Orchestrator/app/api/health.py.tmp.18828.1772638443626",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
