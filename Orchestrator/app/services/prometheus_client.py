@@ -11,10 +11,11 @@ Graceful degradation: se Prometheus non è raggiungibile o non configurato,
 tutti i metodi ritornano None/valori vuoti senza sollevare eccezioni.
 Il Test Engine considera la validazione metriche "skipped" in questo caso.
 
-Prerequisiti infrastruttura (non ancora configurati — nota futura):
-  - node_exporter installato sui sistemi test (porta :9100)
-  - Prometheus configurato per scrape i sistemi test
-  - PROMETHEUS_URL punta all'istanza Prometheus
+Prerequisiti infrastruttura:
+  - node_exporter installato sui sistemi test (porta :9100) — gia' attivo via UYUNI
+  - Prometheus server installato sul VM orchestrator (apt-get install -y prometheus)
+  - Configurare prometheus.yml con http_sd_configs → /api/v1/prometheus/targets
+  - PROMETHEUS_URL: default gia' http://localhost:9090 in config.py (non serve .env)
 
 Metriche usate (node_exporter standard):
   - CPU:    node_cpu_seconds_total{mode="idle"}

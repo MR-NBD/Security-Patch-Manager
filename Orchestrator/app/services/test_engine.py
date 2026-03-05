@@ -384,8 +384,8 @@ def _phase_services(
 ) -> None:
     """
     Fase SERVICES: verifica servizi critici post-patch via systemctl script.
-    Retry 3×10s per tollerare servizi in riavvio (es. openssh-server dopo patch).
-    Raises: RuntimeError se uno o più servizi sono DOWN dopo tutti i tentativi.
+    Retry 6x20s per tollerare servizi in riavvio (es. openssh-server dopo patch).
+    Raises: RuntimeError se uno o piu' servizi sono DOWN dopo tutti i tentativi.
     """
     _SERVICE_RETRIES    = 6
     _SERVICE_RETRY_WAIT = 20  # secondi tra tentativi (totale max ~2 min)
@@ -776,34 +776,53 @@ def _add_batch_note(group_name: str, results: list, operator: str) -> None:
             phase   = r.get("failure_phase") or ""
             line    = f"{icon} {errata} [{status}] ({dur}s)"
             if phase:
-                line += f" — fase: {phase}"
+                line += f" - fase: {phase}"
             lines.append(line)
 
         subject = f"SPM Test {today} [{operator}]"
         body    = "\n".join(lines)
 
         with UyuniSession() as session:
-            groups = session.get_test_groups()
-            for group in groups:
-                if group.get("name") == group_name:
-                    systems = session.get_systems_in_group(group_name)
-                    for sys in systems:
-                        sid = sys.get("id")
-                        if sid:
-                            try:
-                                session.add_note(sid, subject, body)
-                                logger.info(
-                                    f"TestEngine: note added to system {sid} "
-                                    f"(group={group_name!r})"
-                                )
-                            except Exception as e:
-                                logger.warning(
-                                    f"TestEngine: add_note failed for system {sid}: {e}"
-                                )
-                    break
+            systems = session.get_systems_in_group(group_name)
+            for sys in systems:
+                sid = sys.get("id")
+                if sid:
+                    try:
+                        session.add_note(sid, subject, body)
+                        logger.info(
+                            f"TestEngine: note added to system {sid} "
+                            f"(group={group_name!r})"
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            f"TestEngine: add_note failed for system {sid}: {e}"
+                        )
 
     except Exception as e:
         logger.warning(f"TestEngine: _add_batch_note failed: {e}")
+
+
+def _prune_old_batches() -> None:
+    """Rimuove batch completati da piu' di 24h per evitare crescita indefinita di _batches.
+    Deve essere chiamata dentro _batches_lock."""
+    cutoff = datetime.now(timezone.utc).timestamp() - 86400
+    to_delete = [
+        bid for bid, b in _batches.items()
+        if b.get("status") in ("completed", "error") and b.get("completed_at")
+        and _parse_completed_at(b["completed_at"]) < cutoff
+    ]
+    for bid in to_delete:
+        del _batches[bid]
+    if to_delete:
+        logger.debug(f"TestEngine: pruned {len(to_delete)} old batch(es) from memory")
+
+
+def _parse_completed_at(ts_str: str) -> float:
+    """Converte timestamp ISO string in Unix timestamp. Ritorna 0 su errore."""
+    try:
+        return datetime.fromisoformat(ts_str.replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return 0.0
 
 
 def _fetch_queue_item(queue_id: int) -> Optional[dict]:
@@ -896,6 +915,10 @@ def start_batch(
         if _testing:
             return None
         _testing = True
+
+    # Cleanup batch vecchi (>24h) prima di aggiungerne uno nuovo
+    with _batches_lock:
+        _prune_old_batches()
 
     batch_id = uuid.uuid4().hex[:12]
 
