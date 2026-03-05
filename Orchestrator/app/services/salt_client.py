@@ -2,11 +2,13 @@
 SPM Orchestrator - Salt API Client
 
 Client per interagire con il Salt Master via Salt API REST (:9080).
-Usato dal Test Engine per:
-  - Applicare patch (pkg.install) sui sistemi di test
-  - Verificare servizi critici post-patch (service.status)
-  - Eseguire reboot controllato (system.reboot)
-  - Attendere che il minion torni online dopo il reboot (test.ping)
+Usato dal Deployment Manager per:
+  - Applicare patch (pkg.install) sui sistemi di produzione
+  - Verificare raggiungibilità minion (test.ping)
+  - Rollback package-based (pkg.install versioni precedenti)
+
+Nota: il Test Engine usa esclusivamente UYUNI XML-RPC (UyuniPatchClient).
+      Salt API è riservata al deployment in produzione multi-sistema.
 
 Pattern: SaltSession come context manager (1 login/logout per operazione).
 SSL: rispetta Config.UYUNI_VERIFY_SSL (stessa CA del UYUNI server).

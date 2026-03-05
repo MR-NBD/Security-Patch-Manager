@@ -44,7 +44,7 @@ _ADVISORY_TYPE_SEVERITY = {
 }
 
 
-def _severity_from_advisory_type(advisory_type: str) -> str:
+def severity_from_advisory_type(advisory_type: str) -> str:
     return _ADVISORY_TYPE_SEVERITY.get(advisory_type, "Unknown")
 
 

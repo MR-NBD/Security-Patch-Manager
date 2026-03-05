@@ -418,13 +418,10 @@ class UyuniPatchClient:
         )
         return False
 
-    def get_failed_services(self, system_name: str, services: list) -> list:
+    def get_failed_services(self, services: list) -> list:
         """
-        Verifica servizi critici tramite systemctl.
-        Ritorna lista servizi non attivi.
-
-        Nota: il parametro system_name è ignorato (mantenuto per compatibilità
-              con l'interfaccia salt_client originale).
+        Verifica servizi critici tramite systemctl (via UYUNI scheduleScriptRun).
+        Ritorna lista dei servizi non attivi.
         """
         if not services:
             return []

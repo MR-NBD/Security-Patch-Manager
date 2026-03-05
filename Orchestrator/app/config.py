@@ -117,5 +117,3 @@ class Config:
     # ----------------------------------------------------------
     APP_NAME = "spm-orchestrator"
     APP_VERSION = "1.0.0"
-
-

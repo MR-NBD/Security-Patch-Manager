@@ -246,7 +246,7 @@ def add_to_queue(
     Workflow:
       1. Verifica errata in errata_cache
       2. Controlla che non sia già in coda (stato attivo)
-      3. Fetch pacchetti da SPM-SYNC (on-demand)
+      3. Fetch pacchetti da UYUNI (on-demand via errata.listPackages)
       4. Aggiorna packages in errata_cache
       5. Analisi rischio + upsert patch_risk_profile
       6. Calcola Success Score e inserisce in patch_test_queue

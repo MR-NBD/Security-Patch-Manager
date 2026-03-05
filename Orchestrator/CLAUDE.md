@@ -111,7 +111,7 @@ Usata dal **test engine** per applicare patch su VM test:
 | `apply_errata(name, pkgs)` | `system.scheduleApplyErrata` | Cattura versioni old prima; timeout 30 min |
 | `reboot()` | `system.scheduleReboot` | Solo schedula, non attende |
 | `wait_online(timeout)` | ping + echo script | Attesa 30s fissi poi polling ogni 15s |
-| `get_failed_services(_, svcs)` | `system.scheduleScriptRun` | `systemctl is-active` per ogni servizio |
+| `get_failed_services(svcs)` | `system.scheduleScriptRun` | `systemctl is-active` per ogni servizio |
 | `rollback_snapshot(snap_id)` | `system.scheduleScriptRun` | `snapper undochange N..0` |
 | `rollback_packages(pkgs_before)` | `system.scheduleScriptRun` | `apt-get install --allow-downgrades` |
 

@@ -5,13 +5,13 @@ Esegue test automatici sulle patch in coda (status='queued').
 Un test alla volta — mutex globale _testing.
 
 Flusso a fasi:
-  ① snapshot  — crea snapshot pre-patch via snapper (Salt cmd.run)
-  ② patch     — applica pacchetti via Salt pkg.install
+  ① snapshot  — crea snapshot pre-patch via snapper (UYUNI scheduleScriptRun)
+  ② patch     — applica errata via UYUNI scheduleApplyErrata
   ③ reboot    — riavvio + attesa online (solo se requires_reboot=True)
   ④ validate  — verifica delta CPU/memoria via Prometheus
-  ⑤ services  — verifica servizi critici via Salt service.status
+  ⑤ services  — verifica servizi critici via UYUNI scheduleScriptRun (systemctl)
   ↓ (fallimento in qualsiasi fase)
-  ⑥ rollback  — snapshot: snapper undochange | package: pkg downgrade
+  ⑥ rollback  — snapshot: snapper undochange | package: apt downgrade
 
 Ogni fase è registrata in patch_test_phases.
 Il risultato finale aggiorna patch_tests e patch_test_queue.
@@ -396,7 +396,7 @@ def _phase_services(
         failed = []
 
         for attempt in range(1, _SERVICE_RETRIES + 1):
-            failed = uyuni.get_failed_services(uyuni._system_name, services)
+            failed = uyuni.get_failed_services(services)
             if not failed:
                 break
             if attempt < _SERVICE_RETRIES:
@@ -922,7 +922,7 @@ def start_batch(
 
     logger.info(
         f"Batch {batch_id} started: {len(queue_ids)} items | "
-        f"group={group_name!r} | operator={operator_username!r}"
+        f"group={group_name!r} | operator={operator!r}"
     )
     return batch_id
 
