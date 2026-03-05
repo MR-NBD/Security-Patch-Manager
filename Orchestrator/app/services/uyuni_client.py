@@ -120,21 +120,6 @@ class UyuniSession:
         self._key: Optional[str] = None
         self._local = threading.local()
 
-    @staticmethod
-    def validate_credentials(username: str, password: str) -> bool:
-        """
-        Verifica credenziali UYUNI/AD: tenta auth.login + logout immediato.
-        Ritorna True se valide, False altrimenti.
-        """
-        try:
-            with UyuniSession(username=username, password=password):
-                pass
-            logger.debug(f"UYUNI: credentials valid for {username!r}")
-            return True
-        except Exception as e:
-            logger.debug(f"UYUNI: credential validation failed for {username!r}: {e}")
-            return False
-
     def _make_proxy(self) -> xmlrpc.client.ServerProxy:
         """Crea ServerProxy con SSL context e timeout da Config."""
         return xmlrpc.client.ServerProxy(self._url, transport=make_uyuni_transport())
