@@ -80,12 +80,16 @@ def get_test_system_for_os(target_os: str) -> Optional[dict]:
                     or s.get("hostname")
                     or str(system_id)
                 )
-                # Il nome del sistema spesso è l'IP in questo ambiente
-                system_ip = system_name if _is_ip(system_name) else ""
+                # Preferisce l'IP se il nome è già un indirizzo IP;
+                # altrimenti interroga UYUNI system.getNetwork per l'IP reale
+                if _is_ip(system_name):
+                    system_ip = system_name
+                else:
+                    system_ip = session.get_system_network_ip(system_id) or ""
                 logger.info(
                     f"UYUNI auto-discovery: {target_os} → "
                     f"system_id={system_id} name={system_name!r} "
-                    f"(group={group_name!r})"
+                    f"ip={system_ip!r} (group={group_name!r})"
                 )
                 return {
                     "system_id":   system_id,

@@ -2,7 +2,7 @@
 SPM Orchestrator - Serialization Utilities
 
 Funzioni condivise per serializzare tipi PostgreSQL in JSON.
-Usato da: approval_manager, deployment_manager, queue_manager, api/tests.
+Usato da: approval_manager, queue_manager, api/tests.
 """
 
 from datetime import datetime, date

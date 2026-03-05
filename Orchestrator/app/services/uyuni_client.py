@@ -165,6 +165,22 @@ class UyuniSession:
             )
             return []
 
+    def get_system_network_ip(self, system_id: int) -> Optional[str]:
+        """
+        Ritorna l'IP primario del sistema tramite system.getNetwork.
+        Usato da get_test_system_for_os() quando il nome del sistema non è un IP.
+        Ritorna None in caso di errore o IP non disponibile.
+        """
+        try:
+            info = self._proxy.system.getNetwork(self._key, system_id)
+            ip = info.get("ip") or info.get("ip4") or info.get("ipv4")
+            if ip and ip not in ("127.0.0.1", "::1", ""):
+                logger.debug(f"UYUNI getNetwork({system_id}): ip={ip!r}")
+                return ip
+        except Exception as e:
+            logger.debug(f"UYUNI get_system_network_ip({system_id}) failed: {e}")
+        return None
+
     def get_relevant_errata(self, system_id: int) -> list:
         """
         Patch applicabili (non ancora installate) per un sistema.

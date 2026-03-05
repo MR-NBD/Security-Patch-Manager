@@ -231,39 +231,6 @@ def approvals_history(limit=50, offset=0):
 
 
 # ─────────────────────────────────────────────
-# Deployments
-# ─────────────────────────────────────────────
-
-def deployments_list(status=None, limit=50, offset=0):
-    params = {"limit": limit, "offset": offset}
-    if status:
-        params["status"] = status
-    return _get("/api/v1/deployments", params=params)
-
-
-def deployment_detail(dep_id: int):
-    return _get(f"/api/v1/deployments/{dep_id}")
-
-
-def deployment_create(queue_id: int, target_systems: list, created_by: str, notes: str = None):
-    body = {
-        "queue_id": queue_id,
-        "target_systems": target_systems,
-        "created_by": created_by,
-    }
-    if notes:
-        body["notes"] = notes
-    return _post("/api/v1/deployments", body)
-
-
-def deployment_rollback(dep_id: int, initiated_by: str, reason: str):
-    return _post(f"/api/v1/deployments/{dep_id}/rollback", {
-        "initiated_by": initiated_by,
-        "reason": reason,
-    })
-
-
-# ─────────────────────────────────────────────
 # Groups (UYUNI test groups + patches per group)
 # ─────────────────────────────────────────────
 

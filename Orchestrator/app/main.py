@@ -20,7 +20,6 @@ from app.api.sync import sync_bp
 from app.api.queue import queue_bp
 from app.api.tests import tests_bp
 from app.api.approvals import approvals_bp
-from app.api.deployments import deployments_bp
 from app.api.groups import groups_bp
 
 # Setup logging prima di tutto
@@ -45,7 +44,6 @@ def create_app() -> Flask:
     app.register_blueprint(queue_bp)
     app.register_blueprint(tests_bp)
     app.register_blueprint(approvals_bp)
-    app.register_blueprint(deployments_bp)
     app.register_blueprint(groups_bp)
 
     # Handler errori globali

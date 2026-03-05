@@ -67,7 +67,7 @@ UYUNI server:          10.172.2.17  (XML-RPC /rpc/api, SSL verify off)
 | `queue.py` | `/api/v1/queue` | Gestione coda test patch |
 | `tests.py` | `/api/v1/tests` | Test engine status e risultati |
 | `approvals.py` | `/api/v1/approvals` | Workflow approvazione patch |
-| `deployments.py` | `/api/v1/deployments` | Deployment in produzione |
+| `groups.py` | `/api/v1/groups` | Gruppi UYUNI test-* e patch applicabili |
 
 ### Services (`app/services/`)
 
@@ -81,9 +81,7 @@ UYUNI server:          10.172.2.17  (XML-RPC /rpc/api, SSL verify off)
 | `test_engine.py` | Test automatici patch (fasi, rollback, notifiche) |
 | `notification_manager.py` | Scrittura `orchestrator_notifications` + email/webhook |
 | `approval_manager.py` | Workflow approve/reject/snooze + re-queue snoozed |
-| `deployment_manager.py` | Deploy in produzione + rollback |
-| `prometheus_client.py` | Metriche baseline/post-patch (best-effort, opzionale) |
-| `salt_client.py` | **NON USATO** — mantenuto ma non importato dal test engine |
+| `prometheus_client.py` | Metriche baseline/post-patch (graceful skip se non disponibile) |
 
 ---
 
@@ -259,11 +257,9 @@ POST /api/v1/approvals/<queue_id>/approve
 POST /api/v1/approvals/<queue_id>/reject
 POST /api/v1/approvals/<queue_id>/snooze
 
-# Deployment produzione
-POST /api/v1/deployments           → crea + esegui deployment (bloccante)
-GET  /api/v1/deployments           → lista
-GET  /api/v1/deployments/<id>
-POST /api/v1/deployments/<id>/rollback
+# Gruppi UYUNI
+GET  /api/v1/groups                → lista gruppi test-* con sistemi e patch
+GET  /api/v1/groups/<name>/patches → patch applicabili per gruppo (credenziali via X-UYUNI-*)
 ```
 
 ---
@@ -344,13 +340,34 @@ curl -X POST http://localhost:5001/api/v1/queue \
 - Fallback package rollback quando snapper non disponibile (Ubuntu 24.04)
 - Service check con 3 retry × 10s (tolleranza riavvio servizi post-patch)
 - Workflow approvazione (approve/reject/snooze + re-queue automatico)
-- Deployment manager (produzione)
 - Notification manager (DB sempre + email/webhook opzionali)
-- Prometheus (best-effort, graceful skip se non disponibile)
+- IP auto-discovery: system.getNetwork se il nome profilo non è un IP (per Prometheus)
+- Rimosso: deployment_manager, salt_client (produzione out of scope)
 
 ### Da fare / prossime sessioni
-- Dashboard Streamlit (lettura API + visualizzazione notifiche non lette)
-- Test end-to-end completo con approvazione → deploy produzione
-- Verifica rollback package con versioni reali (fix implementata, da testare)
-- Configurare `TEST_WAIT_AFTER_PATCH_SECONDS=30` in `.env` per testing rapido
+- **Prometheus infrastruttura** (vedi sezione sotto — necessario per validate phase)
+- Rimuovere dal .env le variabili TEST_SYSTEM_*_NAME e TEST_SYSTEM_*_IP per forzare auto-discovery
+- Installare snapper su Ubuntu test VM per rollback affidabile
 - Eventuale integrazione email/webhook notifiche quando l'ambiente è pronto
+
+### Setup Prometheus (necessario per fase validate)
+1. Su ogni VM test installare node_exporter:
+   ```bash
+   # Ubuntu 24.04
+   apt-get install -y prometheus-node-exporter
+   systemctl enable --now prometheus-node-exporter
+   # Verifica: curl http://10.172.2.18:9100/metrics | head -5
+   ```
+2. Configurare Prometheus server (es. su 10.172.2.22 o host dedicato):
+   ```yaml
+   # /etc/prometheus/prometheus.yml
+   scrape_configs:
+     - job_name: 'spm-test-vms'
+       static_configs:
+         - targets: ['10.172.2.18:9100', '10.172.2.19:9100']
+   ```
+3. Aggiungere in `.env`:
+   ```bash
+   PROMETHEUS_URL=http://<prometheus-host>:9090
+   ```
+4. La fase validate diventa attiva automaticamente al prossimo test.
