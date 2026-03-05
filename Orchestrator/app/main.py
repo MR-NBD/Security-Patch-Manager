@@ -28,6 +28,13 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
+# Endpoint esenti dall'autenticazione API key (monitoring)
+_AUTH_EXEMPT = (
+    "/api/v1/health",
+    "/api/v1/prometheus/targets",
+)
+
+
 def create_app() -> Flask:
     """
     Factory function per creare l'app Flask.
@@ -39,26 +46,18 @@ def create_app() -> Flask:
     # CORS - permette accesso da Streamlit dashboard
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-    # ── API Key authentication ──────────────────────────────────
-    _EXEMPT_PREFIXES = (
-        "/api/v1/health",
-        "/api/v1/prometheus/targets",
-    )
-
     @app.before_request
     def require_api_key():
         """
-        Valida X-SPM-Key su tutti gli endpoint /api/* sensibili.
+        Valida X-SPM-Key su tutti gli endpoint /api/*.
         Esenti: /api/v1/health* e /api/v1/prometheus/targets (monitoring).
-        Se SPM_API_KEY non è configurata nel .env, salta la verifica
-        ma logga un avviso all'avvio.
+        Se SPM_API_KEY non è impostata nel .env, la verifica è disabilitata.
         """
         if not Config.API_KEY:
-            return  # chiave non configurata → nessuna verifica (backward compat)
-        if any(request.path.startswith(p) for p in _EXEMPT_PREFIXES):
-            return  # endpoint di monitoring: sempre accessibili
-        key = request.headers.get("X-SPM-Key", "")
-        if key != Config.API_KEY:
+            return
+        if any(request.path.startswith(p) for p in _AUTH_EXEMPT):
+            return
+        if request.headers.get("X-SPM-Key", "") != Config.API_KEY:
             return jsonify({"error": "unauthorized", "message": "Invalid or missing X-SPM-Key"}), 401
 
     # Registra blueprints

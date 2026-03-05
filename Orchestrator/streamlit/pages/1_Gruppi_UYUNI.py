@@ -12,9 +12,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import streamlit as st
 import pandas as pd
 import api_client as api
+import auth_guard
 
-if not st.session_state.get("authenticated"):
-    st.stop()
+auth_guard.require_auth()
 
 st.title("🖥 Gruppi UYUNI")
 

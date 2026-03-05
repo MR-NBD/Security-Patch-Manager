@@ -17,9 +17,9 @@ import pandas as pd
 
 import streamlit as st
 import api_client as api
+import auth_guard
 
-if not st.session_state.get("authenticated"):
-    st.stop()
+auth_guard.require_auth()
 
 st.title("✅ Approvazioni Patch")
 
