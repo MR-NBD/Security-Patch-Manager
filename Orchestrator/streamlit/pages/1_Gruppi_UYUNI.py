@@ -19,9 +19,10 @@ org_name = st.session_state.get("uyuni_org_name", "")
 if org_name:
     st.caption(f"Organizzazione: **{org_name}**")
 
-# ── Carica gruppi (account admin di servizio da .env) ─────────────
+# ── Carica gruppi (filtrati per org selezionata) ──────────────────
+org_id = st.session_state.get("selected_org_id")
 with st.spinner("Caricamento gruppi UYUNI..."):
-    gdata, gerr = api.groups_list()
+    gdata, gerr = api.groups_list(org_id=org_id)
 
 if gerr:
     st.error(f"Errore API: {gerr}")

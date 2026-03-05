@@ -264,8 +264,9 @@ POST /api/v1/approvals/<queue_id>/approve
 POST /api/v1/approvals/<queue_id>/reject
 POST /api/v1/approvals/<queue_id>/snooze
 
-# Gruppi UYUNI
-GET  /api/v1/groups                → lista gruppi test-* con sistemi e patch
+# Organizzazioni e Gruppi UYUNI
+GET  /api/v1/orgs                  → lista organizzazioni UYUNI (satellite admin)
+GET  /api/v1/groups[?org_id=N]     → lista gruppi test-* con sistemi e patch (filtro org)
 GET  /api/v1/groups/<name>/patches → patch applicabili per gruppo (credenziali via X-UYUNI-*)
 
 # Prometheus HTTP Service Discovery
@@ -293,8 +294,10 @@ TEST_SYSTEM_UBUNTU_ID=             # es. 1000010000
 TEST_SYSTEM_RHEL_ID=               # es. 1000010008
 
 # Test Engine timing
-TEST_WAIT_AFTER_PATCH_SECONDS=300   # attesa stabilizzazione post-patch (no reboot)
-TEST_WAIT_AFTER_REBOOT_SECONDS=180  # timeout wait_online dopo reboot
+TEST_WAIT_AFTER_PATCH_SECONDS=300          # attesa stabilizzazione post-patch (no reboot)
+TEST_WAIT_AFTER_REBOOT_SECONDS=180         # timeout wait_online dopo reboot
+TEST_REBOOT_DELIVERY_WAIT_SECONDS=60       # attesa iniziale per consegna reboot Salt (minion check-in)
+TEST_REBOOT_STABILIZATION_SECONDS=30       # attesa post-online prima di validate/services
 
 # Prometheus — punta al server Prometheus sul VM orchestrator
 PROMETHEUS_URL=http://localhost:9090
@@ -351,15 +354,21 @@ curl -X POST http://localhost:5001/api/v1/queue \
 - Fallback package rollback quando snapper non disponibile (Ubuntu 24.04)
 - Service check con 6 retry × 20s (tolleranza riavvio SSH post-patch)
 - `_DEFAULT_SERVICES["ubuntu"]` = `["ssh.socket", "cron", "rsyslog"]` (socket activation)
+- Reboot delivery wait (60s default) + stabilization wait (30s default) configurabili da `.env`
+- Auto-provisioning node_exporter via UYUNI channels se mancante sul sistema test
+- Ordinamento coda: priority DESC → no-reboot prima → score DESC → queued_at ASC
+- Cleanup automatico batch >24h in memoria (`_prune_old_batches`)
+- Multi-org UYUNI: `GET /api/v1/orgs` + filtro `org_id` su `/api/v1/groups` + selector sidebar
 - Workflow approvazione (approve/reject/snooze + re-queue automatico snoozed)
 - Notification manager (DB sempre + email/webhook opzionali)
 - `GET /api/v1/prometheus/targets` — Prometheus HTTP SD dinamico da UYUNI
-- Rimosso: deployment_manager, salt_client, api/deployments (produzione out of scope)
 - `is_ip()` (pubblica in `uyuni_patch_client.py`) usata da test engine e prometheus_sd
 - `serialize_row` (condivisa da `serializers.py`) usata da health, approvals, queue
+- `KERNEL_PATTERNS` / `REBOOT_PATTERNS` pubblici in `queue_manager.py`, importati da `groups.py`
+- Rimosso: deployment_manager, salt_client, api/deployments (produzione out of scope)
 
 ### Da fare / prossime sessioni
-- **Installare Prometheus** sul VM orchestrator (vedi sotto) e impostare `PROMETHEUS_URL`
+- **Installare Prometheus** sul VM orchestrator (vedi sotto)
 - Installare snapper su Ubuntu test VM per rollback snapshot affidabile
 - Eventuale integrazione email/webhook notifiche quando l'ambiente è pronto
 
@@ -367,14 +376,11 @@ curl -X POST http://localhost:5001/api/v1/queue \
 node_exporter è già attivo sui test VM (deployato da UYUNI). Serve solo il server:
 
 ```bash
-# 1. Installa Prometheus
 apt-get install -y prometheus
 
-# 2. Configura con HTTP SD (target dinamici da SPM)
 cat > /etc/prometheus/prometheus.yml << 'EOF'
 global:
   scrape_interval: 60s
-
 scrape_configs:
   - job_name: 'spm-test-vms'
     http_sd_configs:
@@ -382,17 +388,11 @@ scrape_configs:
         refresh_interval: 30m
 EOF
 
-# 3. Avvia
 systemctl enable --now prometheus
-
-# 4. Verifica target scoperti
 curl -s 'http://localhost:9090/api/v1/targets' | python3 -m json.tool | grep health
 ```
 
-```bash
-# 5. Aggiungi in .env
-PROMETHEUS_URL=http://localhost:9090
-```
+`PROMETHEUS_URL` non va aggiunto al `.env` — il default `http://localhost:9090` è già in `config.py`.
 
 Ogni sistema aggiunto a un gruppo `test-*` in UYUNI viene scoperto
 automaticamente da Prometheus entro 30 minuti (refresh http_sd_configs).

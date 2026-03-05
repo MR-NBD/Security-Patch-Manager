@@ -40,10 +40,16 @@ if "code" in params and not st.session_state.get("authenticated"):
         st.session_state.authenticated = True
         st.session_state.user_upn = user["upn"]
         st.session_state.user_name = user["display_name"] or user["upn"]
-        # Carica org UYUNI (con account admin di servizio)
-        gdata, _ = api.groups_list()
-        org = (gdata or {}).get("org", {})
-        st.session_state.uyuni_org_name = org.get("org_name", "")
+        # Carica organizzazioni UYUNI (con account admin di servizio)
+        odata, _ = api.orgs_list()
+        orgs = (odata or {}).get("orgs", [])
+        st.session_state.uyuni_orgs = orgs
+        if orgs:
+            st.session_state.selected_org_id   = orgs[0]["org_id"]
+            st.session_state.uyuni_org_name    = orgs[0]["org_name"]
+        else:
+            st.session_state.selected_org_id   = None
+            st.session_state.uyuni_org_name    = ""
         st.rerun()
     else:
         error_desc = result.get(
@@ -100,8 +106,28 @@ with st.sidebar:
 
     st.caption(f"👤 **{st.session_state.user_name}**")
     st.caption(f"📧 {st.session_state.user_upn}")
-    if st.session_state.get("uyuni_org_name"):
-        st.caption(f"🏢 {st.session_state.uyuni_org_name}")
+
+    # Selector organizzazione UYUNI (visibile solo se ci sono più org)
+    orgs = st.session_state.get("uyuni_orgs", [])
+    if len(orgs) > 1:
+        org_names  = [o["org_name"] for o in orgs]
+        org_ids    = [o["org_id"]   for o in orgs]
+        current_id = st.session_state.get("selected_org_id", org_ids[0])
+        current_idx = org_ids.index(current_id) if current_id in org_ids else 0
+        chosen = st.selectbox(
+            "Organizzazione",
+            org_names,
+            index=current_idx,
+            key="sidebar_org_selector",
+        )
+        chosen_id = org_ids[org_names.index(chosen)]
+        if chosen_id != st.session_state.get("selected_org_id"):
+            st.session_state.selected_org_id = chosen_id
+            st.session_state.uyuni_org_name  = chosen
+            st.rerun()
+        st.caption(f"🏢 {chosen}")
+    elif orgs:
+        st.caption(f"🏢 {orgs[0]['org_name']}")
 
     if st.button("Logout", use_container_width=True):
         for key in list(st.session_state.keys()):

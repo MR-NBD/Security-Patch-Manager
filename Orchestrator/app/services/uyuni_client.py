@@ -238,6 +238,23 @@ class UyuniSession:
             logger.warning(f"UYUNI get_current_org failed: {e}")
             return {"org_id": None, "org_name": ""}
 
+    def list_orgs(self) -> list:
+        """
+        Ritorna tutte le organizzazioni UYUNI visibili all'account corrente.
+        Richiede ruolo satellite admin per vedere tutte le org.
+        Ritorna [{org_id, org_name}, ...].
+        """
+        try:
+            orgs = self._proxy.org.listOrgs(self._key)
+            return [
+                {"org_id": o.get("id"), "org_name": o.get("name", f"Org {o.get('id')}")}
+                for o in orgs
+            ]
+        except Exception as e:
+            logger.warning(f"UYUNI list_orgs failed: {e}")
+            # Fallback: ritorna solo l'org corrente
+            return [self.get_current_org()]
+
     def get_errata_packages(self, advisory_name: str) -> list:
         """
         Pacchetti dell'errata.

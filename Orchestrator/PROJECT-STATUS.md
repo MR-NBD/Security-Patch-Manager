@@ -1,7 +1,7 @@
 # SPM-Orchestrator — Project Status & Development Notes
 
 > Documento vivente. Aggiornare ad ogni sessione di sviluppo.
-> Ultima modifica: 2026-03-05 (sessione 6)
+> Ultima modifica: 2026-03-05 (sessione 7)
 
 ---
 
@@ -91,6 +91,7 @@ viene saltata silenziosamente e il test continua.
 - [x] `add_note()` — aggiunge nota su sistema UYUNI (usato da batch summary)
 - [x] `validate_credentials()` — verifica credenziali UYUNI (residuo pre-SSO, non piu' usato)
 - [x] `get_current_org()` — ritorna nome organizzazione UYUNI (usato dalla dashboard)
+- [x] `list_orgs()` — lista tutte le org UYUNI (satellite admin); fallback a org corrente
 - [x] `get_system_network_ip()` — risolve IP via system.getNetwork (per Prometheus)
 - [x] Auto-discovery attiva quando `system_id`, `system_name` o `system_ip` mancano
 
@@ -133,8 +134,12 @@ viene saltata silenziosamente e il test continua.
 - [x] Poll scheduler ogni 2 minuti (APScheduler)
 - [x] Batch asincrono: `start_batch()` → thread background → polling ogni 5s dalla dashboard
 - [x] `_add_batch_note()` — aggiunge nota di riepilogo su tutti i sistemi del gruppo UYUNI
+- [x] `_prune_old_batches()` — pulizia automatica batch >24h in memoria (chiamata da start_batch)
 - [x] Vincoli DB rispettati: queue usa 'failed' (non 'error'), test usa 'passed' (non 'pending_approval')
 - [x] `FOR UPDATE OF q SKIP LOCKED` — safe per istanze concorrenti
+- [x] Ordinamento coda: priority DESC → no-reboot prima → score DESC → queued_at ASC
+- [x] Reboot delivery wait configurabile (`TEST_REBOOT_DELIVERY_WAIT_SECONDS`, default 60s)
+- [x] Reboot stabilization wait configurabile (`TEST_REBOOT_STABILIZATION_SECONDS`, default 30s)
 
 #### Approval Workflow
 - [x] approve/reject/snooze con audit trail completo in `patch_approvals`
@@ -159,10 +164,10 @@ viene saltata silenziosamente e il test continua.
   - Restituisce formato HTTP SD: `[{"targets": ["IP:9100"], "labels": {...}}]`
 
 #### Dashboard Streamlit (4 pagine)
-- [x] `app.py` — Azure AD SSO (MSAL OAuth2/OIDC), st.navigation(), sidebar utente+org
+- [x] `app.py` — Azure AD SSO (MSAL OAuth2/OIDC), st.navigation(), sidebar utente+org con selector multi-org
 - [x] `0_Home.py` — Health componenti, notifiche non lette, stats coda/test, sync manuale
-- [x] `1_Gruppi_UYUNI.py` — Gruppi test-*, patch applicabili, selezione + aggiunta in coda
-- [x] `2_Test_Batch.py` — Selezione patch queued, avvio batch, monitor live polling 5s
+- [x] `1_Gruppi_UYUNI.py` — Gruppi test-* (filtrati per org), patch con colonna Reboot, aggiunta in coda
+- [x] `2_Test_Batch.py` — Selezione patch queued con banner reboot, avvio batch, monitor live polling 5s
 - [x] `3_Approvazioni.py` — Pending approvals con dettaglio CVE/fasi/risk, approve/reject/snooze + storico
 - [x] `api_client.py` — Wrapper REST, tutte le funzioni ritornano (data, error_str)
 - [x] `azure_auth.py` — MSAL helpers: get_auth_url, exchange_code, get_user_info
@@ -201,7 +206,8 @@ viene saltata silenziosamente e il test continua.
 - [x] `POST /api/v1/approvals/<queue_id>/reject`
 - [x] `POST /api/v1/approvals/<queue_id>/snooze`
 - [x] `GET  /api/v1/approvals/history`
-- [x] `GET  /api/v1/groups`
+- [x] `GET  /api/v1/orgs`
+- [x] `GET  /api/v1/groups[?org_id=N]`
 - [x] `GET  /api/v1/groups/<name>/patches`
 - [x] `GET  /api/v1/prometheus/targets`
 
@@ -264,12 +270,13 @@ viene saltata silenziosamente e il test continua.
 | POST | `/api/v1/approvals/<id>/snooze` | Rimanda (body: action_by, snooze_until, reason) |
 | GET | `/api/v1/approvals/history` | Storico audit trail |
 
-### Gruppi UYUNI
+### Gruppi UYUNI e Organizzazioni
 
 | Metodo | Path | Descrizione |
 |---|---|---|
-| GET | `/api/v1/groups` | Lista gruppi test-* con sistemi e patch count |
-| GET | `/api/v1/groups/<name>/patches` | Patch applicabili per gruppo |
+| GET | `/api/v1/orgs` | Lista organizzazioni UYUNI visibili all'account admin |
+| GET | `/api/v1/groups[?org_id=N]` | Lista gruppi test-* con sistemi e patch count (filtro org opzionale) |
+| GET | `/api/v1/groups/<name>/patches` | Patch applicabili per gruppo (con requires_reboot da DB) |
 
 ### Prometheus
 
@@ -459,12 +466,6 @@ La struttura e' gia' implementata. Configurare in `orchestrator_config`:
   "alert_on_pending_approval": true
 }
 ```
-
-### Bassa priorita' — Cleanup batch in memoria
-
-`_batches` dict in `test_engine.py` non viene mai ripulito. I batch completati
-rimangono in memoria per tutta la vita del processo. Con molti batch nel tempo
-potrebbe accumularsi (trascurabile in pratica, ma da monitorare).
 
 ---
 

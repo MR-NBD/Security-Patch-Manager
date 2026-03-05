@@ -4,11 +4,12 @@ SPM Orchestrator - UYUNI Patch Client
 Applica patch sui sistemi test tramite UYUNI XML-RPC.
 Sostituisce Salt API con UYUNI come backend di orchestrazione:
 
-  ping()                → verifica sistema registrato e raggiungibile
+  ping()                → verifica sistema registrato in UYUNI (system.getDetails)
   take_snapshot()       → snapper create via scheduleScriptRun
   apply_errata()        → scheduleApplyErrata (asincrono + polling)
-  reboot()              → scheduleReboot
-  wait_online()         → ping ripetuto fino a sistema online
+  reboot()              → scheduleReboot (schedula, non attende)
+  wait_online()         → attesa consegna reboot Salt + polling echo script fino a online
+  ensure_node_exporter()→ installa/avvia node_exporter via UYUNI channels se mancante
   get_failed_services() → bash check via scheduleScriptRun
   rollback_snapshot()   → snapper undochange via scheduleScriptRun
   rollback_packages()   → apt downgrade via scheduleScriptRun

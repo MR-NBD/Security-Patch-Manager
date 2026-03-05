@@ -234,8 +234,15 @@ def approvals_history(limit=50, offset=0):
 # Groups (UYUNI test groups + patches per group)
 # ─────────────────────────────────────────────
 
-def groups_list(username: str = None, password: str = None):
-    return _get("/api/v1/groups", headers=_uyuni_headers(username, password))
+def orgs_list():
+    return _get("/api/v1/orgs")
+
+
+def groups_list(org_id: int = None, username: str = None, password: str = None):
+    params = {}
+    if org_id is not None:
+        params["org_id"] = org_id
+    return _get("/api/v1/groups", params=params, headers=_uyuni_headers(username, password))
 
 
 def group_patches(group_name: str, username: str = None, password: str = None):

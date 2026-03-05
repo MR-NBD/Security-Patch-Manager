@@ -19,13 +19,13 @@ from app.utils.serializers import serialize_row as _serialize_row
 logger = logging.getLogger(__name__)
 
 # Pattern che indicano aggiornamento kernel
-_KERNEL_PATTERNS = [
+KERNEL_PATTERNS = [
     "kernel", "linux-image", "linux-headers",
     "linux-modules", "linux-generic", "linux-kvm",
 ]
 
 # Pattern che richiedono reboot (superset kernel)
-_REBOOT_PATTERNS = _KERNEL_PATTERNS + [
+REBOOT_PATTERNS = KERNEL_PATTERNS + [
     "glibc", "libc6", "libc-bin",
     "systemd", "udev", "dbus",
     "openssh-server", "openssh-client",
@@ -65,9 +65,9 @@ def _analyze_packages(packages: list) -> dict:
         size = pkg.get("size_kb", 0) or 0
         total_size_kb += size
 
-        if _matches_any(name, _KERNEL_PATTERNS):
+        if _matches_any(name, KERNEL_PATTERNS):
             affects_kernel = True
-        if _matches_any(name, _REBOOT_PATTERNS):
+        if _matches_any(name, REBOOT_PATTERNS):
             requires_reboot = True
         if _matches_any(name, _CONFIG_PATTERNS):
             modifies_config = True
