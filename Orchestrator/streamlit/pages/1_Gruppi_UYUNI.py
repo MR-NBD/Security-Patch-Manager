@@ -13,6 +13,9 @@ import streamlit as st
 import pandas as pd
 import api_client as api
 
+if not st.session_state.get("authenticated"):
+    st.stop()
+
 st.title("🖥 Gruppi UYUNI")
 
 org_name = st.session_state.get("uyuni_org_name", "")

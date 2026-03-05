@@ -9,10 +9,24 @@ Tutte le funzioni ritornano (data, error_str).
 
 import os
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # URL base configurabile da env; default al VM in produzione
 _BASE = os.environ.get("SPM_API_URL", "http://10.172.2.22:5001")
 _TIMEOUT = 15  # secondi
+
+# Chiave API condivisa con Flask (SPM_API_KEY in .env)
+_API_KEY = os.environ.get("SPM_API_KEY", "")
+
+
+def _auth_headers(extra: dict = None) -> dict:
+    """Header base per tutte le richieste: include X-SPM-Key se configurata."""
+    h = {"X-SPM-Key": _API_KEY} if _API_KEY else {}
+    if extra:
+        h.update(extra)
+    return h
 
 
 def _uyuni_headers(username: str = None, password: str = None) -> dict:
@@ -25,7 +39,7 @@ def _uyuni_headers(username: str = None, password: str = None) -> dict:
 def _get(path: str, params: dict = None, headers: dict = None):
     try:
         r = requests.get(f"{_BASE}{path}", params=params,
-                         headers=headers, timeout=_TIMEOUT)
+                         headers=_auth_headers(headers), timeout=_TIMEOUT)
         r.raise_for_status()
         return r.json(), None
     except requests.exceptions.ConnectionError:
@@ -44,7 +58,8 @@ def _get(path: str, params: dict = None, headers: dict = None):
 
 def _post(path: str, body: dict = None):
     try:
-        r = requests.post(f"{_BASE}{path}", json=body or {}, timeout=_TIMEOUT)
+        r = requests.post(f"{_BASE}{path}", json=body or {},
+                          headers=_auth_headers(), timeout=_TIMEOUT)
         r.raise_for_status()
         return r.json(), None
     except requests.exceptions.ConnectionError:
@@ -63,7 +78,7 @@ def _post(path: str, body: dict = None):
 
 def _delete(path: str):
     try:
-        r = requests.delete(f"{_BASE}{path}", timeout=_TIMEOUT)
+        r = requests.delete(f"{_BASE}{path}", headers=_auth_headers(), timeout=_TIMEOUT)
         r.raise_for_status()
         return r.json(), None
     except requests.exceptions.ConnectionError:
@@ -82,7 +97,8 @@ def _delete(path: str):
 
 def _patch(path: str, body: dict):
     try:
-        r = requests.patch(f"{_BASE}{path}", json=body, timeout=_TIMEOUT)
+        r = requests.patch(f"{_BASE}{path}", json=body,
+                           headers=_auth_headers(), timeout=_TIMEOUT)
         r.raise_for_status()
         return r.json(), None
     except requests.exceptions.ConnectionError:

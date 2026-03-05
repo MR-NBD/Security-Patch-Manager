@@ -9,6 +9,9 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import streamlit as st
 import api_client as api
 
+if not st.session_state.get("authenticated"):
+    st.stop()
+
 st.title("Security Patch Manager")
 
 # ── Verifica connessione ─────────────────────────────────────────

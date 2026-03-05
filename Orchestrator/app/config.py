@@ -114,6 +114,14 @@ class Config:
     LOG_FILE = os.getenv("LOG_FILE", "/var/log/spm-orchestrator/app.log")
 
     # ----------------------------------------------------------
+    # API Security
+    # ----------------------------------------------------------
+    # Chiave condivisa tra Streamlit e Flask API.
+    # Se non vuota, tutte le richieste API devono includere X-SPM-Key: <key>.
+    # Impostare in .env come SPM_API_KEY=<stringa-casuale-lunga>.
+    API_KEY = os.getenv("SPM_API_KEY", "")
+
+    # ----------------------------------------------------------
     # App metadata
     # ----------------------------------------------------------
     APP_NAME = "spm-orchestrator"

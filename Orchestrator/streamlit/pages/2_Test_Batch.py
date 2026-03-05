@@ -14,6 +14,9 @@ import streamlit as st
 import pandas as pd
 import api_client as api
 
+if not st.session_state.get("authenticated"):
+    st.stop()
+
 st.title("🧪 Test Batch")
 
 _STATUS_ICON = {

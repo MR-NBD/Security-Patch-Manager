@@ -6,7 +6,7 @@ Avvio: python -m app.main
 """
 
 import logging
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from app.config import Config
@@ -38,6 +38,28 @@ def create_app() -> Flask:
 
     # CORS - permette accesso da Streamlit dashboard
     CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+    # ── API Key authentication ──────────────────────────────────
+    _EXEMPT_PREFIXES = (
+        "/api/v1/health",
+        "/api/v1/prometheus/targets",
+    )
+
+    @app.before_request
+    def require_api_key():
+        """
+        Valida X-SPM-Key su tutti gli endpoint /api/* sensibili.
+        Esenti: /api/v1/health* e /api/v1/prometheus/targets (monitoring).
+        Se SPM_API_KEY non è configurata nel .env, salta la verifica
+        ma logga un avviso all'avvio.
+        """
+        if not Config.API_KEY:
+            return  # chiave non configurata → nessuna verifica (backward compat)
+        if any(request.path.startswith(p) for p in _EXEMPT_PREFIXES):
+            return  # endpoint di monitoring: sempre accessibili
+        key = request.headers.get("X-SPM-Key", "")
+        if key != Config.API_KEY:
+            return jsonify({"error": "unauthorized", "message": "Invalid or missing X-SPM-Key"}), 401
 
     # Registra blueprints
     app.register_blueprint(health_bp)
@@ -80,6 +102,11 @@ def main():
         f"Starting {Config.APP_NAME} v{Config.APP_VERSION} "
         f"on {Config.HOST}:{Config.PORT} [{Config.ENV}]"
     )
+    if not Config.API_KEY:
+        logger.warning(
+            "SPM_API_KEY not set — Flask API is UNPROTECTED. "
+            "Set SPM_API_KEY in .env to enforce X-SPM-Key authentication."
+        )
 
     # Connessione database
     logger.info("Connecting to database...")

@@ -18,6 +18,9 @@ import pandas as pd
 import streamlit as st
 import api_client as api
 
+if not st.session_state.get("authenticated"):
+    st.stop()
+
 st.title("✅ Approvazioni Patch")
 
 tab_pending, tab_history = st.tabs(["In attesa", "Storico"])
