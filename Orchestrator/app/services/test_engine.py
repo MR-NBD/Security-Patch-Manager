@@ -580,6 +580,12 @@ def _execute_test(queue_item: dict) -> dict:
                 )
                 rollback_type = "package"
 
+            # Assicura node_exporter installato e attivo (via UYUNI channels)
+            # Best-effort: se fallisce, le metriche Prometheus vengono saltate
+            # ma il test continua normalmente.
+            if system_ip:
+                uyuni.ensure_node_exporter(target_os)
+
             # Baseline metriche (best-effort, Prometheus opzionale)
             baseline_metrics = {}
             if system_ip and prom.is_available():

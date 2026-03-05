@@ -473,6 +473,153 @@ class UyuniPatchClient:
             f"done on {self._system_name!r}"
         )
 
+    def ensure_node_exporter(self, target_os: str) -> bool:
+        """
+        Verifica che node_exporter sia installato e attivo sul sistema.
+        Se manca, lo installa tramite UYUNI schedulePackageInstall
+        usando i canali software gia' sincronizzati — senza intervento manuale.
+
+        Flusso:
+          1. Controlla se il servizio e' gia' attivo (check rapido via systemctl)
+          2. Se non attivo, cerca il pacchetto nei canali UYUNI del sistema
+          3. Se trovato nei canali: installa via schedulePackageInstall (UYUNI-native)
+          4. Abilita e avvia il servizio
+          5. Se non nei canali UYUNI: warning, Prometheus metrics verra' skippato
+
+        Ritorna True se node_exporter e' operativo alla fine, False altrimenti.
+        """
+        _PACKAGES = {
+            "ubuntu": "prometheus-node-exporter",
+            "rhel":   "node_exporter",
+            "debian": "prometheus-node-exporter",
+        }
+        _SERVICES = {
+            "ubuntu": "prometheus-node-exporter",
+            "rhel":   "node_exporter",
+            "debian": "prometheus-node-exporter",
+        }
+
+        pkg_name = _PACKAGES.get(target_os)
+        svc_name = _SERVICES.get(target_os)
+
+        if not pkg_name or not svc_name:
+            logger.warning(
+                f"UyuniPatchClient: no node_exporter package known for OS {target_os!r}"
+            )
+            return False
+
+        # ── 1. Il servizio e' gia' attivo? ───────────────────────────────
+        ok, output = self._run_script(
+            f"#!/bin/bash\nsystemctl is-active --quiet '{svc_name}' && echo active || echo inactive\n",
+            script_timeout=15,
+            wait_timeout=30,
+        )
+        if ok and "active" in (output or ""):
+            logger.debug(
+                f"UyuniPatchClient: node_exporter already active "
+                f"on {self._system_name!r}"
+            )
+            return True
+
+        logger.info(
+            f"UyuniPatchClient: node_exporter not active on {self._system_name!r} "
+            f"— checking UYUNI channels for {pkg_name!r}"
+        )
+
+        # ── 2. Cerca il pacchetto nei canali UYUNI del sistema ───────────
+        pkg_id = None
+        try:
+            installable = self._proxy.system.listLatestInstallablePackages(
+                self._key, self._system_id
+            )
+            for p in installable:
+                if p.get("name") == pkg_name:
+                    pkg_id = p.get("id")
+                    break
+        except Exception as e:
+            logger.warning(
+                f"UyuniPatchClient: listLatestInstallablePackages failed "
+                f"on {self._system_name!r}: {e}"
+            )
+
+        if pkg_id is None:
+            # Controlla se e' gia' installato ma solo il servizio non e' avviato
+            try:
+                installed = self._proxy.system.listPackages(self._key, self._system_id)
+                already_installed = any(p.get("name") == pkg_name for p in installed)
+            except Exception:
+                already_installed = False
+
+            if not already_installed:
+                logger.warning(
+                    f"UyuniPatchClient: {pkg_name!r} not found in UYUNI channels "
+                    f"for {self._system_name!r} — Prometheus metrics will be skipped"
+                )
+                return False
+            # Pacchetto installato ma servizio non avviato: lo avviamo
+            logger.info(
+                f"UyuniPatchClient: {pkg_name!r} installed but service not active "
+                f"on {self._system_name!r} — enabling service"
+            )
+        else:
+            # ── 3. Installa via UYUNI schedulePackageInstall ──────────────
+            logger.info(
+                f"UyuniPatchClient: installing {pkg_name!r} (id={pkg_id}) "
+                f"on {self._system_name!r} via UYUNI channel"
+            )
+            try:
+                action_ids = self._proxy.system.schedulePackageInstall(
+                    self._key,
+                    self._system_id,
+                    [pkg_id],
+                    datetime.now(),
+                )
+            except Exception as e:
+                logger.warning(
+                    f"UyuniPatchClient: schedulePackageInstall failed "
+                    f"for {pkg_name!r} on {self._system_name!r}: {e}"
+                )
+                return False
+
+            action_id = action_ids[0] if action_ids else None
+            if not action_id:
+                logger.warning(
+                    f"UyuniPatchClient: schedulePackageInstall returned no action_id "
+                    f"for {pkg_name!r}"
+                )
+                return False
+
+            success = self._wait_action(action_id, timeout_s=300)
+            if not success:
+                logger.warning(
+                    f"UyuniPatchClient: package install action timed out or failed "
+                    f"for {pkg_name!r} on {self._system_name!r}"
+                )
+                return False
+
+            logger.info(
+                f"UyuniPatchClient: {pkg_name!r} installed on {self._system_name!r}"
+            )
+
+        # ── 4. Abilita e avvia il servizio ───────────────────────────────
+        ok, output = self._run_script(
+            f"#!/bin/bash\nsystemctl enable --now '{svc_name}'\n",
+            script_timeout=30,
+            wait_timeout=60,
+        )
+        if not ok:
+            logger.warning(
+                f"UyuniPatchClient: failed to enable {svc_name!r} "
+                f"on {self._system_name!r}: {output!r}"
+            )
+            return False
+
+        logger.info(
+            f"UyuniPatchClient: node_exporter ({svc_name}) enabled and started "
+            f"on {self._system_name!r}"
+        )
+        return True
+
     def rollback_packages(self, packages_before: dict) -> None:
         """
         Reinstalla versioni precedenti dei pacchetti (Ubuntu/Debian).

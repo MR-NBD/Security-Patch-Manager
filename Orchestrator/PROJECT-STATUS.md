@@ -126,6 +126,9 @@ viene saltata silenziosamente e il test continua.
 - [x] Fallback automatico da snapshot a package rollback se snapper non disponibile
 - [x] Service check con 6 retry x 20s (tolleranza SSH post-patch)
 - [x] `_DEFAULT_SERVICES["ubuntu"]` = `["ssh.socket", "cron", "rsyslog"]`
+- [x] Auto-provisioning node_exporter: prima della baseline, l'engine verifica se node_exporter
+      e' attivo sul sistema test; se manca lo installa automaticamente via UYUNI
+      schedulePackageInstall dai canali software sincronizzati (senza intervento manuale)
 - [x] Baseline metriche Prometheus pre-patch + delta post-patch (skipped se non disponibile)
 - [x] Poll scheduler ogni 2 minuti (APScheduler)
 - [x] Batch asincrono: `start_batch()` → thread background → polling ogni 5s dalla dashboard
@@ -411,6 +414,19 @@ curl -s 'http://localhost:9090/api/v1/targets' | python3 -m json.tool | grep hea
 
 **PROMETHEUS_URL non va aggiunto al .env** — il default `http://localhost:9090` e' gia'
 in `config.py`. Aggiungilo solo se il server e' su un host diverso.
+
+### Media priorita' — Configurare canali UYUNI per node_exporter
+
+L'engine installa automaticamente node_exporter tramite `system.schedulePackageInstall`,
+ma il pacchetto deve essere presente nei canali software UYUNI del sistema test.
+
+| OS | Pacchetto da avere nel canale UYUNI |
+|---|---|
+| Ubuntu 24.04 | `prometheus-node-exporter` (universe/main) |
+| RHEL 9 | `node_exporter` (EPEL o canale custom) |
+
+Verificare che i canali siano sincronizzati e il sistema test sia sottoscritto al canale
+corretto in UYUNI prima di eseguire il primo test con Prometheus abilitato.
 
 ### Media priorita' — Installare snapper su Ubuntu test VM
 
