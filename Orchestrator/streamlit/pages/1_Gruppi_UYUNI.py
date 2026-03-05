@@ -67,6 +67,15 @@ if not patches:
     st.info("Nessuna patch applicabile per questo gruppo.")
     st.stop()
 
+_n_reboot    = sum(1 for p in patches if p.get("requires_reboot") is True)
+_n_no_reboot = sum(1 for p in patches if p.get("requires_reboot") is False)
+_n_unknown   = len(patches) - _n_reboot - _n_no_reboot
+
+rb1, rb2, rb3 = st.columns(3)
+rb1.metric("Richiedono reboot",    _n_reboot,    help="Patch che richiedono riavvio del sistema")
+rb2.metric("Senza reboot",         _n_no_reboot, help="Patch applicabili a caldo")
+rb3.metric("Non ancora analizzate", _n_unknown,  help="Patch non ancora accodate, reboot da determinare")
+
 st.subheader(f"Patch applicabili — {len(patches)} trovate")
 
 # ── Tabella patch con selezione ───────────────────────────────────
@@ -76,6 +85,14 @@ _TYPE_ICON = {
     "Product Enhancement Advisory": "🔵",
 }
 
+def _reboot_label(p: dict) -> str:
+    rb = p.get("requires_reboot")
+    if rb is True:
+        return "⚠ Si"
+    if rb is False:
+        return "✅ No"
+    return "— ?"
+
 rows = []
 for p in patches:
     atype = p.get("advisory_type", "")
@@ -83,7 +100,8 @@ for p in patches:
         "Seleziona":      False,
         "Advisory":       p.get("advisory_name", "?"),
         "Tipo":           f"{_TYPE_ICON.get(atype,'⚪')} {atype}",
-        "Synopsis":       (p.get("synopsis") or "")[:70],
+        "Reboot":         _reboot_label(p),
+        "Synopsis":       (p.get("synopsis") or "")[:65],
         "Data":           (p.get("date") or "")[:10],
         "Sistemi":        len(p.get("systems_affected", [])),
     })
@@ -95,8 +113,9 @@ edited = st.data_editor(
     hide_index=True,
     column_config={
         "Seleziona": st.column_config.CheckboxColumn("Seleziona", default=False),
+        "Reboot":    st.column_config.TextColumn("Reboot", width="small"),
     },
-    disabled=["Advisory", "Tipo", "Synopsis", "Data", "Sistemi"],
+    disabled=["Advisory", "Tipo", "Reboot", "Synopsis", "Data", "Sistemi"],
     key="patch_selection",
 )
 

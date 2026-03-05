@@ -70,7 +70,10 @@ def _pick_next_queued() -> Optional[dict]:
             FROM patch_test_queue q
             LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id
             WHERE q.status = 'queued'
-            ORDER BY q.priority_override DESC, q.success_score DESC, q.queued_at ASC
+            ORDER BY q.priority_override              DESC,
+                     COALESCE(rp.requires_reboot, FALSE) ASC,
+                     q.success_score                     DESC,
+                     q.queued_at                         ASC
             LIMIT 1
             FOR UPDATE OF q SKIP LOCKED
         """)
@@ -320,6 +323,12 @@ def _phase_reboot(
                 f"System {uyuni._system_name!r} did not come back online "
                 f"within {Config.TEST_WAIT_AFTER_REBOOT}s"
             )
+        # Stabilizzazione post-reboot: lascia avviare i servizi prima di validate/services
+        stab = Config.TEST_REBOOT_STABILIZATION
+        logger.info(
+            f"TestEngine: system online — waiting {stab}s for post-reboot stabilization"
+        )
+        time.sleep(stab)
         _complete_phase(phase_id, "completed", output={"reboot_successful": True})
         _update_test_record(test_id, reboot_performed=True, reboot_successful=True)
 

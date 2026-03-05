@@ -397,9 +397,10 @@ def get_queue(
         LEFT JOIN patch_tests t   ON q.test_id  = t.id
         {where}
         ORDER BY
-            q.priority_override DESC,
-            q.success_score     DESC,
-            q.queued_at         ASC
+            q.priority_override              DESC,
+            COALESCE(rp.requires_reboot, FALSE) ASC,
+            q.success_score                  DESC,
+            q.queued_at                      ASC
         LIMIT %s OFFSET %s
     """
 
@@ -529,20 +530,29 @@ def get_queue_stats() -> dict:
         cur.execute("""
             SELECT
                 COUNT(*)                                              AS total,
-                COUNT(*) FILTER (WHERE status = 'queued')            AS queued,
-                COUNT(*) FILTER (WHERE status = 'testing')           AS testing,
-                COUNT(*) FILTER (WHERE status = 'passed')            AS passed,
-                COUNT(*) FILTER (WHERE status = 'failed')            AS failed,
-                COUNT(*) FILTER (WHERE status = 'pending_approval')  AS pending_approval,
-                COUNT(*) FILTER (WHERE status = 'approved')          AS approved,
+                COUNT(*) FILTER (WHERE q.status = 'queued')            AS queued,
+                COUNT(*) FILTER (WHERE q.status = 'testing')           AS testing,
+                COUNT(*) FILTER (WHERE q.status = 'passed')            AS passed,
+                COUNT(*) FILTER (WHERE q.status = 'failed')            AS failed,
+                COUNT(*) FILTER (WHERE q.status = 'pending_approval')  AS pending_approval,
+                COUNT(*) FILTER (WHERE q.status = 'approved')          AS approved,
                 COUNT(*) FILTER (
-                    WHERE status IN ('prod_applied', 'completed')
-                )                                                     AS deployed,
-                COUNT(*) FILTER (WHERE target_os = 'ubuntu')         AS ubuntu,
-                COUNT(*) FILTER (WHERE target_os = 'rhel')           AS rhel,
-                AVG(success_score)                                    AS avg_score
-            FROM patch_test_queue
-            WHERE status NOT IN ('rolled_back', 'rejected', 'completed')
+                    WHERE q.status IN ('prod_applied', 'completed')
+                )                                                        AS deployed,
+                COUNT(*) FILTER (WHERE q.target_os = 'ubuntu')          AS ubuntu,
+                COUNT(*) FILTER (WHERE q.target_os = 'rhel')            AS rhel,
+                AVG(q.success_score)                                     AS avg_score,
+                COUNT(*) FILTER (
+                    WHERE rp.requires_reboot = TRUE
+                    AND q.status NOT IN ('rolled_back', 'rejected', 'completed')
+                )                                                        AS requires_reboot,
+                COUNT(*) FILTER (
+                    WHERE COALESCE(rp.requires_reboot, FALSE) = FALSE
+                    AND q.status NOT IN ('rolled_back', 'rejected', 'completed')
+                )                                                        AS no_reboot
+            FROM patch_test_queue q
+            LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id
+            WHERE q.status NOT IN ('rolled_back', 'rejected', 'completed')
         """)
         row = dict(cur.fetchone())
 

@@ -24,6 +24,7 @@ import time
 from datetime import datetime
 from typing import Optional
 
+from app.config import Config
 from app.services.uyuni_client import UyuniSession, os_from_group
 
 logger = logging.getLogger(__name__)
@@ -396,29 +397,40 @@ class UyuniPatchClient:
     def wait_online(self, timeout: int = 300) -> bool:
         """
         Attende che il sistema torni online dopo il reboot.
-        Prima attesa fissa 30s (shutdown), poi polling ogni 15s.
+
+        Attesa iniziale configurabile (TEST_REBOOT_DELIVERY_WAIT, default 60s)
+        per dare tempo al minion Salt di ricevere il comando reboot da UYUNI
+        (check-in intervallo tipico: 30-60s). Poi polling ogni 15s con uno
+        script echo per verificare la raggiungibilità reale del sistema.
+
+        Nota: ping() usa system.getDetails che legge il DB UYUNI — ritorna
+        sempre True anche quando la VM è offline. Per questo usiamo direttamente
+        _run_script (scheduleScriptRun) come test di liveness reale.
         """
-        time.sleep(30)
+        delivery_wait = Config.TEST_REBOOT_DELIVERY_WAIT
+        logger.info(
+            f"UyuniPatchClient: waiting {delivery_wait}s for reboot delivery "
+            f"to {self._system_name!r} before polling"
+        )
+        time.sleep(delivery_wait)
         deadline = time.time() + timeout
 
         while time.time() < deadline:
-            if self.ping():
-                # Conferma con un echo script minimo
-                ok, _ = self._run_script(
-                    "#!/bin/bash\necho online",
-                    script_timeout=10,
-                    wait_timeout=30,
+            ok, _ = self._run_script(
+                "#!/bin/bash\necho online",
+                script_timeout=10,
+                wait_timeout=30,
+            )
+            if ok:
+                logger.info(
+                    f"UyuniPatchClient: {self._system_name!r} is back online"
                 )
-                if ok:
-                    logger.info(
-                        f"UyuniPatchClient: {self._system_name!r} is back online"
-                    )
-                    return True
+                return True
             time.sleep(15)
 
         logger.error(
             f"UyuniPatchClient: {self._system_name!r} did not come back "
-            f"within {timeout}s after reboot"
+            f"within {delivery_wait + timeout}s after reboot"
         )
         return False
 

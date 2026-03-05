@@ -98,6 +98,13 @@ class Config:
     TEST_MAX_FAILED_SERVICES = int(os.getenv("TEST_MAX_FAILED_SERVICES", 0))
     TEST_WAIT_AFTER_PATCH = int(os.getenv("TEST_WAIT_AFTER_PATCH_SECONDS", 300))
     TEST_WAIT_AFTER_REBOOT = int(os.getenv("TEST_WAIT_AFTER_REBOOT_SECONDS", 180))
+    # Attesa prima che il minion UYUNI riceva e applichi il comando di reboot.
+    # Su Salt, il check-in del minion puo' avvenire ogni 30-60s.
+    # Aumentare se il sistema non risulta "in shutdown" durante wait_online.
+    TEST_REBOOT_DELIVERY_WAIT = int(os.getenv("TEST_REBOOT_DELIVERY_WAIT_SECONDS", 60))
+    # Attesa post-reboot dopo che il sistema e' tornato online, per lasciare
+    # che i servizi si stabilizzino prima di Prometheus validate e service check.
+    TEST_REBOOT_STABILIZATION = int(os.getenv("TEST_REBOOT_STABILIZATION_SECONDS", 30))
     TEST_TIMEOUT_MINUTES = int(os.getenv("TEST_TIMEOUT_MINUTES", 30))
 
     # ----------------------------------------------------------

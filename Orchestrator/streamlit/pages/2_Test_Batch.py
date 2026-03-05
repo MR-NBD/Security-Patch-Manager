@@ -131,17 +131,41 @@ if not items:
 
 _SEV_ICON = {"Critical": "🔴", "High": "🟠", "Medium": "🟡", "Low": "🔵"}
 
+# Riepilogo reboot prima della tabella
+_n_reboot    = sum(1 for it in items if it.get("requires_reboot") is True)
+_n_no_reboot = sum(1 for it in items if it.get("requires_reboot") is False)
+_n_unknown   = len(items) - _n_reboot - _n_no_reboot
+
+if _n_reboot > 0:
+    st.warning(
+        f"**{_n_reboot}** patch richiedono riavvio del sistema test — "
+        f"**{_n_no_reboot}** applicabili a caldo"
+        + (f" — {_n_unknown} non ancora analizzate" if _n_unknown else ""),
+        icon="⚠",
+    )
+else:
+    st.info(
+        f"Tutte le patch ({_n_no_reboot}) sono applicabili senza riavvio."
+        + (f" ({_n_unknown} non ancora analizzate)" if _n_unknown else ""),
+        icon="✅",
+    )
+
+st.caption("Ordine di test: priorità → **no-reboot prima** → score → data accodamento")
+
 rows = []
 for it in items:
     sev = it.get("severity") or "?"
+    rb  = it.get("requires_reboot")
+    rb_label = "⚠ Si" if rb is True else ("✅ No" if rb is False else "— ?")
     rows.append({
         "Seleziona": False,
         "QID":       it.get("queue_id"),
         "Errata":    it.get("errata_id", "?"),
-        "Synopsis":  (it.get("synopsis") or "")[:60],
         "OS":        it.get("target_os", "?"),
         "Severity":  f"{_SEV_ICON.get(sev,'⚪')} {sev}",
+        "Reboot":    rb_label,
         "Score":     it.get("success_score"),
+        "Synopsis":  (it.get("synopsis") or "")[:55],
     })
 
 edited = st.data_editor(
@@ -150,11 +174,12 @@ edited = st.data_editor(
     hide_index=True,
     column_config={
         "Seleziona": st.column_config.CheckboxColumn("Seleziona", default=False),
+        "Reboot":    st.column_config.TextColumn("Reboot", width="small"),
         "Score":     st.column_config.ProgressColumn(
             "Score", min_value=0, max_value=100, format="%d"
         ),
     },
-    disabled=["QID", "Errata", "Synopsis", "OS", "Severity", "Score"],
+    disabled=["QID", "Errata", "OS", "Severity", "Reboot", "Score", "Synopsis"],
     key="queue_selection",
 )
 
