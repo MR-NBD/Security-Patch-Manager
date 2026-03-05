@@ -276,9 +276,28 @@ GET  /api/v1/prometheus/targets    → target dinamici (tutti i sistemi in grupp
 
 ---
 
-## Variabili d'ambiente rilevanti (`.env`)
+## Variabili d'ambiente
+
+Due file `.env` separati — **non uno solo**:
+
+| File | Servizio |
+|---|---|
+| `/opt/spm-orchestrator/.env` | Flask API |
+| `/opt/Security-Patch-Manager/Orchestrator/streamlit/.env` | Streamlit Dashboard |
+
+Template: `Orchestrator/.env.example` (Flask) e `Orchestrator/streamlit/.env.example` (Streamlit).
+
+### Flask API (`/opt/spm-orchestrator/.env`)
 
 ```bash
+# Flask
+FLASK_HOST=127.0.0.1      # loopback only — NON 0.0.0.0 in produzione
+FLASK_PORT=5001
+SECRET_KEY=<random>
+
+# API Security — chiave condivisa con Streamlit
+SPM_API_KEY=<token-hex-32>   # genera: python3 -c "import secrets; print(secrets.token_hex(32))"
+
 # UYUNI
 UYUNI_URL=https://10.172.2.17
 UYUNI_USER=admin
@@ -301,6 +320,22 @@ TEST_REBOOT_STABILIZATION_SECONDS=30       # attesa post-online prima di validat
 
 # Prometheus — punta al server Prometheus sul VM orchestrator
 PROMETHEUS_URL=http://localhost:9090
+```
+
+### Streamlit Dashboard (`/opt/Security-Patch-Manager/Orchestrator/streamlit/.env`)
+
+```bash
+# URL Flask API — localhost perché stesso VM
+SPM_API_URL=http://localhost:5001
+
+# API Security — stessa chiave del Flask .env
+SPM_API_KEY=<stesso-token-hex-32>
+
+# Azure AD SSO
+AZURE_TENANT_ID=fae8df93-7cf5-40da-b480-f272e15b6242
+AZURE_CLIENT_ID=<client-id-app-registration-spm>
+AZURE_CLIENT_SECRET=<client-secret>
+AZURE_REDIRECT_URI=https://10.172.2.22:8501
 ```
 
 ---

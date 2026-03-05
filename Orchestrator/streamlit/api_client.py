@@ -13,8 +13,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# URL base configurabile da env; default al VM in produzione
-_BASE = os.environ.get("SPM_API_URL", "http://10.172.2.22:5001")
+# URL base: default localhost perché Streamlit e Flask girano sulla stessa VM.
+# Cambiare SPM_API_URL nel .env solo se Flask è su un host diverso.
+_BASE = os.environ.get("SPM_API_URL", "http://localhost:5001")
 _TIMEOUT = 15  # secondi
 
 # Chiave API condivisa con Flask (SPM_API_KEY in .env)
