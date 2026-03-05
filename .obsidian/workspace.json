@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
+                "file": "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installazione-UYUNI-Proxy"
+              "title": "AzureAD-SAML-Authentication"
             }
           },
           {
@@ -232,6 +232,7 @@
   },
   "active": "d0984873d53a6218",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Orchestrator/CLAUDE.md.tmp.26732.1772705211563",
     "Orchestrator/CLAUDE.md.tmp.26732.1772705195160",
@@ -245,7 +246,6 @@
     "Orchestrator/CLAUDE.md.tmp.26732.1772703420304",
     "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "tools/GUIDA.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
     "Uyuni/Deployment/Migrazione-PostgreSQL-Azure-Flexible-Server.md",
