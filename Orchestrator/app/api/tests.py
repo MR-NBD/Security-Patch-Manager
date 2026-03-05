@@ -13,7 +13,6 @@ from flask import Blueprint, jsonify, request
 
 from app.services.db import get_db
 from app.services.test_engine import run_next_test, get_engine_status, start_batch, get_batch_status
-from app.services.uyuni_client import UyuniSession
 from app.utils.serializers import serialize_row as _serialize_row
 
 logger = logging.getLogger(__name__)
@@ -80,29 +79,6 @@ def trigger_test():
 
 
 # ─────────────────────────────────────────────
-# POST /api/v1/tests/validate-operator
-# ─────────────────────────────────────────────
-
-@tests_bp.route("/validate-operator", methods=["POST"])
-def validate_operator():
-    """
-    Verifica credenziali AD/UYUNI dell'operatore.
-
-    Body: { "username": "...", "password": "..." }
-    Risposta: { "valid": true/false, "username": "..." }
-    """
-    body = request.get_json(silent=True) or {}
-    username = (body.get("username") or "").strip()
-    password = body.get("password") or ""
-
-    if not username or not password:
-        return jsonify({"error": "username e password obbligatori"}), 400
-
-    valid = UyuniSession.validate_credentials(username, password)
-    return jsonify({"valid": valid, "username": username})
-
-
-# ─────────────────────────────────────────────
 # POST /api/v1/tests/batch
 # ─────────────────────────────────────────────
 
@@ -125,6 +101,10 @@ def run_batch():
 
     if not queue_ids:
         return jsonify({"error": "queue_ids obbligatorio"}), 400
+    if not isinstance(queue_ids, list) or not all(isinstance(qid, int) for qid in queue_ids):
+        return jsonify({"error": "queue_ids deve essere lista di interi"}), 400
+    if len(queue_ids) > 100:
+        return jsonify({"error": "queue_ids: massimo 100 elementi per batch"}), 400
     if not group_name:
         return jsonify({"error": "group_name obbligatorio"}), 400
     if not operator:

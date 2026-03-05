@@ -199,7 +199,6 @@ viene saltata silenziosamente e il test continua.
 - [x] `POST /api/v1/tests/batch`
 - [x] `GET  /api/v1/tests/batch/<batch_id>/status`
 - [x] `GET  /api/v1/tests/<test_id>`
-- [x] `POST /api/v1/tests/validate-operator`  ← residuo pre-SSO, non piu' usato dal frontend
 - [x] `GET  /api/v1/approvals/pending`
 - [x] `GET  /api/v1/approvals/pending/<queue_id>`
 - [x] `POST /api/v1/approvals/<queue_id>/approve`
@@ -392,7 +391,11 @@ non durante il sync. Risparmio: ~100s per 634 errata.
 
 ## 8. Da fare — Backlog
 
-### Alta priorita' — Installare Prometheus sul VM orchestrator
+> Legenda: **[VM]** = azione sul VM, nessun codice | **[CODICE]** = modifica codebase
+
+---
+
+### [VM] ALTA — Installare Prometheus sul VM orchestrator
 
 node_exporter e' gia' attivo sui test VM (deployato da UYUNI). Serve solo il server:
 
@@ -422,60 +425,106 @@ curl -s 'http://localhost:9090/api/v1/targets' | python3 -m json.tool | grep hea
 **PROMETHEUS_URL non va aggiunto al .env** — il default `http://localhost:9090` e' gia'
 in `config.py`. Aggiungilo solo se il server e' su un host diverso.
 
-### Media priorita' — Configurare canali UYUNI per node_exporter
+---
 
-L'engine installa automaticamente node_exporter tramite `system.schedulePackageInstall`,
-ma il pacchetto deve essere presente nei canali software UYUNI del sistema test.
+### [VM] MEDIA — Installare snapper su Ubuntu test VM (10.172.2.18)
 
-| OS | Pacchetto da avere nel canale UYUNI |
+Senza snapper il rollback usa `apt downgrade` (meno affidabile per patch kernel).
+
+```bash
+# Sul test VM Ubuntu
+apt-get install -y snapper
+```
+
+Il codice rileva automaticamente snapper mancante e fa fallback a package rollback.
+Dopo l'installazione di snapper il rollback snapshot funzionera' senza modifiche al codice.
+
+---
+
+### [VM] MEDIA — Verificare canali UYUNI per node_exporter
+
+L'engine installa automaticamente node_exporter via `system.schedulePackageInstall`,
+ma il pacchetto deve essere nei canali UYUNI gia' sincronizzati per il sistema test.
+
+| OS | Pacchetto nel canale UYUNI |
 |---|---|
 | Ubuntu 24.04 | `prometheus-node-exporter` (universe/main) |
 | RHEL 9 | `node_exporter` (EPEL o canale custom) |
 
-Verificare che i canali siano sincronizzati e il sistema test sia sottoscritto al canale
-corretto in UYUNI prima di eseguire il primo test con Prometheus abilitato.
+Verifica: aprire UYUNI → Software → Channel → cercare il pacchetto nel canale del sistema test.
 
-### Media priorita' — Installare snapper su Ubuntu test VM
+---
 
-Attualmente snapper non e' disponibile su Ubuntu 24.04 → il rollback usa sempre
-la modalita' package (apt downgrade). Funziona, ma e' meno affidabile per patch kernel.
+### [VM] MEDIA — Configurare email notifiche
 
-```bash
-# Sul test VM Ubuntu (10.172.2.18)
-apt-get install -y snapper
+La struttura email e' gia' implementata in `notification_manager.py`. Attivare
+dall'interfaccia DB o via `psql`:
+
+```sql
+INSERT INTO orchestrator_config (key, value, description)
+VALUES (
+  'notification_config',
+  '{
+    "email_enabled": true,
+    "smtp_server":   "smtp.asl06.org",
+    "smtp_port":     587,
+    "smtp_tls":      true,
+    "smtp_user":     "spm@asl06.org",
+    "smtp_password": "...",
+    "from_address":  "spm@asl06.org",
+    "recipients":    ["ops@asl06.org"],
+    "alert_on_test_failure":    true,
+    "alert_on_pending_approval": true,
+    "webhook_enabled": false,
+    "webhook_url": ""
+  }'::jsonb,
+  'Configurazione notifiche email/webhook'
+)
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
 ```
 
-### Bassa priorita' — NVD Enrichment severity
+Con `email_enabled=true`: l'operatore riceve una email alla fine di ogni test
+(fallito o in attesa di approvazione). Il banner in dashboard rimane come fallback
+se l'email non viene consegnata.
 
-La severity in `errata_cache` e' mappata dall'advisory_type UYUNI (Security → Medium,
-Bug Fix/Enhancement → Low). Una Security Advisory puo' essere Critical, High, Medium o Low.
+---
 
-**Soluzione futura:** `services/nvd_client.py` + chiamata post-sync in `poller.py`
-che interroga NVD API v2 per ogni errata con CVEs e aggiorna `errata_cache.severity`
-con il CVSS score reale. Rate limit NVD: 5 req/30s senza API key.
+### [CODICE] BASSA — NVD Enrichment severity
 
-### Bassa priorita' — Email/Webhook notifiche
+Problema: tutte le Security Advisory hanno `severity=Medium` (mapping da advisory_type).
+Una CVE puo' essere Critical, High, Medium o Low in base al CVSS score reale.
 
-La struttura e' gia' implementata. Configurare in `orchestrator_config`:
-```json
-{
-  "email_enabled": true,
-  "smtp_server": "smtp.example.com",
-  "recipients": ["ops@example.com"],
-  "alert_on_test_failure": true,
-  "alert_on_pending_approval": true
-}
-```
+Soluzione: aggiungere `services/nvd_client.py` che interroga NVD API v2 per ogni errata
+con CVEs dopo il sync, aggiornando `errata_cache.severity` con il valore CVSS reale.
+
+Note tecniche:
+- NVD API v2: `https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-XXXX-YYYY`
+- Rate limit senza API key: 5 req/30s — con key: 50 req/30s
+- Solo Security Advisory hanno CVE → ca. 30-40% delle errata (batch fattibile in <60s)
+- Hook in `poller.py`: chiamare `nvd_client.enrich_severity()` dopo `_batch_upsert()`
+
+---
+
+### [CODICE] BASSA — Batch persistenti su DB
+
+Problema: `_batches` e' un dict in memoria in `test_engine.py`. Se `spm-orchestrator`
+riavvia durante un batch, il batch continua su UYUNI ma il polling dalla dashboard
+ritorna 404 (batch non trovato). L'operatore deve controllare i log.
+
+Soluzione: aggiungere tabella `patch_test_batches` con `batch_id`, `status`, `results` (JSONB),
+`operator`, `group_name`, `started_at`, `completed_at`. Scrivere il batch su DB invece
+che solo in memoria. Compatibile con istanze multiple.
+
+---
+
+### [CODICE] BASSA — Paginazione storico approvazioni
+
+`3_Approvazioni.py` carica `limit=100` hardcoded per il tab Storico. In ambienti con molti
+cicli di patch lo storico diventa inutilizzabile. Aggiungere paginazione o filtro per data.
 
 ---
 
 ## 9. Note tecniche e decisioni rilevanti
-
-### Endpoint validate-operator (residuo)
-`POST /api/v1/tests/validate-operator` e' un residuo del design precedente all'SSO Azure AD,
-quando l'operatore doveva fornire le proprie credenziali UYUNI. Con Azure AD SSO non e'
-piu' necessario: l'operatore e' identificato dall'UPN Azure AD, le operazioni UYUNI usano
-l'account admin da .env. L'endpoint e' innocuo ma potrebbe essere rimosso in futuro.
 
 ### SSH socket activation (Ubuntu 24.04)
 `ssh.service` e' inactive tra connessioni su Ubuntu 24.04 con socket activation.
@@ -492,9 +541,9 @@ notificato via `orchestrator_notifications` e deve intervenire manualmente.
 - SPM Dashboard usa OAuth2/OIDC (App Registration "SPM Dashboard")
 - Le due registrazioni Azure AD sono separate e indipendenti
 
-### Timeout UYUNI
-`UYUNI_TIMEOUT` e' configurato in `Config` ma non ancora passato al `SafeTransport`
-di `xmlrpc.client` (usa il default di sistema). Miglioramento futuro possibile.
+### Timeout UYUNI (risolto)
+`UYUNI_TIMEOUT` e' ora propagato tramite `_UyuniTransport` a tutti i ServerProxy XML-RPC.
+Aggiunto in sessione 8 (2026-03-05). Prima xmlrpc.client usava il timeout di sistema.
 
 ---
 

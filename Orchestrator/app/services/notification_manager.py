@@ -9,10 +9,11 @@ Usato dal Test Engine per segnalare all'operatore:
   pending_approval → patch superata il test, in attesa di approvazione
 
 Comportamento:
-  - Scrive SEMPRE in orchestrator_notifications (delivered=False se invio
-    non configurato) → la dashboard legge le notifiche non lette da qui.
-  - Se email_enabled=True e recipients configurati → invia email SMTP.
-  - Se webhook_enabled=True e webhook_url configurato → invia HTTP POST JSON.
+  - Scrive SEMPRE 1 riga in orchestrator_notifications per evento.
+  - delivered=True  → email/webhook inviati con successo (nessun banner)
+  - delivered=False → canale non configurato o invio fallito → banner dashboard
+  - Se email_enabled=True: invia a tutti i destinatari in una sola chiamata SMTP.
+  - Se webhook_enabled=True: invia HTTP POST JSON.
   - Tutte le funzioni sono best-effort: non sollevano mai eccezioni.
 
 Config letta da orchestrator_config['notification_config']:
@@ -105,7 +106,7 @@ def _write_notification(
 
 def _send_email(cfg: dict, subject: str, body: str) -> tuple:
     """
-    Invia email via SMTP.
+    Invia email via SMTP a tutti i destinatari configurati in una sola chiamata.
     Ritorna (success: bool, error_message: str).
     """
     try:
@@ -198,6 +199,10 @@ def notify_test_result(
     result='failed' / 'error'  → alert di fallimento (se alert_on_test_failure)
     result='pending_approval'  → avviso approvazione (se alert_on_pending_approval)
     Altri risultati             → ignorati silenziosamente
+
+    Scrive SEMPRE 1 riga in orchestrator_notifications per evento:
+      - delivered=True  → email/webhook inviati OK (nessun banner dashboard)
+      - delivered=False → canale assente o invio fallito → banner dashboard
     """
     try:
         cfg = _get_notification_config()
@@ -241,70 +246,58 @@ def notify_test_result(
         else:
             return  # 'passed' e altri non generano notifiche
 
-        # ── Email ─────────────────────────────────────────────────────────
-        if cfg.get("email_enabled", False):
-            recipients = cfg.get("recipients", [])
-            if recipients:
-                # Invia una sola email a tutti i destinatari, poi registra
-                # una riga per destinatario (audit trail).
-                ok, err = _send_email(cfg, subject, body)
-                for recipient in recipients:
-                    _write_notification(
-                        notification_type=notification_type,
-                        channel="email",
-                        recipient=recipient,
-                        subject=subject,
-                        body=body,
-                        errata_id=errata_id,
-                        queue_id=queue_id,
-                        test_id=test_id,
-                        delivered=ok,
-                        error_message=err if not ok else None,
-                    )
-                if not ok:
-                    logger.warning(
-                        f"NotificationManager: email send failed: {err}"
-                    )
-        else:
-            # Email non configurata: scrivi solo in DB con delivered=False.
-            # La dashboard legge le righe non consegnate come notifiche da mostrare.
-            _write_notification(
-                notification_type=notification_type,
-                channel="email",
-                recipient="operator",
-                subject=subject,
-                body=body,
-                errata_id=errata_id,
-                queue_id=queue_id,
-                test_id=test_id,
-                delivered=False,
-            )
+        # ── Invio canali (best-effort) ────────────────────────────────────
+        email_ok    = False
+        email_err   = ""
+        webhook_ok  = False
+        webhook_err = ""
 
-        # ── Webhook ───────────────────────────────────────────────────────
-        if cfg.get("webhook_enabled", False):
-            webhook_url = cfg.get("webhook_url", "")
-            if webhook_url:
-                ok, err = _send_webhook(cfg, notification_type, subject, body)
-                _write_notification(
-                    notification_type=notification_type,
-                    channel="webhook",
-                    recipient=webhook_url,
-                    subject=subject,
-                    body=body,
-                    errata_id=errata_id,
-                    queue_id=queue_id,
-                    test_id=test_id,
-                    delivered=ok,
-                    error_message=err if not ok else None,
-                )
-                if not ok:
-                    logger.warning(
-                        f"NotificationManager: webhook failed: {err}"
-                    )
+        if cfg.get("email_enabled", False):
+            email_ok, email_err = _send_email(cfg, subject, body)
+            if not email_ok:
+                logger.warning(f"NotificationManager: email send failed: {email_err}")
+
+        if cfg.get("webhook_enabled", False) and cfg.get("webhook_url"):
+            webhook_ok, webhook_err = _send_webhook(cfg, notification_type, subject, body)
+            if not webhook_ok:
+                logger.warning(f"NotificationManager: webhook failed: {webhook_err}")
+
+        # ── 1 record DB per evento ────────────────────────────────────────
+        # Determina canale principale e se la notifica è stata consegnata.
+        # delivered=False → il banner appare nella dashboard (fallback visibile).
+        if cfg.get("email_enabled", False):
+            channel   = "email"
+            delivered = email_ok
+            err_msg   = email_err if not email_ok else None
+        elif cfg.get("webhook_enabled", False):
+            channel   = "webhook"
+            delivered = webhook_ok
+            err_msg   = webhook_err if not webhook_ok else None
+        else:
+            channel   = "dashboard"
+            delivered = False
+            err_msg   = None
+
+        recipients = cfg.get("recipients", [])
+        recipient_str = ", ".join(recipients) if recipients else "operator"
+
+        _write_notification(
+            notification_type=notification_type,
+            channel=channel,
+            recipient=recipient_str,
+            subject=subject,
+            body=body,
+            errata_id=errata_id,
+            queue_id=queue_id,
+            test_id=test_id,
+            delivered=delivered,
+            error_message=err_msg,
+        )
 
         logger.info(
             f"NotificationManager: {notification_type} written "
-            f"for {errata_id!r} (test_id={test_id}, result={result!r})"
+            f"for {errata_id!r} (test_id={test_id}, result={result!r}, "
+            f"channel={channel!r}, delivered={delivered})"
         )
 
     except Exception as e:

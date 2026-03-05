@@ -16,31 +16,30 @@ load_dotenv()
 # URL base: default localhost perché Streamlit e Flask girano sulla stessa VM.
 # Cambiare SPM_API_URL nel .env solo se Flask è su un host diverso.
 _BASE = os.environ.get("SPM_API_URL", "http://localhost:5001")
-_TIMEOUT = 15  # secondi
+
+# Timeout breve per operazioni veloci (health, coda, approvazioni).
+# Timeout lungo per operazioni bloccanti (sync trigger, test run) che possono
+# durare diversi minuti prima di rispondere.
+_TIMEOUT_SHORT = 15
+_TIMEOUT_LONG  = 360  # 6 min: sync ~12s in produzione, test fino a 30 min
 
 # Chiave API condivisa con Flask (SPM_API_KEY in .env)
 _API_KEY = os.environ.get("SPM_API_KEY", "")
 
 
-def _auth_headers(extra: dict = None) -> dict:
+def _auth_headers() -> dict:
     """Header base per tutte le richieste: include X-SPM-Key se configurata."""
-    h = {"X-SPM-Key": _API_KEY} if _API_KEY else {}
-    if extra:
-        h.update(extra)
-    return h
+    return {"X-SPM-Key": _API_KEY} if _API_KEY else {}
 
 
-def _uyuni_headers(username: str = None, password: str = None) -> dict:
-    """Restituisce headers con credenziali UYUNI se fornite."""
-    if username and password:
-        return {"X-UYUNI-Username": username, "X-UYUNI-Password": password}
-    return {}
-
-
-def _get(path: str, params: dict = None, headers: dict = None):
+def _get(path: str, params: dict = None, timeout: int = None):
     try:
-        r = requests.get(f"{_BASE}{path}", params=params,
-                         headers=_auth_headers(headers), timeout=_TIMEOUT)
+        r = requests.get(
+            f"{_BASE}{path}",
+            params=params,
+            headers=_auth_headers(),
+            timeout=timeout or _TIMEOUT_SHORT,
+        )
         r.raise_for_status()
         return r.json(), None
     except requests.exceptions.ConnectionError:
@@ -57,10 +56,14 @@ def _get(path: str, params: dict = None, headers: dict = None):
         return None, str(e)
 
 
-def _post(path: str, body: dict = None):
+def _post(path: str, body: dict = None, timeout: int = None):
     try:
-        r = requests.post(f"{_BASE}{path}", json=body or {},
-                          headers=_auth_headers(), timeout=_TIMEOUT)
+        r = requests.post(
+            f"{_BASE}{path}",
+            json=body or {},
+            headers=_auth_headers(),
+            timeout=timeout or _TIMEOUT_SHORT,
+        )
         r.raise_for_status()
         return r.json(), None
     except requests.exceptions.ConnectionError:
@@ -79,7 +82,7 @@ def _post(path: str, body: dict = None):
 
 def _delete(path: str):
     try:
-        r = requests.delete(f"{_BASE}{path}", headers=_auth_headers(), timeout=_TIMEOUT)
+        r = requests.delete(f"{_BASE}{path}", headers=_auth_headers(), timeout=_TIMEOUT_SHORT)
         r.raise_for_status()
         return r.json(), None
     except requests.exceptions.ConnectionError:
@@ -98,8 +101,12 @@ def _delete(path: str):
 
 def _patch(path: str, body: dict):
     try:
-        r = requests.patch(f"{_BASE}{path}", json=body,
-                           headers=_auth_headers(), timeout=_TIMEOUT)
+        r = requests.patch(
+            f"{_BASE}{path}",
+            json=body,
+            headers=_auth_headers(),
+            timeout=_TIMEOUT_SHORT,
+        )
         r.raise_for_status()
         return r.json(), None
     except requests.exceptions.ConnectionError:
@@ -137,7 +144,8 @@ def sync_status():
 
 
 def sync_trigger():
-    return _post("/api/v1/sync/trigger")
+    # Bloccante: aspetta il completamento del sync (~12-30s in produzione)
+    return _post("/api/v1/sync/trigger", timeout=_TIMEOUT_LONG)
 
 
 def errata_cache_stats():
@@ -203,7 +211,8 @@ def tests_status():
 
 
 def tests_run():
-    return _post("/api/v1/tests/run")
+    # Bloccante: può durare fino a 30 min (TEST_TIMEOUT_MINUTES)
+    return _post("/api/v1/tests/run", timeout=_TIMEOUT_LONG)
 
 
 def test_detail(test_id: int):
@@ -255,28 +264,20 @@ def orgs_list():
     return _get("/api/v1/orgs")
 
 
-def groups_list(org_id: int = None, username: str = None, password: str = None):
+def groups_list(org_id: int = None):
     params = {}
     if org_id is not None:
         params["org_id"] = org_id
-    return _get("/api/v1/groups", params=params, headers=_uyuni_headers(username, password))
+    return _get("/api/v1/groups", params=params)
 
 
-def group_patches(group_name: str, username: str = None, password: str = None):
-    return _get(f"/api/v1/groups/{group_name}/patches",
-                headers=_uyuni_headers(username, password))
+def group_patches(group_name: str):
+    return _get(f"/api/v1/groups/{group_name}/patches")
 
 
 # ─────────────────────────────────────────────
 # Test Batch
 # ─────────────────────────────────────────────
-
-def validate_operator(username: str, password: str):
-    return _post("/api/v1/tests/validate-operator", {
-        "username": username,
-        "password": password,
-    })
-
 
 def start_batch(queue_ids: list, group_name: str, operator: str):
     """Avvia batch in background. Ritorna {batch_id, status, total}."""
@@ -293,8 +294,7 @@ def batch_status(batch_id: str):
 
 
 # ─────────────────────────────────────────────
-# Notifications (lettura diretta — non è un endpoint API,
-# ma per ora usiamo health/detail per sapere se ci sono)
+# Notifications
 # ─────────────────────────────────────────────
 
 def notifications(limit=20, mark_read=False):

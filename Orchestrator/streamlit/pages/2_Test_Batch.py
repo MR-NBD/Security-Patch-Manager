@@ -200,7 +200,7 @@ st.divider()
 st.subheader("Avvio")
 
 org_id = st.session_state.get("selected_org_id")
-gdata, _ = api.groups_list(org_id=org_id)
+gdata, _ = api.groups_list(org_id)
 group_names = [g["name"] for g in (gdata or {}).get("groups", [])]
 
 group_name = (

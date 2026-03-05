@@ -18,6 +18,31 @@ from typing import Optional
 
 from app.config import Config
 
+
+# ─────────────────────────────────────────────
+# Transport con timeout (xmlrpc.client default = nessun timeout)
+# ─────────────────────────────────────────────
+
+class _UyuniTransport(xmlrpc.client.SafeTransport):
+    """
+    SafeTransport con SSL context e timeout configurabili.
+    xmlrpc.client non espone timeout nativamente — serve subclass.
+    """
+    def __init__(self, timeout: int, context=None):
+        super().__init__(context=context)
+        self._timeout = timeout
+
+    def make_connection(self, host):
+        conn = super().make_connection(host)
+        conn.timeout = self._timeout
+        return conn
+
+
+def make_uyuni_transport() -> _UyuniTransport:
+    """Crea transport UYUNI con SSL context (se VERIFY_SSL=false) e timeout da Config."""
+    ctx = make_uyuni_ssl_context()
+    return _UyuniTransport(timeout=Config.UYUNI_TIMEOUT, context=ctx)
+
 logger = logging.getLogger(__name__)
 
 
@@ -111,10 +136,8 @@ class UyuniSession:
             return False
 
     def _make_proxy(self) -> xmlrpc.client.ServerProxy:
-        """Crea ServerProxy rispettando Config.UYUNI_VERIFY_SSL."""
-        ctx = make_uyuni_ssl_context()
-        transport = xmlrpc.client.SafeTransport(context=ctx) if ctx else None
-        return xmlrpc.client.ServerProxy(self._url, transport=transport)
+        """Crea ServerProxy con SSL context e timeout da Config."""
+        return xmlrpc.client.ServerProxy(self._url, transport=make_uyuni_transport())
 
     @property
     def _proxy(self) -> xmlrpc.client.ServerProxy:

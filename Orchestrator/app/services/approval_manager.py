@@ -13,7 +13,6 @@ Le patch snoozed vengono automaticamente riportate a pending_approval
 quando snooze_until è scaduto (via process_snoozed(), chiamato dallo scheduler).
 """
 
-import json
 import logging
 from datetime import datetime, timezone
 from typing import Optional

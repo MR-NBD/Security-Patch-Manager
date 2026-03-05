@@ -7,13 +7,13 @@ GET /api/v1/health/detail  → stato dettagliato con check componenti
 
 import logging
 import time
-import xmlrpc.client
 import requests
 from flask import Blueprint, jsonify, request
+import xmlrpc.client
 
 from app.config import Config
 from app.services.db import check_db_health, get_db
-from app.services.uyuni_client import make_uyuni_ssl_context
+from app.services.uyuni_client import make_uyuni_transport
 from app.utils.serializers import serialize_row
 
 logger = logging.getLogger(__name__)
@@ -78,13 +78,11 @@ def health_detail():
 # ----------------------------------------------------------
 
 def _check_uyuni() -> dict:
-    """Verifica raggiungibilità UYUNI XML-RPC"""
+    """Verifica raggiungibilità UYUNI XML-RPC (con timeout da Config.UYUNI_TIMEOUT)."""
     try:
-        ctx = make_uyuni_ssl_context()
-        transport = xmlrpc.client.SafeTransport(context=ctx) if ctx else None
         client = xmlrpc.client.ServerProxy(
             f"{Config.UYUNI_URL}/rpc/api",
-            transport=transport,
+            transport=make_uyuni_transport(),
         )
         api_version = client.api.getVersion()
         return {

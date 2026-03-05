@@ -4,8 +4,15 @@ SPM Orchestrator - Sync API
 Endpoints per monitorare e controllare il poller UYUNI.
 """
 
+import logging
+
+import psycopg2
 from flask import Blueprint, jsonify
+
 from app.services import poller
+from app.services.db import get_db
+
+logger = logging.getLogger(__name__)
 
 sync_bp = Blueprint("sync", __name__, url_prefix="/api/v1")
 
@@ -41,9 +48,6 @@ def errata_cache_stats():
 
     Statistiche sulla tabella errata_cache locale.
     """
-    from app.services.db import get_db
-    import psycopg2
-
     try:
         with get_db() as conn:
             cur = conn.cursor()
@@ -65,6 +69,9 @@ def errata_cache_stats():
                     COUNT(*) FILTER (
                         WHERE target_os = 'debian'
                     )                                 AS debian,
+                    COUNT(*) FILTER (
+                        WHERE target_os = 'rhel'
+                    )                                 AS rhel,
                     MAX(synced_at)                    AS last_synced,
                     MIN(issued_date)                  AS oldest_errata,
                     MAX(issued_date)                  AS newest_errata
@@ -82,6 +89,7 @@ def errata_cache_stats():
             "by_os": {
                 "ubuntu": row["ubuntu"],
                 "debian": row["debian"],
+                "rhel":   row["rhel"],
             },
             "last_synced":   (
                 row["last_synced"].isoformat()
@@ -98,8 +106,7 @@ def errata_cache_stats():
         })
 
     except psycopg2.ProgrammingError:
-        return jsonify({
-            "error": "errata_cache table not found"
-        }), 500
+        return jsonify({"error": "errata_cache table not found"}), 500
     except Exception as e:
+        logger.error(f"GET /errata/cache/stats failed: {e}")
         return jsonify({"error": str(e)}), 500

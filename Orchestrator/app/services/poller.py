@@ -18,6 +18,7 @@ Stato globale: thread-safe, letto via get_sync_status().
 import calendar
 import json
 import logging
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -37,6 +38,9 @@ from app.services.uyuni_client import (
 logger = logging.getLogger(__name__)
 
 _scheduler: Optional[BackgroundScheduler] = None
+
+# Lock per proteggere il check-and-set di _state["running"] (TOCTOU)
+_sync_lock = threading.Lock()
 
 # Stato corrente (aggiornato dopo ogni run)
 _state = {
@@ -231,11 +235,13 @@ def sync_errata_cache() -> dict:
     """
     global _state
 
-    if _state["running"]:
-        logger.warning("Sync already running, skipping")
-        return {"status": "skipped", "reason": "already running"}
+    # Lock atomico: evita race condition tra scheduler e trigger manuale
+    with _sync_lock:
+        if _state["running"]:
+            logger.warning("Sync already running, skipping")
+            return {"status": "skipped", "reason": "already running"}
+        _state["running"] = True
 
-    _state["running"] = True
     started_at = datetime.now(timezone.utc)
     workers = Config.UYUNI_SYNC_WORKERS
 

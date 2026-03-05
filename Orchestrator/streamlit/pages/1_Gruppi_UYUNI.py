@@ -25,7 +25,7 @@ if org_name:
 # ── Carica gruppi (filtrati per org selezionata) ──────────────────
 org_id = st.session_state.get("selected_org_id")
 with st.spinner("Caricamento gruppi UYUNI..."):
-    gdata, gerr = api.groups_list(org_id=org_id)
+    gdata, gerr = api.groups_list(org_id)
 
 if gerr:
     st.error(f"Errore API: {gerr}")
@@ -59,6 +59,7 @@ st.divider()
 # ── Carica patch del gruppo ───────────────────────────────────────
 with st.spinner(f"Caricamento patch per {selected_group}..."):
     pdata, perr = api.group_patches(selected_group)
+
 
 if perr:
     st.error(f"Errore patch: {perr}")

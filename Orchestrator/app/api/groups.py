@@ -27,14 +27,8 @@ groups_bp = Blueprint("groups", __name__, url_prefix="/api/v1")
 
 
 def _uyuni_session_from_request() -> UyuniSession:
-    """
-    Crea UyuniSession con le credenziali dell'operatore se presenti negli header
-    (X-UYUNI-Username / X-UYUNI-Password), altrimenti usa le credenziali admin
-    da Config (fallback per compatibilità).
-    """
-    username = request.headers.get("X-UYUNI-Username")
-    password = request.headers.get("X-UYUNI-Password")
-    return UyuniSession(username=username or None, password=password or None)
+    """Crea UyuniSession con le credenziali admin da Config."""
+    return UyuniSession()
 
 
 # ─────────────────────────────────────────────

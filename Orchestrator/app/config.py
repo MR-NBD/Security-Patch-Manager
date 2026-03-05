@@ -30,7 +30,7 @@ class Config:
     # ----------------------------------------------------------
     ENV = os.getenv("FLASK_ENV", "production")
     PORT = int(os.getenv("FLASK_PORT", 5001))
-    HOST = os.getenv("FLASK_HOST", "0.0.0.0")
+    HOST = os.getenv("FLASK_HOST", "127.0.0.1")  # loopback by default — set 0.0.0.0 only if needed
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-key-change-in-production")
     DEBUG = ENV == "development"
 
