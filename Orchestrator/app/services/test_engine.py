@@ -506,8 +506,9 @@ def _execute_test(queue_item: dict) -> dict:
     system_name = cfg.get("system_name", "")
     system_ip   = cfg.get("system_ip", "")
 
-    if not system_id or not system_name:
+    if not system_id or not system_name or not system_ip:
         # Auto-discovery: interroga UYUNI per sistemi nel gruppo test-{os}
+        # Triggered anche quando manca solo system_ip (necessario per Prometheus)
         discovered = get_test_system_for_os(target_os)
         if discovered:
             system_id   = system_id   or discovered["system_id"]

@@ -23,7 +23,7 @@ import logging
 from flask import Blueprint, jsonify
 
 from app.services.uyuni_client import UyuniSession, os_from_group
-from app.services.uyuni_patch_client import _is_ip
+from app.services.uyuni_patch_client import is_ip
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ def prometheus_targets():
                     )
 
                     # Risolvi IP: nome se è già un IP, altrimenti system.getNetwork
-                    if _is_ip(system_name):
+                    if is_ip(system_name):
                         system_ip = system_name
                     else:
                         system_ip = session.get_system_network_ip(system_id) or ""

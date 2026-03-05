@@ -12,8 +12,9 @@ import requests
 from flask import Blueprint, jsonify, request
 
 from app.config import Config
-from app.services.db import check_db_health
+from app.services.db import check_db_health, get_db
 from app.services.uyuni_client import make_uyuni_ssl_context
+from app.utils.serializers import serialize_row
 
 logger = logging.getLogger(__name__)
 
@@ -143,22 +144,11 @@ def notifications():
       limit  (default 20)
       mark_read  (default false) — se true marca le notifiche come delivered=True
     """
-    from app.services.db import get_db
-    from datetime import datetime, date
-    from decimal import Decimal
-
     try:
         limit     = min(int(request.args.get("limit", 20)), 100)
         mark_read = request.args.get("mark_read", "false").lower() == "true"
     except ValueError:
         return jsonify({"error": "Invalid query params"}), 400
-
-    def _ser(v):
-        if isinstance(v, (datetime, date)):
-            return v.isoformat()
-        if isinstance(v, Decimal):
-            return float(v)
-        return v
 
     try:
         with get_db() as conn:
@@ -175,7 +165,7 @@ def notifications():
                 """,
                 (limit,),
             )
-            rows = [{k: _ser(v) for k, v in row.items()} for row in cur.fetchall()]
+            rows = [serialize_row(dict(row)) for row in cur.fetchall()]
 
             total_unread = 0
             cur.execute(
@@ -204,8 +194,6 @@ def mark_notifications_read():
 
     Body: { "ids": [1, 2, 3] }  oppure {}  per marcare tutte come lette.
     """
-    from app.services.db import get_db
-
     body = request.get_json(silent=True) or {}
     ids  = body.get("ids")
 

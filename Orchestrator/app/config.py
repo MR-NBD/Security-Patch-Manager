@@ -67,13 +67,6 @@ class Config:
     UYUNI_SYNC_WORKERS = int(os.getenv("UYUNI_SYNC_WORKERS", 10))
 
     # ----------------------------------------------------------
-    # Salt API
-    # ----------------------------------------------------------
-    SALT_API_URL = os.getenv("SALT_API_URL", "https://10.172.2.17:9080")
-    SALT_API_USER = os.getenv("SALT_API_USER", "saltapi")
-    SALT_API_PASSWORD = os.getenv("SALT_API_PASSWORD", "")
-
-    # ----------------------------------------------------------
     # Prometheus
     # ----------------------------------------------------------
     PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://localhost:9090")
@@ -82,15 +75,16 @@ class Config:
     # ----------------------------------------------------------
     # Test Systems
     # ----------------------------------------------------------
+    # Valori vuoti → auto-discovery da gruppi UYUNI test-*
     TEST_SYSTEMS = {
         "ubuntu": {
             "system_id":   _to_int(os.getenv("TEST_SYSTEM_UBUNTU_ID")),
-            "system_name": os.getenv("TEST_SYSTEM_UBUNTU_NAME", "test-ubuntu-01"),
+            "system_name": os.getenv("TEST_SYSTEM_UBUNTU_NAME", ""),
             "system_ip":   os.getenv("TEST_SYSTEM_UBUNTU_IP", ""),
         },
         "rhel": {
             "system_id":   _to_int(os.getenv("TEST_SYSTEM_RHEL_ID")),
-            "system_name": os.getenv("TEST_SYSTEM_RHEL_NAME", "test-rhel-01"),
+            "system_name": os.getenv("TEST_SYSTEM_RHEL_NAME", ""),
             "system_ip":   os.getenv("TEST_SYSTEM_RHEL_IP", ""),
         },
     }

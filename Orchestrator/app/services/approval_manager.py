@@ -4,7 +4,7 @@ SPM Orchestrator - Approval Manager
 Gestisce il workflow di approvazione patch dopo un test superato.
 
 Flusso:
-  pending_approval → [operatore] → approved   → (production deployment)
+  pending_approval → [operatore] → approved   → (operatore decide manualmente su UYUNI)
                                  → rejected   → fine
                                  → snoozed    → (re-queue dopo snooze_until)
 

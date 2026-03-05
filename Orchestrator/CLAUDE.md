@@ -36,14 +36,17 @@ sudo systemctl restart spm-orchestrator
 │                                          scheduleReboot)  │
 │                                                          │
 │  Approval API ────────────────────────→ PostgreSQL       │
-│  Deployment Manager ──────────────────→ PostgreSQL       │
 │  Notification Manager ────────────────→ PostgreSQL       │
 │                           (+ SMTP/webhook se configurati)│
+│                                                          │
+│  Prometheus SD ───────────────────────→ UYUNI XML-RPC   │
+│  GET /api/v1/prometheus/targets         (dynamic targets)│
 └─────────────────────────────────────────────────────────┘
 
 Test VM Ubuntu 24.04:  10.172.2.18  (UYUNI system_id=1000010000)
 Test VM RHEL 9:        10.172.2.19  (UYUNI system_id=1000010008)
 UYUNI server:          10.172.2.17  (XML-RPC /rpc/api, SSL verify off)
+Prometheus:            10.172.2.22:9090 (sul VM orchestrator, http_sd_configs → SPM)
 ```
 
 ---
@@ -118,8 +121,12 @@ Usata dal **test engine** per applicare patch su VM test:
 - `test-ubuntu-2404` → system_id=1000010000 (10.172.2.18)
 - `test-rhel9` → system_id=1000010008 (10.172.2.19)
 
-La `.env` ha priorità (`TEST_SYSTEM_UBUNTU_ID`, `TEST_SYSTEM_RHEL_ID`).
-Se non configurata → auto-discovery automatica.
+Auto-discovery attiva quando `system_id`, `system_name` **o** `system_ip` mancano.
+L'IP è necessario per Prometheus: se il nome profilo non è un IP, viene chiamato
+`system.getNetwork` per recuperarlo. I default in `.env` sono vuoti — se non
+configurati, tutto viene risolto da UYUNI automaticamente.
+
+`is_ip(value)` (pubblica, in `uyuni_patch_client.py`) — utility per entrambi i moduli.
 
 ---
 
@@ -139,7 +146,7 @@ pre_check                   ← uyuni.ping()
     ↓
 ④ validate (opzionale)      ← Prometheus delta CPU/MEM (skipped se non disponibile)
     ↓
-⑤ services (3×retry 10s)   ← systemctl is-active per servizi critici
+⑤ services (6×retry 20s)   ← systemctl is-active per servizi critici
     ↓
 → pending_approval          ← test superato, in attesa operatore
 ```
@@ -260,6 +267,10 @@ POST /api/v1/approvals/<queue_id>/snooze
 # Gruppi UYUNI
 GET  /api/v1/groups                → lista gruppi test-* con sistemi e patch
 GET  /api/v1/groups/<name>/patches → patch applicabili per gruppo (credenziali via X-UYUNI-*)
+
+# Prometheus HTTP Service Discovery
+GET  /api/v1/prometheus/targets    → target dinamici (tutti i sistemi in gruppi test-*)
+                                     formato Prometheus http_sd_configs
 ```
 
 ---
@@ -275,19 +286,17 @@ UYUNI_VERIFY_SSL=false
 UYUNI_POLL_INTERVAL_MINUTES=30
 UYUNI_SYNC_WORKERS=10          # worker ThreadPoolExecutor per sync parallelo
 
-# Sistemi test (opzionale — se vuoti usa auto-discovery da gruppi UYUNI)
-TEST_SYSTEM_UBUNTU_ID=1000010000
-TEST_SYSTEM_UBUNTU_NAME=10.172.2.18
-TEST_SYSTEM_UBUNTU_IP=10.172.2.18
-TEST_SYSTEM_RHEL_ID=1000010008
-TEST_SYSTEM_RHEL_NAME=10.172.2.19
-TEST_SYSTEM_RHEL_IP=10.172.2.19
+# Sistemi test — tutti opzionali, default vuoto → auto-discovery da UYUNI
+# Se vuoti: sistema, nome e IP vengono risolti dai gruppi test-* in UYUNI
+# Se solo ID configurato: nome e IP vengono comunque risolti via UYUNI
+TEST_SYSTEM_UBUNTU_ID=             # es. 1000010000
+TEST_SYSTEM_RHEL_ID=               # es. 1000010008
 
 # Test Engine timing
 TEST_WAIT_AFTER_PATCH_SECONDS=300   # attesa stabilizzazione post-patch (no reboot)
 TEST_WAIT_AFTER_REBOOT_SECONDS=180  # timeout wait_online dopo reboot
 
-# Prometheus (opzionale)
+# Prometheus — punta al server Prometheus sul VM orchestrator
 PROMETHEUS_URL=http://localhost:9090
 ```
 
@@ -334,40 +343,56 @@ curl -X POST http://localhost:5001/api/v1/queue \
 
 ### Implementato e funzionante
 - Sync UYUNI → `errata_cache` (parallelo, ~15-20s per 634 errata)
-- Auto-discovery sistemi test da gruppi UYUNI (`test-ubuntu-2404`, `test-rhel9`)
-- Test engine completo con fasi: snapshot → patch → reboot → validate → services
+- Auto-discovery completa: sistema, nome, IP da gruppi UYUNI `test-*` via `system.getNetwork`
+- Auto-discovery si attiva se mancano `system_id`, `system_name` **o** `system_ip`
+- Default `.env` per sistemi test = vuoti → auto-discovery sempre attiva
+- Test engine completo: snapshot → patch → reboot → validate (Prometheus) → services
 - Rollback: snapshot (snapper) o package (apt downgrade con versioni reali)
 - Fallback package rollback quando snapper non disponibile (Ubuntu 24.04)
-- Service check con 3 retry × 10s (tolleranza riavvio servizi post-patch)
-- Workflow approvazione (approve/reject/snooze + re-queue automatico)
+- Service check con 6 retry × 20s (tolleranza riavvio SSH post-patch)
+- `_DEFAULT_SERVICES["ubuntu"]` = `["ssh.socket", "cron", "rsyslog"]` (socket activation)
+- Workflow approvazione (approve/reject/snooze + re-queue automatico snoozed)
 - Notification manager (DB sempre + email/webhook opzionali)
-- IP auto-discovery: system.getNetwork se il nome profilo non è un IP (per Prometheus)
-- Rimosso: deployment_manager, salt_client (produzione out of scope)
+- `GET /api/v1/prometheus/targets` — Prometheus HTTP SD dinamico da UYUNI
+- Rimosso: deployment_manager, salt_client, api/deployments (produzione out of scope)
+- `is_ip()` (pubblica in `uyuni_patch_client.py`) usata da test engine e prometheus_sd
+- `serialize_row` (condivisa da `serializers.py`) usata da health, approvals, queue
 
 ### Da fare / prossime sessioni
-- **Prometheus infrastruttura** (vedi sezione sotto — necessario per validate phase)
-- Rimuovere dal .env le variabili TEST_SYSTEM_*_NAME e TEST_SYSTEM_*_IP per forzare auto-discovery
-- Installare snapper su Ubuntu test VM per rollback affidabile
+- **Installare Prometheus** sul VM orchestrator (vedi sotto) e impostare `PROMETHEUS_URL`
+- Installare snapper su Ubuntu test VM per rollback snapshot affidabile
 - Eventuale integrazione email/webhook notifiche quando l'ambiente è pronto
 
-### Setup Prometheus (necessario per fase validate)
-1. Su ogni VM test installare node_exporter:
-   ```bash
-   # Ubuntu 24.04
-   apt-get install -y prometheus-node-exporter
-   systemctl enable --now prometheus-node-exporter
-   # Verifica: curl http://10.172.2.18:9100/metrics | head -5
-   ```
-2. Configurare Prometheus server (es. su 10.172.2.22 o host dedicato):
-   ```yaml
-   # /etc/prometheus/prometheus.yml
-   scrape_configs:
-     - job_name: 'spm-test-vms'
-       static_configs:
-         - targets: ['10.172.2.18:9100', '10.172.2.19:9100']
-   ```
-3. Aggiungere in `.env`:
-   ```bash
-   PROMETHEUS_URL=http://<prometheus-host>:9090
-   ```
-4. La fase validate diventa attiva automaticamente al prossimo test.
+### Setup Prometheus sul VM orchestrator (10.172.2.22)
+node_exporter è già attivo sui test VM (deployato da UYUNI). Serve solo il server:
+
+```bash
+# 1. Installa Prometheus
+apt-get install -y prometheus
+
+# 2. Configura con HTTP SD (target dinamici da SPM)
+cat > /etc/prometheus/prometheus.yml << 'EOF'
+global:
+  scrape_interval: 60s
+
+scrape_configs:
+  - job_name: 'spm-test-vms'
+    http_sd_configs:
+      - url: 'http://localhost:5001/api/v1/prometheus/targets'
+        refresh_interval: 30m
+EOF
+
+# 3. Avvia
+systemctl enable --now prometheus
+
+# 4. Verifica target scoperti
+curl -s 'http://localhost:9090/api/v1/targets' | python3 -m json.tool | grep health
+```
+
+```bash
+# 5. Aggiungi in .env
+PROMETHEUS_URL=http://localhost:9090
+```
+
+Ogni sistema aggiunto a un gruppo `test-*` in UYUNI viene scoperto
+automaticamente da Prometheus entro 30 minuti (refresh http_sd_configs).

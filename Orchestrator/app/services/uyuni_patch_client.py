@@ -39,7 +39,7 @@ _DEFAULT_SERVICES = {
 }
 
 
-def _is_ip(value: str) -> bool:
+def is_ip(value: str) -> bool:
     """Ritorna True se la stringa è un indirizzo IP valido."""
     try:
         ipaddress.ip_address(value)
@@ -82,7 +82,7 @@ def get_test_system_for_os(target_os: str) -> Optional[dict]:
                 )
                 # Preferisce l'IP se il nome è già un indirizzo IP;
                 # altrimenti interroga UYUNI system.getNetwork per l'IP reale
-                if _is_ip(system_name):
+                if is_ip(system_name):
                     system_ip = system_name
                 else:
                     system_ip = session.get_system_network_ip(system_id) or ""
