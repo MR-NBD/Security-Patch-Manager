@@ -6,6 +6,7 @@ L'operatore può selezionare le patch da inserire in coda per il batch test.
 """
 
 import sys, os
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import streamlit as st
@@ -32,7 +33,7 @@ if not groups:
     st.stop()
 
 # ── Selezione gruppo ──────────────────────────────────────────────
-group_names  = [g["name"] for g in groups]
+group_names = [g["name"] for g in groups]
 group_by_name = {g["name"]: g for g in groups}
 
 selected_group = st.selectbox("Seleziona gruppo", group_names)
@@ -40,16 +41,14 @@ g = group_by_name[selected_group]
 
 # ── Info gruppo ───────────────────────────────────────────────────
 info1, info2, info3 = st.columns(3)
-info1.metric("OS",               g.get("os", "?").upper())
-info2.metric("Sistemi",          g.get("system_count", 0))
+info1.metric("OS", g.get("os", "?").upper())
+info2.metric("Sistemi", g.get("system_count", 0))
 info3.metric("Patch applicabili", g.get("patch_count", 0))
 
 # Sistemi nel gruppo
 systems = g.get("systems", [])
 if systems:
-    st.caption("**Sistemi:** " + "  |  ".join(
-        f"`{s['name']}`" for s in systems
-    ))
+    st.caption("**Sistemi:** " + "  |  ".join(f"`{s['name']}`" for s in systems))
 
 st.divider()
 
@@ -67,23 +66,30 @@ if not patches:
     st.info("Nessuna patch applicabile per questo gruppo.")
     st.stop()
 
-_n_reboot    = sum(1 for p in patches if p.get("requires_reboot") is True)
+_n_reboot = sum(1 for p in patches if p.get("requires_reboot") is True)
 _n_no_reboot = sum(1 for p in patches if p.get("requires_reboot") is False)
-_n_unknown   = len(patches) - _n_reboot - _n_no_reboot
+_n_unknown = len(patches) - _n_reboot - _n_no_reboot
 
 rb1, rb2, rb3 = st.columns(3)
-rb1.metric("Richiedono reboot",    _n_reboot,    help="Patch che richiedono riavvio del sistema")
-rb2.metric("Senza reboot",         _n_no_reboot, help="Patch applicabili a caldo")
-rb3.metric("Non ancora analizzate", _n_unknown,  help="Patch non ancora accodate, reboot da determinare")
+rb1.metric(
+    "Richiedono reboot", _n_reboot, help="Patch che richiedono riavvio del sistema"
+)
+rb2.metric("Senza reboot", _n_no_reboot, help="Patch applicabili a caldo")
+rb3.metric(
+    "Non ancora analizzate",
+    _n_unknown,
+    help="Patch non ancora accodate, reboot da determinare",
+)
 
 st.subheader(f"Patch applicabili — {len(patches)} trovate")
 
 # ── Tabella patch con selezione ───────────────────────────────────
 _TYPE_ICON = {
-    "Security Advisory":            "🔴",
-    "Bug Fix Advisory":             "🟡",
+    "Security Advisory": "🔴",
+    "Bug Fix Advisory": "🟡",
     "Product Enhancement Advisory": "🔵",
 }
+
 
 def _reboot_label(p: dict) -> str:
     rb = p.get("requires_reboot")
@@ -93,18 +99,21 @@ def _reboot_label(p: dict) -> str:
         return "✅ No"
     return "— ?"
 
+
 rows = []
 for p in patches:
     atype = p.get("advisory_type", "")
-    rows.append({
-        "Seleziona":      False,
-        "Advisory":       p.get("advisory_name", "?"),
-        "Tipo":           f"{_TYPE_ICON.get(atype,'⚪')} {atype}",
-        "Reboot":         _reboot_label(p),
-        "Synopsis":       (p.get("synopsis") or "")[:65],
-        "Data":           (p.get("date") or "")[:10],
-        "Sistemi":        len(p.get("systems_affected", [])),
-    })
+    rows.append(
+        {
+            "Seleziona": False,
+            "Advisory": p.get("advisory_name", "?"),
+            "Tipo": f"{_TYPE_ICON.get(atype,'⚪')} {atype}",
+            "Reboot": _reboot_label(p),
+            "Synopsis": (p.get("synopsis") or "")[:65],
+            "Data": (p.get("date") or "")[:10],
+            "Sistemi": len(p.get("systems_affected", [])),
+        }
+    )
 
 df = pd.DataFrame(rows)
 edited = st.data_editor(
@@ -113,7 +122,7 @@ edited = st.data_editor(
     hide_index=True,
     column_config={
         "Seleziona": st.column_config.CheckboxColumn("Seleziona", default=False),
-        "Reboot":    st.column_config.TextColumn("Reboot", width="small"),
+        "Reboot": st.column_config.TextColumn("Reboot", width="small"),
     },
     disabled=["Advisory", "Tipo", "Reboot", "Synopsis", "Data", "Sistemi"],
     key="patch_selection",
@@ -141,7 +150,7 @@ with col_prio:
     priority = st.number_input("Priorità", min_value=0, max_value=10, value=0)
 
 if st.button(
-    f"➕ Aggiungi {len(selected_patches)} patch in coda",
+    f"Aggiungi {len(selected_patches)} patch in coda",
     type="primary",
     disabled=not selected_patches,
     use_container_width=True,
