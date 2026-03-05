@@ -232,6 +232,8 @@
   },
   "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
+    "Orchestrator/CLAUDE.md.tmp.26732.1772703420304",
+    "Orchestrator/app/services/uyuni_patch_client.py.tmp.26732.1772703406456",
     "Orchestrator/app/config.py.tmp.26732.1772701274247",
     "Orchestrator/app/services/queue_manager.py.tmp.26732.1772701270988",
     "Orchestrator/app/services/salt_client.py.tmp.26732.1772701263948",
@@ -241,8 +243,6 @@
     "Orchestrator/app/services/uyuni_patch_client.py.tmp.26732.1772701241655",
     "Orchestrator/app/services/test_engine.py.tmp.26732.1772701236341",
     "Orchestrator/streamlit/pages/3_Approvazioni.py.tmp.18828.1772658928886",
-    "Orchestrator/app/services/test_engine.py.tmp.18828.1772658908423",
-    "Orchestrator/app/services/test_engine.py.tmp.18828.1772658892054",
     "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "tools/GUIDA.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",

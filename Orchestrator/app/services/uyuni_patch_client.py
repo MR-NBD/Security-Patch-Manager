@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────
 
 _DEFAULT_SERVICES = {
-    "ubuntu": ["ssh", "cron", "rsyslog"],
+    "ubuntu": ["ssh.socket", "cron", "rsyslog"],
     "rhel":   ["sshd", "crond", "rsyslog"],
 }
 

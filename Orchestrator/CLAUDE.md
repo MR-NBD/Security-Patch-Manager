@@ -157,6 +157,8 @@ pre_check                   ← uyuni.ping()
 - **Snapshot** (`requires_reboot=True`, patch kernel): `snapper undochange N..0` via UYUNI
 - **Package** (`requires_reboot=False`): `apt-get --allow-downgrades` con versioni reali catturate da `system.listPackages` prima dell'applicazione
 - **Snapper non disponibile** (Ubuntu 24.04): fallback automatico a package rollback
+- **SSH socket activation** (Ubuntu 24.04): `ssh.service` è inactive tra connessioni, usare `ssh.socket` come servizio critico
+- **Package rollback** su Ubuntu può fallire se la versione precedente non è più nel repository apt (versione rimossa dopo security patch)
 - **Azure rollback**: NON integrato — decisione deliberata. UYUNI copre la maggioranza dei casi. Se il sistema diventa irraggiungibile dopo una patch, l'operatore viene notificato tramite `orchestrator_notifications`.
 
 ### Vincoli PostgreSQL critici
