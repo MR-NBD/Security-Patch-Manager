@@ -49,7 +49,8 @@
               "title": "Installazione-UYUNI-Proxy"
             }
           }
-        ]
+        ],
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -230,10 +231,15 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "d0984873d53a6218",
+  "active": "1044af1749dcd905",
   "lastOpenFiles": [
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
+    "Orchestrator/app/main.py.tmp.29682.1772715269065",
+    "Orchestrator/app/main.py.tmp.29682.1772715262483",
+    "Orchestrator/app/api/prometheus_sd.py",
+    "Orchestrator/app/api/prometheus_sd.py.tmp.29682.1772715259253",
+    "tools/GUIDA.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
+    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Orchestrator/CLAUDE.md.tmp.26732.1772705211563",
     "Orchestrator/CLAUDE.md.tmp.26732.1772705195160",
     "Orchestrator/CLAUDE.md.tmp.26732.1772705188005",
@@ -241,11 +247,7 @@
     "Orchestrator/app/utils/serializers.py.tmp.26732.1772705164711",
     "Orchestrator/app/services/uyuni_patch_client.py.tmp.26732.1772705156722",
     "Orchestrator/streamlit/api_client.py.tmp.26732.1772705134996",
-    "Orchestrator/app/main.py.tmp.26732.1772705128693",
-    "Orchestrator/app/main.py.tmp.26732.1772705126146",
-    "Orchestrator/CLAUDE.md.tmp.26732.1772703420304",
     "Uyuni/Teoria/HA-Architecture-UYUNI.md",
-    "tools/GUIDA.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
     "Uyuni/Deployment/Migrazione-PostgreSQL-Azure-Flexible-Server.md",
