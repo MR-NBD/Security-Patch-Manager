@@ -49,8 +49,7 @@
               "title": "Installazione-UYUNI-Server-PRODUZIONE"
             }
           }
-        ],
-        "currentTab": 2
+        ]
       }
     ],
     "direction": "vertical"
@@ -231,25 +230,25 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "1044af1749dcd905",
+  "active": "fcae071421e98e82",
   "lastOpenFiles": [
-    "Orchestrator/app/services/uyuni_patch_client.py.tmp.33244.1772721915433",
-    "Orchestrator/app/services/test_engine.py.tmp.33244.1772721902243",
-    "Orchestrator/app/services/uyuni_patch_client.py.tmp.33244.1772721897157",
-    "Orchestrator/app/config.py.tmp.33244.1772721775836",
-    "Orchestrator/streamlit/pages/2_Test_Batch.py.tmp.33244.1772721448730",
-    "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.33244.1772721433865",
-    "Orchestrator/app/services/test_engine.py.tmp.33244.1772721418322",
-    "Orchestrator/app/services/queue_manager.py.tmp.33244.1772721412474",
-    "Orchestrator/app/services/queue_manager.py.tmp.33244.1772721399016",
-    "Orchestrator/app/api/groups.py.tmp.33244.1772721393004",
-    "Orchestrator/app/api/groups.py.tmp.33244.1772721378429",
+    "Orchestrator/CLAUDE.md.tmp.33244.1772723763173",
+    "Orchestrator/CLAUDE.md.tmp.33244.1772723736013",
+    "Orchestrator/CLAUDE.md.tmp.33244.1772723728275",
+    "Orchestrator/PROJECT-STATUS.md.tmp.33244.1772723706897",
+    "Orchestrator/PROJECT-STATUS.md.tmp.33244.1772723698180",
+    "Orchestrator/PROJECT-STATUS.md.tmp.33244.1772723683060",
+    "Orchestrator/PROJECT-STATUS.md.tmp.33244.1772723656743",
+    "Orchestrator/PROJECT-STATUS.md.tmp.33244.1772723647565",
+    "Orchestrator/app/services/uyuni_patch_client.py.tmp.33244.1772723640800",
+    "Orchestrator/app/api/groups.py.tmp.33244.1772723607991",
+    "Orchestrator/app/api/groups.py.tmp.33244.1772723575775",
+    "tools/GUIDA.md",
+    "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
-    "tools/GUIDA.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Uyuni/Teoria/HA-Architecture-UYUNI.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
     "Uyuni/Deployment/Migrazione-PostgreSQL-Azure-Flexible-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy-PRODUZIONE.md",
     "Uyuni/Deployment/Configurazione-VHM-Azure.md",
