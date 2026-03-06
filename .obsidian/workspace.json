@@ -48,8 +48,21 @@
               "icon": "lucide-file",
               "title": "Installazione-UYUNI-Server-PRODUZIONE"
             }
+          },
+          {
+            "id": "60f3bf50bacf7437",
+            "type": "leaf",
+            "state": {
+              "type": "release-notes",
+              "state": {
+                "currentVersion": "1.12.4"
+              },
+              "icon": "lucide-book-up",
+              "title": "Note di rilascio 1.12.4"
+            }
           }
-        ]
+        ],
+        "currentTab": 3
       }
     ],
     "direction": "vertical"
@@ -219,18 +232,10 @@
       "daily-notes:Apri nota del giorno": true,
       "templates:Inserisci modello": true,
       "command-palette:Apri riquadro comandi": false,
-      "obsidian-git:Open Git source control": false,
-      "tasknotes:Open mini calendar": false,
-      "tasknotes:Open advanced calendar": false,
-      "tasknotes:Open task list": false,
-      "tasknotes:Open agenda": false,
-      "tasknotes:Open kanban board": false,
-      "tasknotes:Open pomodoro": false,
-      "tasknotes:Open pomodoro stats": false,
-      "tasknotes:Create new task": false
+      "obsidian-git:Open Git source control": false
     }
   },
-  "active": "f76e3691fbfccb78",
+  "active": "60f3bf50bacf7437",
   "lastOpenFiles": [
     "Orchestrator/app/api/groups.py.tmp.37070.1772747756822",
     "Orchestrator/app/services/poller.py.tmp.37070.1772747721997",
