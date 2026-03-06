@@ -22,17 +22,17 @@
             }
           },
           {
-            "id": "38925d3c58c04823",
+            "id": "77579a8fd5b3588d",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "tools/GUIDA.md",
+                "file": "Uyuni/Deployment/Installazione-UYUNI-Server.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "GUIDA"
+              "title": "Installazione-UYUNI-Server"
             }
           },
           {
@@ -41,28 +41,16 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
+                "file": "Uyuni/Deployment/Aperture-Firewall-UYUNI-Produzione.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Installazione-UYUNI-Server-PRODUZIONE"
-            }
-          },
-          {
-            "id": "60f3bf50bacf7437",
-            "type": "leaf",
-            "state": {
-              "type": "release-notes",
-              "state": {
-                "currentVersion": "1.12.4"
-              },
-              "icon": "lucide-book-up",
-              "title": "Note di rilascio 1.12.4"
+              "title": "Aperture-Firewall-UYUNI-Produzione"
             }
           }
         ],
-        "currentTab": 3
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -235,8 +223,16 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "60f3bf50bacf7437",
+  "active": "77579a8fd5b3588d",
   "lastOpenFiles": [
+    "Uyuni/Deployment/Aperture-Firewall-UYUNI-Produzione.md",
+    "tools/GUIDA.md",
+    "Uyuni/Deployment/Installazione-UYUNI-Server.md",
+    "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
+    "Uyuni/Deployment/Aperture-UYUNI.md",
+    "Uyuni/Deployment/Aperture-Firewall-UYUNI-Produzione.md.tmp.2159.1772805749511",
+    "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
+    "Uyuni/Deployment/Aperture-Firewall-UYUNI-Produzione.md.tmp.2159.1772805482716",
     "Orchestrator/app/api/groups.py.tmp.37070.1772747756822",
     "Orchestrator/app/services/poller.py.tmp.37070.1772747721997",
     "Orchestrator/app/services/poller.py.tmp.37070.1772747701522",
@@ -245,14 +241,7 @@
     "Orchestrator/streamlit/pages/2_Test_Batch.py.tmp.37070.1772745509174",
     "Orchestrator/streamlit/api_client.py.tmp.37070.1772745493267",
     "Orchestrator/app/api/tests.py.tmp.37070.1772745415656",
-    "Orchestrator/app/api/tests.py.tmp.37070.1772745409367",
-    "Orchestrator/app/api/health.py.tmp.37070.1772745395621",
-    "Orchestrator/app/api/health.py.tmp.37070.1772745391371",
-    "tools/GUIDA.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
-    "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "Uyuni/Deployment/Migrazione-PostgreSQL-Azure-Flexible-Server.md",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy-PRODUZIONE.md",
@@ -272,7 +261,6 @@
     "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
     "Uyuni/Deployment/Configurazione-RHEL-9.4.md",
     "Orchestrator/README.md",
-    "Orchestrator/PROJECT-STATUS.md",
     "Senza nome.canvas",
     "Senza nome 2.canvas",
     "Senza nome 1.canvas",
