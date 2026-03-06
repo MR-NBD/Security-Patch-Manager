@@ -6,10 +6,11 @@ VM: `uyuni-master-01` — IP: `198.18.23.4`
 
 ## Outbound — VM → Internet (Azure Firewall Application Rules)
 
-| FQDN | Porta | Motivo |
-|---|---|---|
-| `download.opensuse.org` | 80, 443 | zypper — pacchetti OS e repo UYUNI |
-| `registry.opensuse.org` | 443 | Podman — pull immagini container UYUNI |
+| FQDN                    | Porta   | Motivo                                                          |
+| ----------------------- | ------- | --------------------------------------------------------------- |
+| `download.opensuse.org` | 80, 443 | zypper — pacchetti OS e repo UYUNI                              |
+| `cdn.opensuse.org`      | 80, 443 | zypper — CDN redirect da download.opensuse.org (file effettivi) |
+| `registry.opensuse.org` | 443     | Podman — pull immagini container UYUNI                          |
 
 ---
 
