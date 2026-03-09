@@ -7,13 +7,13 @@ Installazione di **UYUNI 2025.10** su **openSUSE Leap 15.6** in ambiente **Azure
 >A partire da UYUNI 2025.10, l'OS ufficialmente validato è **openSUSE Tumbleweed**. Tuttavia, **openSUSE Leap 15.6 è pienamente supportato dal progetto** in quanto si basa su quello per costruite le immagini container UYUNI stesse.
 ### Requisiti Hardware
 
-| Componente       | Test                | Production               |
-| ---------------- | ------------------- | ------------------------ |
-| CPU              | 4+ core             | 8+ core                  |
-| RAM              | 16 GB               | 32+ GB                   |
-| Disco OS         | **64 GB** SSD       | 128 GB SSD               |
-| Disco Repository | **256 GB** Standard SSD | 500+ GB Premium SSD  |
-| Disco PostgreSQL | 64 GB Standard SSD  | 100+ GB Premium SSD NVMe |
+| Componente       | Test                    | Production               |
+| ---------------- | ----------------------- | ------------------------ |
+| CPU              | 4+ core                 | 8+ core                  |
+| RAM              | 16 GB                   | 32+ GB                   |
+| Disco OS         | **64 GB** SSD           | 128 GB SSD               |
+| Disco Repository | **256 GB** Standard SSD | 500+ GB Premium SSD      |
+| Disco PostgreSQL | 64 GB Standard SSD      | 100+ GB Premium SSD NVMe |
 ### Architettura Target
 #### UYUNI SERVER - Host Container (openSUSE Leap 15.6)
 ##### Componenti Container (UYUNI 2025.10):
