@@ -280,7 +280,7 @@ def sync_errata_cache() -> dict:
             group_systems: dict = {}  # group_name → (systems, target_os)
             with ThreadPoolExecutor(max_workers=workers) as ex:
                 futs = {ex.submit(_fetch_systems, g): g for g in groups}
-                for fut in as_completed(futs):
+                for fut in as_completed(futs, timeout=Config.UYUNI_TIMEOUT * 3):
                     try:
                         gname, tos, syss = fut.result()
                         group_systems[gname] = (syss, tos)
@@ -302,7 +302,7 @@ def sync_errata_cache() -> dict:
             errata_map: dict = {}  # advisory_name → {base, target_os, ...}
             with ThreadPoolExecutor(max_workers=workers) as ex:
                 futs = {ex.submit(_fetch_errata, t): t for t in all_system_tasks}
-                for fut in as_completed(futs):
+                for fut in as_completed(futs, timeout=Config.UYUNI_TIMEOUT * 3):
                     try:
                         tos, errata_list = fut.result()
                         for e in errata_list:
@@ -328,7 +328,7 @@ def sync_errata_cache() -> dict:
             cves_map: dict = {}  # advisory_name → ['CVE-...', ...]
             with ThreadPoolExecutor(max_workers=workers * 2) as ex:
                 futs = {ex.submit(_fetch_cves, n): n for n in security_names}
-                for fut in as_completed(futs):
+                for fut in as_completed(futs, timeout=Config.UYUNI_TIMEOUT * 3):
                     try:
                         name, cves = fut.result()
                         cves_map[name] = cves

@@ -94,6 +94,12 @@ def add_to_queue():
             "error": "errata_id or errata_ids is required"
         }), 400
 
+    # Valida che ogni errata_id sia una stringa non vuota
+    if not all(isinstance(eid, str) and eid.strip() for eid in errata_ids):
+        return jsonify({
+            "error": "errata_ids must be non-empty strings"
+        }), 400
+
     try:
         priority_override = int(data.get("priority_override", 0))
     except (ValueError, TypeError):

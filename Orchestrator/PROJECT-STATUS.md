@@ -89,7 +89,7 @@ viene saltata silenziosamente e il test continua.
 - [x] Severity mapping: Security Advisory → Medium, Bug Fix/Enhancement → Low
 - [x] `os_from_group()` — mappa gruppo UYUNI → target_os (ubuntu/rhel/debian)
 - [x] `add_note()` — aggiunge nota su sistema UYUNI (usato da batch summary)
-- [x] `validate_credentials()` — verifica credenziali UYUNI (residuo pre-SSO, non piu' usato)
+- ~~`validate_credentials()`~~ — rimossa (residuo pre-SSO)
 - [x] `get_current_org()` — ritorna nome organizzazione UYUNI (usato dalla dashboard)
 - [x] `list_orgs()` — lista tutte le org UYUNI (satellite admin); fallback a org corrente
 - [x] `get_system_network_ip()` — risolve IP via system.getNetwork (per Prometheus)
@@ -133,6 +133,9 @@ viene saltata silenziosamente e il test continua.
 - [x] Baseline metriche Prometheus pre-patch + delta post-patch (skipped se non disponibile)
 - [x] Poll scheduler ogni 2 minuti (APScheduler)
 - [x] Batch asincrono: `start_batch()` → thread background → polling ogni 5s dalla dashboard
+- [x] Batch persistenti su DB (`patch_test_batches`) — sopravvivono al restart Flask
+- [x] `cancel_batch()` — cancella batch in esecuzione tra un test e il successivo (status='cancelled')
+- [x] `ensure_snapper()` — installa snapper + `create-config /` via UYUNI channels se mancante
 - [x] `_add_batch_note()` — aggiunge nota di riepilogo su tutti i sistemi del gruppo UYUNI
 - [x] `_prune_old_batches()` — pulizia automatica batch >24h in memoria (chiamata da start_batch)
 - [x] Vincoli DB rispettati: queue usa 'failed' (non 'error'), test usa 'passed' (non 'pending_approval')
@@ -148,10 +151,23 @@ viene saltata silenziosamente e il test continua.
 
 #### Notification Manager
 - [x] Scrittura sempre in `orchestrator_notifications` (delivered=FALSE → banner dashboard)
-- [x] Dashboard legge notifiche non lette (banner di attenzione)
+- [x] Dashboard legge notifiche non lette (banner di attenzione Home)
 - [x] Tipi: `test_failure`, `pending_approval`
-- [x] Canale unico: `dashboard` — audit esteso delegato a note UYUNI
-- [x] Rimossi: email SMTP, webhook (mai usati, complessità inutile)
+- [x] Canale unico: `dashboard` — audit esteso delegato a note UYUNI (`add_note`)
+- [x] Rimossi: email SMTP, webhook — bug fix constraint DB (`channel='dashboard'` ora accettato)
+
+#### Sicurezza API
+- [x] `FLASK_HOST=127.0.0.1` — Flask binds solo su loopback
+- [x] `SPM_API_KEY` — header `X-SPM-Key` obbligatorio su tutti gli endpoint tranne `/health*` e `/prometheus/targets`
+- [x] Warning all'avvio se `SECRET_KEY` è il valore di default
+- [x] Validazione `ids` (lista interi positivi, max 1000) in `POST /notifications/mark-read`
+- [x] Azure AD SSO — `require_auth()` su ogni pagina Streamlit (defense-in-depth)
+
+#### Dashboard Streamlit — aggiornamenti sessione 9
+- [x] `2_Test_Batch.py` — pulsante "⏹ Annulla batch" + gestione status `cancelled`
+- [x] `3_Approvazioni.py` — storico paginato (25/50/100 righe, filtro azione, prev/next/prima)
+- [x] `3_Approvazioni.py` — pending paginato (20 per pagina, prev/next)
+- [x] Reset automatico pagina al cambio filtro via `hist_filter_key` in session_state
 
 #### Prometheus Integration
 - [x] `PrometheusClient` con graceful degradation completa
@@ -198,6 +214,7 @@ viene saltata silenziosamente e il test continua.
 - [x] `POST /api/v1/tests/run`
 - [x] `POST /api/v1/tests/batch`
 - [x] `GET  /api/v1/tests/batch/<batch_id>/status`
+- [x] `POST /api/v1/tests/batch/<batch_id>/cancel`
 - [x] `GET  /api/v1/tests/<test_id>`
 - [x] `GET  /api/v1/approvals/pending`
 - [x] `GET  /api/v1/approvals/pending/<queue_id>`
@@ -296,11 +313,21 @@ viene saltata silenziosamente e il test continua.
 | `patch_test_queue` | Coda test patch con stato workflow completo |
 | `patch_tests` | Dettaglio singolo test (metriche, snapshot, reboot) |
 | `patch_test_phases` | Fasi di ogni test (snapshot/patch/reboot/validate/services/rollback) |
+| `patch_test_batches` | Batch asincroni persistenti (status: running/completed/cancelled/error) |
 | `patch_approvals` | Log approvazioni/rifiuti/snooze operatore |
 | `patch_deployments` | Deployment produzione (schema presente, non usato — out of scope) |
 | `patch_rollbacks` | Log rollback deployment (schema presente, non usato) |
-| `orchestrator_notifications` | Notifiche operatore (delivered=False = non lette) |
-| `orchestrator_config` | Configurazione runtime (score weights, notification_config, ecc.) |
+| `orchestrator_notifications` | Notifiche operatore dashboard (delivered=FALSE = non lette) |
+| `orchestrator_config` | Configurazione runtime (score_weights, test_thresholds, ecc.) |
+
+**Migrations applicate:**
+
+| File | Contenuto |
+|---|---|
+| `001_orchestrator_schema.sql` | Schema completo + views + triggers + config iniziale |
+| `002_fix_errata_cache.sql` | Fix errata_cache |
+| `003_simplify_notifications.sql` | Fix constraint `channel` (bug critico) + rimozione `notification_config` |
+| `004_batch_persistence.sql` | Tabella `patch_test_batches` |
 
 ### Views
 
@@ -406,63 +433,14 @@ non durante il sync. Risparmio: ~100s per 634 errata.
 
 ---
 
-### [VM] ALTA — Installare Prometheus sul VM orchestrator
-
-node_exporter e' gia' attivo sui test VM (deployato da UYUNI). Serve solo il server:
-
-```bash
-# 1. Installa Prometheus
-apt-get install -y prometheus
-
-# 2. Configura con HTTP SD (target dinamici da SPM)
-cat > /etc/prometheus/prometheus.yml << 'EOF'
-global:
-  scrape_interval: 60s
-
-scrape_configs:
-  - job_name: 'spm-test-vms'
-    http_sd_configs:
-      - url: 'http://localhost:5001/api/v1/prometheus/targets'
-        refresh_interval: 30m
-EOF
-
-# 3. Avvia
-systemctl enable --now prometheus
-
-# 4. Verifica
-curl -s 'http://localhost:9090/api/v1/targets' | python3 -m json.tool | grep health
-```
-
-**PROMETHEUS_URL non va aggiunto al .env** — il default `http://localhost:9090` e' gia'
-in `config.py`. Aggiungilo solo se il server e' su un host diverso.
+### ~~[VM] Installare Prometheus~~ — COMPLETATO
+Prometheus attivo su `localhost:9090` (verificato da `/api/v1/health/detail`).
 
 ---
 
-### [VM] MEDIA — Installare snapper su Ubuntu test VM (10.172.2.18)
-
-Senza snapper il rollback usa `apt downgrade` (meno affidabile per patch kernel).
-
-```bash
-# Sul test VM Ubuntu
-apt-get install -y snapper
-```
-
-Il codice rileva automaticamente snapper mancante e fa fallback a package rollback.
-Dopo l'installazione di snapper il rollback snapshot funzionera' senza modifiche al codice.
-
----
-
-### [VM] MEDIA — Verificare canali UYUNI per node_exporter
-
-L'engine installa automaticamente node_exporter via `system.schedulePackageInstall`,
-ma il pacchetto deve essere nei canali UYUNI gia' sincronizzati per il sistema test.
-
-| OS | Pacchetto nel canale UYUNI |
-|---|---|
-| Ubuntu 24.04 | `prometheus-node-exporter` (universe/main) |
-| RHEL 9 | `node_exporter` (EPEL o canale custom) |
-
-Verifica: aprire UYUNI → Software → Channel → cercare il pacchetto nel canale del sistema test.
+### ~~[VM] Installare snapper~~ / ~~Verificare canali node_exporter~~
+Gestiti automaticamente dal codice: `ensure_snapper()` e `ensure_node_exporter()`
+installano i pacchetti via UYUNI channels al primo test su ogni sistema.
 
 ---
 
@@ -495,15 +473,8 @@ Note tecniche:
 
 ---
 
-### [CODICE] BASSA — Batch persistenti su DB
-
-Problema: `_batches` e' un dict in memoria in `test_engine.py`. Se `spm-orchestrator`
-riavvia durante un batch, il batch continua su UYUNI ma il polling dalla dashboard
-ritorna 404 (batch non trovato). L'operatore deve controllare i log.
-
-Soluzione: aggiungere tabella `patch_test_batches` con `batch_id`, `status`, `results` (JSONB),
-`operator`, `group_name`, `started_at`, `completed_at`. Scrivere il batch su DB invece
-che solo in memoria. Compatibile con istanze multiple.
+### ~~[CODICE] Batch persistenti su DB~~ — COMPLETATO (sessione 9)
+Tabella `patch_test_batches` + migration 004 + `cancel_batch()`.
 
 ---
 

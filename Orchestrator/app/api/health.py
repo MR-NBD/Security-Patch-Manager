@@ -103,7 +103,7 @@ def _check_prometheus() -> dict:
     try:
         response = requests.get(
             f"{Config.PROMETHEUS_URL}/-/healthy",
-            timeout=5,
+            timeout=Config.PROMETHEUS_TIMEOUT,
         )
         if response.status_code == 200:
             return {"status": "connected", "url": Config.PROMETHEUS_URL}
@@ -195,12 +195,14 @@ def mark_notifications_read():
     body = request.get_json(silent=True) or {}
     ids  = body.get("ids")
 
-    # Validazione: ids deve essere una lista di interi
+    # Validazione: ids deve essere una lista di interi positivi
     if ids is not None:
         if not isinstance(ids, list) or not all(isinstance(i, int) and i > 0 for i in ids):
             return jsonify({"error": "ids must be a list of positive integers"}), 400
         if len(ids) > 1000:
             return jsonify({"error": "ids list exceeds maximum length (1000)"}), 400
+        if len(ids) == 0:
+            return jsonify({"marked_read": 0})
 
     try:
         with get_db() as conn:

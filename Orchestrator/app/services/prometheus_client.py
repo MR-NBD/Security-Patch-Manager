@@ -141,7 +141,7 @@ class PrometheusClient:
         try:
             resp = requests.get(
                 f"{self._base_url}/api/v1/status/runtimeinfo",
-                timeout=5,
+                timeout=self._timeout,
             )
             return resp.status_code == 200
         except Exception:

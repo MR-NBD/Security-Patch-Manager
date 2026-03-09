@@ -578,6 +578,16 @@ def _execute_test(queue_item: dict) -> dict:
                 failure_phase = "pre_check"
                 raise RuntimeError(failure_reason)
 
+            # Assicura snapper installato e config root presente (via UYUNI channels)
+            # Best-effort: se non disponibile il rollback_type passa a 'package'.
+            snapper_ok = uyuni.ensure_snapper(target_os)
+            if not snapper_ok and rollback_type == "snapshot":
+                logger.info(
+                    f"TestEngine: snapper not available on {system_name!r} "
+                    f"— switching to package rollback"
+                )
+                rollback_type = "package"
+
             # ① SNAPSHOT
             # Best-effort: se snapper non disponibile (es. Ubuntu 24.04) si
             # passa automaticamente a package rollback, anche per patch kernel.
@@ -587,16 +597,6 @@ def _execute_test(queue_item: dict) -> dict:
                 logger.warning(
                     f"TestEngine: snapshot failed (snapper not available?), "
                     f"switching to package rollback: {e}"
-                )
-                rollback_type = "package"
-
-            # Assicura snapper installato e config root presente (via UYUNI channels)
-            # Best-effort: se non disponibile il rollback_type passa a 'package'.
-            snapper_ok = uyuni.ensure_snapper(target_os)
-            if not snapper_ok and rollback_type == "snapshot":
-                logger.info(
-                    f"TestEngine: snapper not available on {system_name!r} "
-                    f"— switching to package rollback"
                 )
                 rollback_type = "package"
 
