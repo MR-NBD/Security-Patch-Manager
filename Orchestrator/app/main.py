@@ -107,6 +107,12 @@ def main():
             "Set SPM_API_KEY in .env to enforce X-SPM-Key authentication."
         )
 
+    if Config.SECRET_KEY == "dev-key-change-in-production" and Config.ENV != "development":
+        logger.warning(
+            "SECRET_KEY is set to the insecure default value. "
+            "Generate a secure key with: python3 -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+
     # Connessione database
     logger.info("Connecting to database...")
     if not init_db():

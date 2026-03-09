@@ -1,7 +1,7 @@
 # SPM-Orchestrator — Project Status & Development Notes
 
 > Documento vivente. Aggiornare ad ogni sessione di sviluppo.
-> Ultima modifica: 2026-03-05 (sessione 7)
+> Ultima modifica: 2026-03-09 (sessione 9)
 
 ---
 
@@ -147,11 +147,11 @@ viene saltata silenziosamente e il test continua.
 - [x] Storia approvazioni con join errata + queue
 
 #### Notification Manager
-- [x] Scrittura sempre in `orchestrator_notifications` (delivered=False se canale non configurato)
-- [x] Email SMTP opzionale (attivabile via `orchestrator_config`)
-- [x] Webhook HTTP POST JSON opzionale
+- [x] Scrittura sempre in `orchestrator_notifications` (delivered=FALSE → banner dashboard)
 - [x] Dashboard legge notifiche non lette (banner di attenzione)
 - [x] Tipi: `test_failure`, `pending_approval`
+- [x] Canale unico: `dashboard` — audit esteso delegato a note UYUNI
+- [x] Rimossi: email SMTP, webhook (mai usati, complessità inutile)
 
 #### Prometheus Integration
 - [x] `PrometheusClient` con graceful degradation completa
@@ -455,37 +455,16 @@ Verifica: aprire UYUNI → Software → Channel → cercare il pacchetto nel can
 
 ---
 
-### [VM] MEDIA — Configurare email notifiche
 
-La struttura email e' gia' implementata in `notification_manager.py`. Attivare
-dall'interfaccia DB o via `psql`:
+### [VM] ALTA — Applicare migrazione 003 sul DB
 
-```sql
-INSERT INTO orchestrator_config (key, value, description)
-VALUES (
-  'notification_config',
-  '{
-    "email_enabled": true,
-    "smtp_server":   "smtp.asl06.org",
-    "smtp_port":     587,
-    "smtp_tls":      true,
-    "smtp_user":     "spm@asl06.org",
-    "smtp_password": "...",
-    "from_address":  "spm@asl06.org",
-    "recipients":    ["ops@asl06.org"],
-    "alert_on_test_failure":    true,
-    "alert_on_pending_approval": true,
-    "webhook_enabled": false,
-    "webhook_url": ""
-  }'::jsonb,
-  'Configurazione notifiche email/webhook'
-)
-ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+```bash
+psql -h localhost -U spm_orch -d spm_orchestrator \
+    -f /opt/Security-Patch-Manager/Orchestrator/sql/migrations/003_simplify_notifications.sql
 ```
 
-Con `email_enabled=true`: l'operatore riceve una email alla fine di ogni test
-(fallito o in attesa di approvazione). Il banner in dashboard rimane come fallback
-se l'email non viene consegnata.
+Fix obbligatorio: il constraint `channel IN ('email', 'webhook')` bloccava silenziosamente
+tutti gli INSERT con `channel='dashboard'`, rendendo le notifiche interne non operative.
 
 ---
 

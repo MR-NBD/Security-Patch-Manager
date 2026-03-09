@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Deployment/Aperture-Firewall-UYUNI-Produzione.md",
+                "file": "Uyuni/Deployment/Installazione-UYUNI-Server.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Aperture-Firewall-UYUNI-Produzione"
+              "title": "Installazione-UYUNI-Server"
             }
           },
           {
@@ -225,9 +225,16 @@
   },
   "active": "77579a8fd5b3588d",
   "lastOpenFiles": [
+    "Orchestrator/PROJECT-STATUS.md.tmp.7577.1773056560584",
+    "Orchestrator/PROJECT-STATUS.md.tmp.7577.1773056553373",
+    "Orchestrator/PROJECT-STATUS.md.tmp.7577.1773056544757",
+    "Orchestrator/PROJECT-STATUS.md.tmp.7577.1773056537852",
+    "Orchestrator/app/api/health.py.tmp.7577.1773056457832",
+    "Orchestrator/sql/migrations/003_simplify_notifications.sql",
+    "Orchestrator/app/services/notification_manager.py.tmp.7577.1773056395471",
+    "Uyuni/Deployment/Aperture-Firewall-UYUNI-Produzione.md",
     "Uyuni/Deployment/Installazione-UYUNI-Server.md",
     "Uyuni/Deployment/Aperture-Firewall-UYUNI-Produzione.md.tmp.2159.1772806139395",
-    "Uyuni/Deployment/Aperture-Firewall-UYUNI-Produzione.md",
     "tools/GUIDA.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Uyuni/Deployment/Aperture-UYUNI.md",
@@ -235,12 +242,6 @@
     "Uyuni/Deployment/Installazione-UYUNI-Server-PRODUZIONE.md",
     "Uyuni/Deployment/Aperture-Firewall-UYUNI-Produzione.md.tmp.2159.1772805482716",
     "Orchestrator/app/api/groups.py.tmp.37070.1772747756822",
-    "Orchestrator/app/services/poller.py.tmp.37070.1772747721997",
-    "Orchestrator/app/services/poller.py.tmp.37070.1772747701522",
-    "Orchestrator/app/services/poller.py.tmp.37070.1772747690548",
-    "Orchestrator/PROJECT-STATUS.md.tmp.37070.1772745513935",
-    "Orchestrator/streamlit/pages/2_Test_Batch.py.tmp.37070.1772745509174",
-    "Orchestrator/streamlit/api_client.py.tmp.37070.1772745493267",
     "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
     "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "Uyuni/Deployment/Migrazione-PostgreSQL-Azure-Flexible-Server.md",

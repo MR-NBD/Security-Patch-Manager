@@ -195,6 +195,13 @@ def mark_notifications_read():
     body = request.get_json(silent=True) or {}
     ids  = body.get("ids")
 
+    # Validazione: ids deve essere una lista di interi
+    if ids is not None:
+        if not isinstance(ids, list) or not all(isinstance(i, int) and i > 0 for i in ids):
+            return jsonify({"error": "ids must be a list of positive integers"}), 400
+        if len(ids) > 1000:
+            return jsonify({"error": "ids list exceeds maximum length (1000)"}), 400
+
     try:
         with get_db() as conn:
             cur = conn.cursor()
