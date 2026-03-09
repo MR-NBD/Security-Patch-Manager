@@ -63,15 +63,18 @@ Opzione B: Azure PaaS (raccomandato)
 ##### Layout Storage (VM Server — senza container DB):
 ```
 sda (OS Disk - 128GB) [PROD: Premium SSD]
- └─/                              (Root filesystem)
+ ├─/boot/efi   (512MB)
+ ├─/boot       (1GB)
+ └─/            (root filesystem OS — non cresce)
 
-sdb (Data Disk - 500GB) [LVM] [PROD: Premium SSD]
- └─vg_uyuni_repo/lv_repo
-   └─/manager_storage             (Repository packages + Container storage)
-     └─/manager_storage/containers (symlink da /var/lib/containers)
+sdb (Data Disk - 500GB+) [LVM] [PROD: Premium SSD]
+ └─vg_uyuni/
+   ├─lv_var    (50GB)  → /var             (log, cache, dati applicativi)
+   └─lv_repo   (resto) → /manager_storage (repository + container storage)
+                           └─/manager_storage/containers (symlink da /var/lib/containers)
 ```
 
-> **[PROD]**: In produzione il disco PostgreSQL (`sdc`) viene omesso dalla VM Server perché il container `uyuni-db` gira sulla VM dedicata. Il volume `/pgsql_storage` esiste solo sulla VM `uyuni-db-prod`.
+> **[PROD]**: Separare `/var` su LVM evita che log e cache riempiano il disco OS. Il volume `/pgsql_storage` non esiste sulla VM Server — risiede esclusivamente sulla VM `uyuni-db-prod` o è gestito da Azure PaaS.
 
 ---
 
@@ -135,7 +138,77 @@ Output atteso:
 NAME="openSUSE Leap"
 VERSION="15.6"
 ```
-### 1.2 Aggiornamento Sistema
+### 1.2 Configurazione Proxy
+
+> **PREREQUISITO**: Eseguire questa fase **prima** di qualsiasi `zypper refresh` o pull di immagini Podman. Senza proxy configurato nessun comando successivo funziona.
+
+#### `/etc/sysconfig/proxy` — letto da zypper (libzypp) direttamente
+
+> **IMPORTANTE**: libzypp legge solo le variabili in **minuscolo** (`http_proxy`, non `HTTP_PROXY`). Impostare entrambe le versioni.
+
+```bash
+cat > /etc/sysconfig/proxy << 'EOF'
+PROXY_ENABLED="yes"
+HTTP_PROXY="http://<proxy-host>:<porta>"
+HTTPS_PROXY="http://<proxy-host>:<porta>"
+NO_PROXY="localhost,127.0.0.1,10.172.2.0/27,.uyuni.internal"
+http_proxy="http://<proxy-host>:<porta>"
+https_proxy="http://<proxy-host>:<porta>"
+no_proxy="localhost,127.0.0.1,10.172.2.0/27,.uyuni.internal"
+EOF
+```
+
+#### `/etc/profile.d/proxy.sh` — caricato ad ogni nuova sessione shell
+
+```bash
+cat > /etc/profile.d/proxy.sh << 'EOF'
+export HTTP_PROXY="http://<proxy-host>:<porta>"
+export HTTPS_PROXY="http://<proxy-host>:<porta>"
+export NO_PROXY="localhost,127.0.0.1,10.172.2.0/27,.uyuni.internal"
+export http_proxy="http://<proxy-host>:<porta>"
+export https_proxy="http://<proxy-host>:<porta>"
+export no_proxy="localhost,127.0.0.1,10.172.2.0/27,.uyuni.internal"
+EOF
+chmod 644 /etc/profile.d/proxy.sh
+source /etc/profile.d/proxy.sh
+```
+
+#### Drop-in systemd per Podman
+
+Podman gira come servizio systemd e **non eredita** le variabili d'ambiente della shell.
+
+```bash
+mkdir -p /etc/systemd/system/podman.service.d
+mkdir -p /etc/systemd/system/podman.socket.d
+
+cat > /etc/systemd/system/podman.service.d/proxy.conf << 'EOF'
+[Service]
+Environment="HTTP_PROXY=http://<proxy-host>:<porta>"
+Environment="HTTPS_PROXY=http://<proxy-host>:<porta>"
+Environment="NO_PROXY=localhost,127.0.0.1,10.172.2.0/27,.uyuni.internal"
+EOF
+
+cp /etc/systemd/system/podman.service.d/proxy.conf \
+   /etc/systemd/system/podman.socket.d/proxy.conf
+
+systemctl daemon-reload
+```
+
+#### Verifica
+
+```bash
+# zypper
+curl -s -o /dev/null -w "%{http_code}" --proxy http://<proxy-host>:<porta> https://download.opensuse.org
+
+# Podman (dopo installazione podman)
+curl -s -o /dev/null -w "%{http_code}" --proxy http://<proxy-host>:<porta> https://registry.opensuse.org
+```
+
+> **[PROD]**: Inserire nel `NO_PROXY` tutte le subnet interne Azure e il dominio aziendale per evitare che il traffico interno passi dal proxy.
+
+---
+
+### 1.3 Aggiornamento Sistema
 ```bash
 zypper refresh
 zypper update -y
@@ -144,7 +217,7 @@ zypper update -y
 ```bash
 reboot
 ```
-### 1.3 Installazione Pacchetti Prerequisiti
+### 1.4 Installazione Pacchetti Prerequisiti
 
 ```bash
 zypper install -y \
@@ -322,34 +395,67 @@ lsblk
 
 > **[PROD]**: Sulla VM Server ci sarà solo 1 disco dati (repository). Il secondo disco PostgreSQL non è presente su questa VM — gira sulla VM `uyuni-db-prod`. Verificare che `lsblk` mostri solo `sda` (OS) e `sdb` (repo).
 
-### 5.2 Configurazione LVM — Disco Repository
+### 5.2 Configurazione LVM — Disco Dati (VM Server)
 
 LVM è il metodo consigliato per ambienti cloud perché permette di espandere i volumi senza downtime.
 
-#### Disco Repository (es. /dev/sdb)
+Sulla VM Server il disco dati (`sdb`) ospita sia `/var` che `/manager_storage` con LVM, in modo che entrambi siano espandibili indipendentemente senza toccare l'OS.
 
 ```bash
-# Crea partizione
+# Crea partizione unica che occupa tutto il disco
 parted /dev/sdb --script mklabel gpt
 parted /dev/sdb --script mkpart primary 0% 100%
 
-# Configura LVM
+# Configura LVM — singolo VG con due LV
 pvcreate /dev/sdb1
-vgcreate vg_uyuni_repo /dev/sdb1
-lvcreate -l 100%FREE -n lv_repo vg_uyuni_repo
+vgcreate vg_uyuni /dev/sdb1
+
+lvcreate -L 50G  -n lv_var  vg_uyuni
+lvcreate -l 100%FREE -n lv_repo vg_uyuni
 
 # Formatta XFS
-mkfs.xfs /dev/mapper/vg_uyuni_repo-lv_repo
+mkfs.xfs /dev/vg_uyuni/lv_var
+mkfs.xfs /dev/vg_uyuni/lv_repo
 
-# Crea mount point e monta
+# Monta manager_storage e pgsql_storage
 mkdir -p /manager_storage
-mount /dev/mapper/vg_uyuni_repo-lv_repo /manager_storage
+mount /dev/vg_uyuni/lv_repo /manager_storage
+```
 
-# Aggiungi a fstab
-echo "/dev/mapper/vg_uyuni_repo-lv_repo /manager_storage xfs defaults,nofail 0 0" >> /etc/fstab
+#### Migrazione /var sul nuovo volume
 
-# Reload systemd
-systemctl daemon-reload
+```bash
+# Copia contenuto /var sul nuovo volume (montato temporaneamente su /mnt)
+mount /dev/vg_uyuni/lv_var /mnt
+cp -ax /var/. /mnt/
+umount /mnt
+```
+
+#### Aggiornamento fstab
+
+Recuperare gli UUID:
+```bash
+blkid /dev/vg_uyuni/lv_var /dev/vg_uyuni/lv_repo
+```
+
+Aggiungere a `/etc/fstab`:
+```bash
+cat >> /etc/fstab << 'EOF'
+UUID=<uuid-lv_var>  /var             xfs defaults,nofail 0 0
+UUID=<uuid-lv_repo> /manager_storage xfs defaults,nofail 0 0
+EOF
+```
+
+Montare `/var` e verificare:
+```bash
+mount /dev/vg_uyuni/lv_var /var
+df -h /var /manager_storage
+```
+
+Riavviare e verificare che i mount siano automatici:
+```bash
+reboot
+df -h /var /manager_storage
 ```
 
 > **[PROD]**: Non configurare `/pgsql_storage` su questa VM. Il volume PostgreSQL viene creato e montato sulla VM `uyuni-db-prod`.
@@ -369,13 +475,12 @@ systemctl start podman.socket
 
 ### 5.4 Verificare Configurazione Storage
 ```bash
-# [PROD]: solo manager_storage, niente pgsql_storage su questa VM
-df -hP /manager_storage
+df -h /var /manager_storage
 lvs
 vgs
 ```
 
-> **[PROD]**: Configurare alert Azure Monitor sulla VM per notifica al 70% e 85% di utilizzo del disco `/manager_storage`. Il repository pacchetti cresce nel tempo con la sincronizzazione dei canali.
+> **[PROD]**: Configurare alert Azure Monitor sulla VM per notifica al 70% e 85% di utilizzo del disco `/manager_storage` e `/var`. Il repository pacchetti cresce nel tempo con la sincronizzazione dei canali.
 
 ---
 ## FASE 6: Configurazione Firewall
@@ -422,11 +527,18 @@ ports: 80/tcp 443/tcp 4505/tcp 4506/tcp
 ## FASE 7: Installazione Repository UYUNI
 
 ### 7.1 Aggiungere Repository UYUNI Stable per openSUSE Leap 15.6
+
+> **IMPORTANTE — Proxy e CDN**: `download.opensuse.org` reindirizza i download dei pacchetti `.rpm` attraverso `cdn.opensuse.org` → mirror esterni (es. `ftp.gwdg.de`). Se il proxy Squid non consente i mirror esterni, i download falliranno con errore `HTTP response: 0 / 403`.
+>
+> Usare **`downloadcontent.opensuse.org`** che serve i file direttamente senza redirect ai mirror.
+
 ```bash
 zypper lr | grep uyuni
 ```
+
 ```bash
-zypper ar https://download.opensuse.org/repositories/systemsmanagement:/Uyuni:/Stable/images/repo/Uyuni-Server-POOL-$(arch)-Media1/ uyuni-server-stable
+# Aggiunge il repository usando downloadcontent.opensuse.org (nessun redirect CDN)
+zypper ar https://downloadcontent.opensuse.org/repositories/systemsmanagement:/Uyuni:/Stable/images/repo/Uyuni-Server-POOL-$(arch)-Media1/ uyuni-server-stable
 ```
 
 > **[PROD]**: Se la rete di produzione è isolata (no accesso diretto a internet), configurare un mirror interno o un **Azure Artifact Registry** che replichi il repository UYUNI. Il team networking deve approvare le regole di accesso al repository esterno prima di procedere.
@@ -638,19 +750,33 @@ Questa sezione descrive la configurazione del database **prima** del deployment 
 Eseguire sulla VM `uyuni-db-prod` le stesse FASI 1-4 del documento (OS update, NTP, hostname, firewall), poi procedere con:
 
 ```bash
-# Disco PostgreSQL (es. /dev/sdb)
+# Disco dati (es. /dev/sdb) — lv_var per /var + lv_pgsql per /pgsql_storage
 parted /dev/sdb --script mklabel gpt
 parted /dev/sdb --script mkpart primary 0% 100%
 
 pvcreate /dev/sdb1
-vgcreate vg_uyuni_pgsql /dev/sdb1
-lvcreate -l 100%FREE -n lv_pgsql vg_uyuni_pgsql
+vgcreate vg_uyuni /dev/sdb1
+lvcreate -L 50G      -n lv_var   vg_uyuni
+lvcreate -l 100%FREE -n lv_pgsql vg_uyuni
 
-mkfs.xfs /dev/mapper/vg_uyuni_pgsql-lv_pgsql
+mkfs.xfs /dev/vg_uyuni/lv_var
+mkfs.xfs /dev/vg_uyuni/lv_pgsql
 
 mkdir -p /pgsql_storage
-mount /dev/mapper/vg_uyuni_pgsql-lv_pgsql /pgsql_storage
-echo "/dev/mapper/vg_uyuni_pgsql-lv_pgsql /pgsql_storage xfs defaults,nofail 0 0" >> /etc/fstab
+mount /dev/vg_uyuni/lv_pgsql /pgsql_storage
+
+# Migrazione /var
+mount /dev/vg_uyuni/lv_var /mnt
+cp -ax /var/. /mnt/
+umount /mnt
+
+# fstab
+blkid /dev/vg_uyuni/lv_var /dev/vg_uyuni/lv_pgsql
+# Aggiungere le due righe UUID a /etc/fstab:
+# UUID=<uuid-lv_var>   /var          xfs defaults,nofail 0 0
+# UUID=<uuid-lv_pgsql> /pgsql_storage xfs defaults,nofail 0 0
+
+mount /dev/vg_uyuni/lv_var /var
 systemctl daemon-reload
 ```
 
@@ -880,6 +1006,7 @@ mgrctl exec -- spacewalk-repo-sync --clean-cache
 ```
 
 ### Espansione Disco Azure (LVM)
+
 ```bash
 # 1. Ferma la VM da Azure Portal
 # 2. Disks → seleziona il disco → aumenta dimensione
@@ -888,8 +1015,13 @@ mgrctl exec -- spacewalk-repo-sync --clean-cache
 lsblk
 sudo growpart /dev/sdb 1
 sudo pvresize /dev/sdb1
-sudo lvextend -l +100%FREE /dev/vg_uyuni_repo/lv_repo
-sudo xfs_growfs /manager_storage
+
+# Espandere il volume desiderato (scegliere uno):
+sudo lvextend -l +100%FREE /dev/vg_uyuni/lv_repo  # per /manager_storage
+sudo lvextend -L +20G      /dev/vg_uyuni/lv_var   # es. aggiungere 20GB a /var
+
+# Espandere il filesystem (XFS)
+sudo xfs_growfs /manager_storage   # o /var
 ```
 
 ### Reset Password Admin
