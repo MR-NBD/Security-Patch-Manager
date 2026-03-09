@@ -449,12 +449,13 @@ def _phase_rollback(
     rollback_type: str,
     snapshot_id: Optional[str],
     packages_before: dict,
+    target_os: str = "ubuntu",
 ) -> None:
     """
     Fase ROLLBACK: ripristina sistema allo stato pre-patch via UYUNI.
 
     rollback_type='snapshot' → snapper undochange (via scheduleScriptRun)
-    rollback_type='package'  → apt downgrade versioni precedenti
+    rollback_type='package'  → package manager downgrade (apt su Ubuntu, dnf su RHEL)
 
     Non solleva eccezioni: il fallimento del rollback viene solo loggato.
     """
@@ -468,9 +469,9 @@ def _phase_rollback(
             )
 
         elif rollback_type == "package" and packages_before:
-            uyuni.rollback_packages(packages_before)
+            uyuni.rollback_packages(packages_before, target_os=target_os)
             logger.info(
-                f"TestEngine: package rollback on {system_name!r}"
+                f"TestEngine: package rollback on {system_name!r} (os={target_os!r})"
             )
 
         else:
@@ -621,6 +622,7 @@ def _execute_test(queue_item: dict) -> dict:
                 _phase_rollback(
                     test_id, uyuni,
                     rollback_type, snapshot_id, apply_result,
+                    target_os=target_os,
                 )
                 rollback_done = True
                 raise
@@ -635,6 +637,7 @@ def _execute_test(queue_item: dict) -> dict:
                     _phase_rollback(
                         test_id, uyuni,
                         rollback_type, snapshot_id, apply_result,
+                        target_os=target_os,
                     )
                     rollback_done = True
                     raise
@@ -656,6 +659,7 @@ def _execute_test(queue_item: dict) -> dict:
                     _phase_rollback(
                         test_id, uyuni,
                         rollback_type, snapshot_id, apply_result,
+                        target_os=target_os,
                     )
                     rollback_done = True
                     raise
@@ -669,6 +673,7 @@ def _execute_test(queue_item: dict) -> dict:
                 _phase_rollback(
                     test_id, uyuni,
                     rollback_type, snapshot_id, apply_result,
+                    target_os=target_os,
                 )
                 rollback_done = True
                 raise

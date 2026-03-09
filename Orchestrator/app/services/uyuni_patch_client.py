@@ -184,6 +184,12 @@ class UyuniPatchClient:
         """
         Attende completamento azione UYUNI tramite polling.
         Ritorna True=success, False=failed/timeout.
+
+        Usa schedule.listCompletedSystems / listFailedSystems (scoped al singolo
+        action_id) invece di listCompletedActions / listFailedActions (globali).
+        Riduce drasticamente il payload per istanze UYUNI con molte azioni storiche:
+        invece di scaricare tutte le azioni completate, ottiene solo i sistemi che
+        hanno completato/fallito quell'azione specifica.
         """
         deadline = time.time() + timeout_s
         logger.debug(
@@ -193,13 +199,17 @@ class UyuniPatchClient:
         while time.time() < deadline:
             time.sleep(self._POLL_INTERVAL)
             try:
-                completed = self._proxy.schedule.listCompletedActions(self._key)
-                if any(a.get("id") == action_id for a in completed):
+                completed = self._proxy.schedule.listCompletedSystems(
+                    self._key, action_id
+                )
+                if any(s.get("server_id") == self._system_id for s in completed):
                     logger.debug(f"UyuniPatchClient: action {action_id} completed OK")
                     return True
 
-                failed = self._proxy.schedule.listFailedActions(self._key)
-                if any(a.get("id") == action_id for a in failed):
+                failed = self._proxy.schedule.listFailedSystems(
+                    self._key, action_id
+                )
+                if any(s.get("server_id") == self._system_id for s in failed):
                     logger.warning(f"UyuniPatchClient: action {action_id} FAILED")
                     return False
 
@@ -746,10 +756,19 @@ class UyuniPatchClient:
         )
         return True
 
-    def rollback_packages(self, packages_before: dict) -> None:
+    def rollback_packages(self, packages_before: dict, target_os: str = "ubuntu") -> None:
         """
-        Reinstalla versioni precedenti dei pacchetti (Ubuntu/Debian).
-        Skipped se non ci sono versioni 'old' disponibili.
+        Reinstalla versioni precedenti dei pacchetti via package manager nativo.
+
+        Ubuntu/Debian: apt-get install --allow-downgrades 'pkg=version'
+        RHEL/CentOS:   dnf install -y 'pkg-version' (dnf gestisce il downgrade)
+
+        Skipped se non ci sono versioni 'old' disponibili (nessuna versione catturata
+        prima della patch — es. pacchetto nuovo, non aggiornamento).
+
+        Limitazione nota: fallisce se la versione precedente non è più disponibile
+        nel repository (rimozione post-security-patch). In quel caso il rollback
+        package è impossibile e va usato il rollback snapshot.
         """
         pkgs_old = {
             name: versions.get("old")
@@ -758,24 +777,36 @@ class UyuniPatchClient:
         }
         if not pkgs_old:
             logger.warning(
-                "UyuniPatchClient: package rollback skipped — no old versions"
+                "UyuniPatchClient: package rollback skipped — no old versions captured "
+                "(packages were newly installed, not upgraded)"
             )
             return
 
-        pkg_args = " ".join(f"'{k}={v}'" for k, v in pkgs_old.items())
-        script = (
-            "#!/bin/bash\n"
-            "export DEBIAN_FRONTEND=noninteractive\n"
-            f"apt-get install --allow-downgrades -y {pkg_args} 2>&1\n"
-        )
+        if target_os == "rhel":
+            # DNF: 'pkg-version-release' (formato RPM)
+            pkg_args = " ".join(f"'{k}-{v}'" for k, v in pkgs_old.items())
+            script = (
+                "#!/bin/bash\n"
+                f"dnf install -y {pkg_args} 2>&1\n"
+            )
+        else:
+            # APT: 'pkg=version' (formato Debian)
+            pkg_args = " ".join(f"'{k}={v}'" for k, v in pkgs_old.items())
+            script = (
+                "#!/bin/bash\n"
+                "export DEBIAN_FRONTEND=noninteractive\n"
+                f"apt-get install --allow-downgrades -y {pkg_args} 2>&1\n"
+            )
+
         success, output = self._run_script(
             script, script_timeout=180, wait_timeout=300
         )
         if not success:
             raise RuntimeError(
-                f"Package rollback failed on {self._system_name!r}: {output!r}"
+                f"Package rollback failed on {self._system_name!r} "
+                f"(os={target_os!r}): {output!r}"
             )
         logger.info(
-            f"UyuniPatchClient: package rollback ({len(pkgs_old)} packages) "
-            f"done on {self._system_name!r}"
+            f"UyuniPatchClient: package rollback ({len(pkgs_old)} packages, "
+            f"os={target_os!r}) done on {self._system_name!r}"
         )

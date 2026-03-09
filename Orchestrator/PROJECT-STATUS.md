@@ -1,7 +1,7 @@
 # SPM-Orchestrator — Project Status & Development Notes
 
 > Documento vivente. Aggiornare ad ogni sessione di sviluppo.
-> Ultima modifica: 2026-03-09 (sessione 9)
+> Ultima modifica: 2026-03-09 (sessione 10)
 
 ---
 
@@ -31,7 +31,7 @@ VM-ORCHESTRATOR (Ubuntu 24.04 — 10.172.2.22)
 
 Dipendenze esterne:
 ├── UYUNI Server    10.172.2.17:443   → XML-RPC (fonte errata + scheduling patch)
-├── Prometheus      localhost:9090    → Metriche validazione         [DA INSTALLARE]
+├── Prometheus      localhost:9090    → Metriche validazione         [ATTIVO]
 └── node_exporter   :9100             → sui sistemi test (gia' attivo)
 
 Sistemi di test:
@@ -123,7 +123,8 @@ viene saltata silenziosamente e il test continua.
 #### Test Engine
 - [x] `run_next_test()` — singolo test bloccante, thread-safe con `_testing_lock`
 - [x] Flusso a fasi: pre_check → snapshot → patch → reboot → validate → services
-- [x] Rollback: snapshot (snapper undochange) o package (apt downgrade versioni reali)
+- [x] Rollback: snapshot (snapper undochange) o package (apt/dnf downgrade versioni reali)
+- [x] Rollback package: Ubuntu → `apt-get --allow-downgrades`, RHEL → `dnf install` (target_os propagato)
 - [x] Fallback automatico da snapshot a package rollback se snapper non disponibile
 - [x] Service check con 6 retry x 20s (tolleranza SSH post-patch)
 - [x] `_DEFAULT_SERVICES["ubuntu"]` = `["ssh.socket", "cron", "rsyslog"]`
@@ -273,7 +274,7 @@ viene saltata silenziosamente e il test continua.
 | POST | `/api/v1/tests/batch` | Avvia batch asincrono (body: queue_ids, group_name, operator) |
 | GET | `/api/v1/tests/batch/<id>/status` | Polling stato batch |
 | GET | `/api/v1/tests/<id>` | Dettaglio test con fasi |
-| POST | `/api/v1/tests/validate-operator` | Valida credenziali UYUNI (residuo, non usato) |
+| POST | `/api/v1/tests/batch/<id>/cancel` | Cancella batch in esecuzione |
 
 ### Approvazioni
 
@@ -425,6 +426,19 @@ non durante il sync. Risparmio: ~100s per 634 errata.
 - [x] Paginazione storico approvazioni (filtro azione, 25/50/100 righe, prev/next)
 - [x] Paginazione pending approvals (20 per pagina)
 
+### Completati in sessione 10
+- [x] Migration 003 applicata sul VM — notifiche dashboard operative (verificato: 0 wrong_channel)
+- [x] Prometheus installato e attivo su `localhost:9090` (verificato: `/-/healthy`)
+- [x] **`_wait_action()` ottimizzato** — uso di `schedule.listCompletedSystems` / `listFailedSystems`
+      (scoped per action_id) invece di `listCompletedActions` / `listFailedActions` (globali).
+      Riduce drasticamente il payload su istanze UYUNI con molte azioni storiche.
+- [x] **RHEL rollback fix** — `rollback_packages()` ora supporta `target_os`: Ubuntu → `apt-get
+      --allow-downgrades`, RHEL → `dnf install`. `target_os` propagato da `_execute_test()` a
+      `_phase_rollback()` a `rollback_packages()`.
+- [x] **Migration 005** — inserisce `critical_services_ubuntu` e `critical_services_rhel` in
+      `orchestrator_config` (configurabili a runtime via DB, senza modifiche al codice)
+- [x] `APP_VERSION` → 1.1.0
+
 ---
 
 ## 8. Da fare — Backlog
@@ -445,31 +459,35 @@ installano i pacchetti via UYUNI channels al primo test su ogni sistema.
 ---
 
 
-### [VM] ALTA — Applicare migrazione 003 sul DB
-
-```bash
-psql -h localhost -U spm_orch -d spm_orchestrator \
-    -f /opt/Security-Patch-Manager/Orchestrator/sql/migrations/003_simplify_notifications.sql
-```
-
-Fix obbligatorio: il constraint `channel IN ('email', 'webhook')` bloccava silenziosamente
-tutti gli INSERT con `channel='dashboard'`, rendendo le notifiche interne non operative.
+### ~~[VM] Applicare migrazione 003~~ — COMPLETATO (sessione 10)
+Applicata. Verificato: 0 wrong_channel, 7 notifiche totali, 1 unread.
 
 ---
 
-### [CODICE] BASSA — NVD Enrichment severity
+### [VM] Applicare migration 005 (critical_services config)
+
+```bash
+psql -h localhost -U spm_orch -d spm_orchestrator \
+    -f /opt/Security-Patch-Manager/Orchestrator/sql/migrations/005_critical_services_config.sql
+```
+
+Inserisce `critical_services_ubuntu` e `critical_services_rhel` in `orchestrator_config`.
+Permette di modificare i servizi critici da verificare post-patch direttamente dal DB,
+senza modificare il codice. Se non applicata, il fallback ai default hardcoded funziona ugualmente.
+
+---
+
+### [CODICE] — NVD Enrichment severity (da integrare esternamente)
 
 Problema: tutte le Security Advisory hanno `severity=Medium` (mapping da advisory_type).
 Una CVE puo' essere Critical, High, Medium o Low in base al CVSS score reale.
+Soluzione prevista esternamente (servizio dedicato / pipeline CI-CD).
 
-Soluzione: aggiungere `services/nvd_client.py` che interroga NVD API v2 per ogni errata
-con CVEs dopo il sync, aggiornando `errata_cache.severity` con il valore CVSS reale.
-
-Note tecniche:
+Note tecniche se si volesse integrare nel backend:
 - NVD API v2: `https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-XXXX-YYYY`
 - Rate limit senza API key: 5 req/30s — con key: 50 req/30s
-- Solo Security Advisory hanno CVE → ca. 30-40% delle errata (batch fattibile in <60s)
-- Hook in `poller.py`: chiamare `nvd_client.enrich_severity()` dopo `_batch_upsert()`
+- Solo Security Advisory hanno CVE → ca. 30-40% delle errata
+- Hook suggerito: job APScheduler giornaliero, 50 errata/run
 
 ---
 
