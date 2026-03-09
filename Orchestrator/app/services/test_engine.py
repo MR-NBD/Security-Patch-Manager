@@ -45,8 +45,9 @@ _testing_lock = threading.Lock()
 _last_result: Optional[dict] = None
 
 # ── Stato batch asincroni ────────────────────────────────────────
-_batches: dict = {}           # batch_id → stato corrente
+_batches: dict = {}           # batch_id → stato corrente (cache memoria)
 _batches_lock = threading.Lock()
+_cancel_flags: set = set()    # batch_id in questo set → cancellazione richiesta
 
 
 # ─────────────────────────────────────────────
@@ -589,6 +590,16 @@ def _execute_test(queue_item: dict) -> dict:
                 )
                 rollback_type = "package"
 
+            # Assicura snapper installato e config root presente (via UYUNI channels)
+            # Best-effort: se non disponibile il rollback_type passa a 'package'.
+            snapper_ok = uyuni.ensure_snapper(target_os)
+            if not snapper_ok and rollback_type == "snapshot":
+                logger.info(
+                    f"TestEngine: snapper not available on {system_name!r} "
+                    f"— switching to package rollback"
+                )
+                rollback_type = "package"
+
             # Assicura node_exporter installato e attivo (via UYUNI channels)
             # Best-effort: se fallisce, le metriche Prometheus vengono saltate
             # ma il test continua normalmente.
@@ -840,6 +851,95 @@ def _parse_completed_at(ts_str: str) -> float:
         return 0.0
 
 
+# ─────────────────────────────────────────────
+# Batch DB helpers
+# ─────────────────────────────────────────────
+
+def _db_create_batch(
+    batch_id: str, group_name: str, operator: str, total: int
+) -> None:
+    """Crea riga in patch_test_batches."""
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO patch_test_batches
+                    (batch_id, status, group_name, operator,
+                     total, completed, passed, failed, results)
+                VALUES (%s, 'running', %s, %s, %s, 0, 0, 0, '[]'::jsonb)
+                """,
+                (batch_id, group_name, operator, total),
+            )
+    except Exception as e:
+        logger.warning(f"TestEngine: _db_create_batch failed: {e}")
+
+
+def _db_update_batch(
+    batch_id: str, completed: int, passed: int, failed: int, results: list
+) -> None:
+    """Aggiorna progresso batch nel DB dopo ogni test."""
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                UPDATE patch_test_batches
+                SET completed = %s, passed = %s, failed = %s, results = %s::jsonb
+                WHERE batch_id = %s
+                """,
+                (completed, passed, failed, json.dumps(results), batch_id),
+            )
+    except Exception as e:
+        logger.warning(f"TestEngine: _db_update_batch failed: {e}")
+
+
+def _db_complete_batch(
+    batch_id: str, status: str, error: str = None
+) -> None:
+    """Chiude il batch nel DB con status finale e timestamp."""
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                UPDATE patch_test_batches
+                SET status = %s, completed_at = NOW(), error_message = %s
+                WHERE batch_id = %s
+                """,
+                (status, error, batch_id),
+            )
+    except Exception as e:
+        logger.warning(f"TestEngine: _db_complete_batch failed: {e}")
+
+
+def _db_get_batch(batch_id: str) -> Optional[dict]:
+    """
+    Legge batch dal DB. Ritorna None se non trovato.
+    Usato come fallback da get_batch_status() quando il batch non è più in memoria
+    (es. dopo un restart Flask).
+    """
+    try:
+        from app.utils.serializers import serialize_row
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT batch_id, status, group_name AS "group", operator,
+                       total, completed, passed, failed, results,
+                       started_at, completed_at, error_message AS error
+                FROM patch_test_batches
+                WHERE batch_id = %s
+                """,
+                (batch_id,),
+            )
+            row = cur.fetchone()
+            return serialize_row(dict(row)) if row else None
+    except Exception as e:
+        logger.warning(f"TestEngine: _db_get_batch failed: {e}")
+    return None
+
+
 def _fetch_queue_item(queue_id: int) -> Optional[dict]:
     """Legge un item dalla coda solo se ancora in stato 'queued'."""
     with get_db() as conn:
@@ -867,11 +967,22 @@ def _run_batch_background(
     group_name: str,
     operator: str,
 ) -> None:
-    """Thread worker: esegue i test del batch e aggiorna _batches in tempo reale."""
+    """
+    Thread worker: esegue i test del batch e aggiorna _batches + DB in tempo reale.
+    Controlla _cancel_flags tra un test e l'altro: se il batch è stato cancellato
+    interrompe senza avviare i test rimanenti (il test in corso non viene interrotto).
+    """
     global _testing, _last_result
 
     try:
         for qid in queue_ids:
+            # Controlla cancellazione tra un test e il successivo
+            with _batches_lock:
+                cancelled = batch_id in _cancel_flags
+            if cancelled:
+                logger.info(f"Batch {batch_id}: cancellation requested — stopping after current test")
+                break
+
             row = _fetch_queue_item(qid)
             if not row:
                 result = {
@@ -891,22 +1002,46 @@ def _run_batch_background(
                     b["passed"] += 1
                 elif result.get("status") in ("failed", "error"):
                     b["failed"] += 1
+                completed = b["completed"]
+                passed    = b["passed"]
+                failed    = b["failed"]
+                results   = list(b["results"])
 
-        # Nota UYUNI su tutti i sistemi del gruppo
-        with _batches_lock:
-            results_snapshot = list(_batches[batch_id]["results"])
-        _add_batch_note(group_name, results_snapshot, operator)
+            # Aggiorna DB ad ogni test completato
+            _db_update_batch(batch_id, completed, passed, failed, results)
 
+        # Determina stato finale
         with _batches_lock:
-            _batches[batch_id]["status"] = "completed"
-            _batches[batch_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
+            was_cancelled = batch_id in _cancel_flags
+            _cancel_flags.discard(batch_id)
+
+        if was_cancelled:
+            final_status = "cancelled"
+        else:
+            final_status = "completed"
+
+        # Nota UYUNI su tutti i sistemi del gruppo (solo se non cancellato)
+        if not was_cancelled:
+            with _batches_lock:
+                results_snapshot = list(_batches[batch_id]["results"])
+            _add_batch_note(group_name, results_snapshot, operator)
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with _batches_lock:
+            _batches[batch_id]["status"]       = final_status
+            _batches[batch_id]["completed_at"] = now_iso
+
+        _db_complete_batch(batch_id, final_status)
 
     except Exception as e:
         logger.exception(f"Batch {batch_id} background error")
+        now_iso = datetime.now(timezone.utc).isoformat()
         with _batches_lock:
-            _batches[batch_id]["status"] = "error"
-            _batches[batch_id]["error"] = str(e)
-            _batches[batch_id]["completed_at"] = datetime.now(timezone.utc).isoformat()
+            _batches[batch_id]["status"]       = "error"
+            _batches[batch_id]["error"]        = str(e)
+            _batches[batch_id]["completed_at"] = now_iso
+            _cancel_flags.discard(batch_id)
+        _db_complete_batch(batch_id, "error", str(e))
 
     finally:
         with _testing_lock:
@@ -952,6 +1087,9 @@ def start_batch(
             "completed_at": None,
         }
 
+    # Persiste su DB: sopravvive al restart Flask
+    _db_create_batch(batch_id, group_name, operator, len(queue_ids))
+
     threading.Thread(
         target=_run_batch_background,
         args=(batch_id, queue_ids, group_name, operator),
@@ -967,10 +1105,42 @@ def start_batch(
 
 
 def get_batch_status(batch_id: str) -> Optional[dict]:
-    """Ritorna lo stato corrente del batch, None se non trovato."""
+    """
+    Ritorna lo stato corrente del batch.
+    Prova prima la cache in memoria (batch attivo); fallback al DB
+    per batch completati o dopo restart Flask.
+    Ritorna None se non trovato né in memoria né nel DB.
+    """
     with _batches_lock:
         b = _batches.get(batch_id)
-        return dict(b) if b else None
+        if b:
+            return dict(b)
+    # Fallback DB: batch non più in memoria (restart Flask o batch >24h)
+    return _db_get_batch(batch_id)
+
+
+def cancel_batch(batch_id: str) -> dict:
+    """
+    Richiede la cancellazione di un batch in esecuzione.
+    Il test attualmente in corso viene completato normalmente;
+    i test rimanenti vengono saltati.
+
+    Ritorna:
+      {"cancelled": True}  → flag impostato, batch si fermerà al prossimo intertest
+      {"cancelled": False, "reason": "..."}  → batch non cancellabile (già terminato, non trovato)
+    """
+    # Verifica stato corrente (memoria + DB)
+    b = get_batch_status(batch_id)
+    if not b:
+        return {"cancelled": False, "reason": "batch not found"}
+    if b.get("status") != "running":
+        return {"cancelled": False, "reason": f"batch is already {b['status']}"}
+
+    with _batches_lock:
+        _cancel_flags.add(batch_id)
+
+    logger.info(f"TestEngine: cancel requested for batch {batch_id}")
+    return {"cancelled": True}
 
 
 def init_test_scheduler(scheduler) -> None:

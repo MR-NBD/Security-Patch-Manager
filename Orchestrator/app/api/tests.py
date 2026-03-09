@@ -2,9 +2,12 @@
 SPM Orchestrator - Tests API
 
 Endpoint per il Test Engine:
-  GET  /api/v1/tests/status      → stato corrente engine + ultimo risultato
-  POST /api/v1/tests/run         → trigger manuale test (bloccante)
-  GET  /api/v1/tests/<id>        → dettaglio test con fasi
+  GET    /api/v1/tests/status              → stato corrente engine + ultimo risultato
+  POST   /api/v1/tests/run                 → trigger manuale test (bloccante)
+  POST   /api/v1/tests/batch               → avvia batch asincrono
+  GET    /api/v1/tests/batch/<id>/status   → polling stato batch
+  POST   /api/v1/tests/batch/<id>/cancel   → cancella batch in esecuzione
+  GET    /api/v1/tests/<id>                → dettaglio test con fasi
 """
 
 import logging
@@ -12,7 +15,10 @@ import logging
 from flask import Blueprint, jsonify, request
 
 from app.services.db import get_db
-from app.services.test_engine import run_next_test, get_engine_status, start_batch, get_batch_status
+from app.services.test_engine import (
+    run_next_test, get_engine_status,
+    start_batch, get_batch_status, cancel_batch,
+)
 from app.utils.serializers import serialize_row as _serialize_row
 
 logger = logging.getLogger(__name__)
@@ -126,12 +132,27 @@ def batch_status(batch_id: str):
     """
     GET /api/v1/tests/batch/<batch_id>/status
 
-    Stato corrente del batch (polling dalla dashboard).
+    Stato corrente del batch. Legge dalla cache in memoria se il batch è attivo,
+    altrimenti dal DB (sopravvive al restart Flask).
     """
     status = get_batch_status(batch_id)
     if status is None:
         return jsonify({"error": f"Batch {batch_id!r} not found"}), 404
     return jsonify(status)
+
+
+@tests_bp.route("/batch/<batch_id>/cancel", methods=["POST"])
+def cancel_batch_endpoint(batch_id: str):
+    """
+    POST /api/v1/tests/batch/<batch_id>/cancel
+
+    Richiede la cancellazione di un batch in esecuzione.
+    Il test attualmente in corso viene completato; i rimanenti vengono saltati.
+    Risposta: { "cancelled": true } oppure { "cancelled": false, "reason": "..." }
+    """
+    result = cancel_batch(batch_id)
+    status_code = 200 if result.get("cancelled") else 409
+    return jsonify(result), status_code
 
 
 # ─────────────────────────────────────────────

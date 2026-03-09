@@ -88,6 +88,19 @@ def render_monitor(batch_id: str):
             del st.session_state["active_batch_id"]
             st.rerun()
 
+    elif batch_status == "cancelled":
+        remaining = total - completed
+        st.warning(
+            f"⏹ Batch cancellato dall'operatore. "
+            f"{completed} test eseguiti, {remaining} saltati."
+        )
+        if passed > 0:
+            st.info(f"**{passed} patch** già superate sono in attesa di approvazione.", icon="⏳")
+            st.page_link("pages/3_Approvazioni.py", label="→ Vai ad Approvazioni")
+        if st.button("✚ Nuovo batch"):
+            del st.session_state["active_batch_id"]
+            st.rerun()
+
     elif batch_status == "error":
         st.error(f"❌ Batch fallito: {b.get('error','errore sconosciuto')}")
         if st.button("Chiudi"):
@@ -95,7 +108,17 @@ def render_monitor(batch_id: str):
             st.rerun()
 
     else:
-        st.info("🔄 Test in corso — aggiornamento automatico ogni 5 secondi...")
+        # Batch in corso: auto-refresh + pulsante annulla
+        col_info, col_cancel = st.columns([4, 1])
+        with col_info:
+            st.info("🔄 Test in corso — aggiornamento automatico ogni 5 secondi...")
+        with col_cancel:
+            if st.button("⏹ Annulla batch", type="secondary"):
+                _, cerr = api.batch_cancel(batch_id)
+                if cerr:
+                    st.error(f"Errore cancellazione: {cerr}")
+                else:
+                    st.warning("Cancellazione richiesta — il test corrente verrà completato.")
         time.sleep(5)
         st.rerun()
 

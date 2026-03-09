@@ -10,6 +10,7 @@ Sostituisce Salt API con UYUNI come backend di orchestrazione:
   reboot()              → scheduleReboot (schedula, non attende)
   wait_online()         → attesa consegna reboot Salt + polling echo script fino a online
   ensure_node_exporter()→ installa/avvia node_exporter via UYUNI channels se mancante
+  ensure_snapper()      → installa snapper + crea config root via UYUNI channels se mancante
   get_failed_services() → bash check via scheduleScriptRun
   rollback_snapshot()   → snapper undochange via scheduleScriptRun
   rollback_packages()   → apt downgrade via scheduleScriptRun
@@ -630,6 +631,118 @@ class UyuniPatchClient:
         logger.info(
             f"UyuniPatchClient: node_exporter ({svc_name}) enabled and started "
             f"on {self._system_name!r}"
+        )
+        return True
+
+    def ensure_snapper(self, target_os: str) -> bool:
+        """
+        Verifica che snapper sia installato e configurato sul sistema test.
+        Se mancante: installa via UYUNI channels + inizializza config root.
+
+        Due passi:
+          1. Installa pacchetto 'snapper' se non presente (via UYUNI channels)
+          2. Crea config root se non esiste: snapper -c root create-config /
+
+        Best-effort: ritorna False se non possibile (filesystem non supportato,
+        pacchetto non nei canali). Il test engine userà package rollback in questo caso.
+        """
+        _PACKAGE = "snapper"  # stesso nome su Ubuntu 24.04 e RHEL 9
+
+        # ── 1. Snapper già installato? ────────────────────────────────────
+        try:
+            installed = self._proxy.system.listPackages(self._key, self._system_id)
+            snapper_installed = any(p.get("name") == _PACKAGE for p in installed)
+        except Exception as e:
+            logger.warning(
+                f"UyuniPatchClient: listPackages failed on {self._system_name!r}: {e}"
+            )
+            return False
+
+        if not snapper_installed:
+            logger.info(
+                f"UyuniPatchClient: snapper not installed on {self._system_name!r} "
+                f"— checking UYUNI channels"
+            )
+            pkg_id = None
+            try:
+                installable = self._proxy.system.listLatestInstallablePackages(
+                    self._key, self._system_id
+                )
+                for p in installable:
+                    if p.get("name") == _PACKAGE:
+                        pkg_id = p.get("id")
+                        break
+            except Exception as e:
+                logger.warning(
+                    f"UyuniPatchClient: listLatestInstallablePackages failed "
+                    f"on {self._system_name!r}: {e}"
+                )
+
+            if pkg_id is None:
+                logger.warning(
+                    f"UyuniPatchClient: 'snapper' not found in UYUNI channels "
+                    f"for {self._system_name!r} — snapshot rollback unavailable"
+                )
+                return False
+
+            logger.info(
+                f"UyuniPatchClient: installing 'snapper' (id={pkg_id}) "
+                f"on {self._system_name!r} via UYUNI channel"
+            )
+            try:
+                action_ids = self._proxy.system.schedulePackageInstall(
+                    self._key, self._system_id, [pkg_id], datetime.now(),
+                )
+            except Exception as e:
+                logger.warning(
+                    f"UyuniPatchClient: schedulePackageInstall('snapper') failed "
+                    f"on {self._system_name!r}: {e}"
+                )
+                return False
+
+            action_id = action_ids[0] if action_ids else None
+            if not action_id or not self._wait_action(action_id, timeout_s=300):
+                logger.warning(
+                    f"UyuniPatchClient: snapper install failed or timed out "
+                    f"on {self._system_name!r}"
+                )
+                return False
+
+            logger.info(
+                f"UyuniPatchClient: snapper installed on {self._system_name!r}"
+            )
+
+        # ── 2. Config root esiste? ────────────────────────────────────────
+        ok, output = self._run_script(
+            "#!/bin/bash\nsnapper list-configs 2>&1\n",
+            script_timeout=15,
+            wait_timeout=30,
+        )
+        if ok and "root" in (output or ""):
+            logger.debug(
+                f"UyuniPatchClient: snapper root config already present "
+                f"on {self._system_name!r}"
+            )
+            return True
+
+        # Crea config root (richiede filesystem supportato: btrfs o lvm-thin)
+        logger.info(
+            f"UyuniPatchClient: creating snapper root config on {self._system_name!r}"
+        )
+        ok, output = self._run_script(
+            "#!/bin/bash\nsnapper -c root create-config /\n",
+            script_timeout=30,
+            wait_timeout=60,
+        )
+        if not ok:
+            logger.warning(
+                f"UyuniPatchClient: snapper create-config failed on {self._system_name!r} "
+                f"(filesystem not supported?): {output!r}"
+            )
+            return False
+
+        logger.info(
+            f"UyuniPatchClient: snapper root config created on {self._system_name!r}"
         )
         return True
 

@@ -253,9 +253,12 @@ POST /api/v1/queue                 → aggiungi patch in coda
 GET  /api/v1/queue/<id>            → dettaglio
 
 # Test Engine
-GET  /api/v1/tests/status          → stato engine + stats 24h
-POST /api/v1/tests/run             → trigger manuale test (bloccante)
-GET  /api/v1/tests/<id>            → dettaglio test con fasi
+GET  /api/v1/tests/status                    → stato engine + stats 24h
+POST /api/v1/tests/run                       → trigger manuale test (bloccante)
+POST /api/v1/tests/batch                     → avvia batch asincrono
+GET  /api/v1/tests/batch/<batch_id>/status   → polling stato batch (memoria → DB fallback)
+POST /api/v1/tests/batch/<batch_id>/cancel   → cancella batch in esecuzione
+GET  /api/v1/tests/<id>                      → dettaglio test con fasi
 
 # Approvazioni
 GET  /api/v1/approvals/pending     → lista pending_approval

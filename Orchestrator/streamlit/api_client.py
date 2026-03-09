@@ -293,6 +293,11 @@ def batch_status(batch_id: str):
     return _get(f"/api/v1/tests/batch/{batch_id}/status")
 
 
+def batch_cancel(batch_id: str):
+    """Richiede cancellazione batch in esecuzione."""
+    return _post(f"/api/v1/tests/batch/{batch_id}/cancel")
+
+
 # ─────────────────────────────────────────────
 # Notifications
 # ─────────────────────────────────────────────
