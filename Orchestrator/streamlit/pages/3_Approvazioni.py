@@ -30,18 +30,29 @@ tab_pending, tab_history = st.tabs(["In attesa", "Storico"])
 # TAB: PENDING
 # ════════════════════════════════════════════════════════════════
 with tab_pending:
-    data, err = api.approvals_pending(limit=50)
+    # Paginazione pending
+    if "pending_page" not in st.session_state:
+        st.session_state["pending_page"] = 0
+    _pending_per_page = 20
+
+    _pending_offset = st.session_state["pending_page"] * _pending_per_page
+    data, err = api.approvals_pending(limit=_pending_per_page, offset=_pending_offset)
     if err:
         st.error(f"Errore API: {err}")
         st.stop()
 
-    items = data.get("items", []) if isinstance(data, dict) else (data or [])
-    total = data.get("total", len(items)) if isinstance(data, dict) else len(items)
+    items      = data.get("items", []) if isinstance(data, dict) else (data or [])
+    total      = data.get("total", len(items)) if isinstance(data, dict) else len(items)
+    _tot_pages = max(1, -(-total // _pending_per_page))
+    _cur_page  = st.session_state["pending_page"]
 
     if total == 0:
         st.success("Nessuna patch in attesa di approvazione.")
     else:
-        st.info(f"**{total}** patch in attesa di approvazione.")
+        st.info(
+            f"**{total}** patch in attesa di approvazione — "
+            f"pagina **{_cur_page + 1}** di **{_tot_pages}**"
+        )
 
     op = st.session_state.get("user_upn", "").strip()
 
@@ -177,32 +188,132 @@ with tab_pending:
                                 if ph.get("error_message"):
                                     st.caption(f"⚠ {ph['error_message'][:60]}")
 
+    # ── Navigazione pagine pending ────────────────────────────────
+    if _tot_pages > 1:
+        st.divider()
+        pp1, pp2, pp3 = st.columns([1, 1, 2])
+        with pp1:
+            if st.button(
+                "◀ Prec",
+                key="pending_prev",
+                disabled=(_cur_page == 0),
+                use_container_width=True,
+            ):
+                st.session_state["pending_page"] = _cur_page - 1
+                st.rerun()
+        with pp2:
+            if st.button(
+                "Succ ▶",
+                key="pending_next",
+                disabled=(_cur_page >= _tot_pages - 1),
+                use_container_width=True,
+            ):
+                st.session_state["pending_page"] = _cur_page + 1
+                st.rerun()
+
 
 # ════════════════════════════════════════════════════════════════
 # TAB: STORICO
 # ════════════════════════════════════════════════════════════════
 with tab_history:
-    hist, err = api.approvals_history(limit=100)
+    # ── Controlli filtro e paginazione ───────────────────────────
+    fc1, fc2, fc3 = st.columns([2, 2, 2])
+
+    with fc1:
+        action_filter = st.selectbox(
+            "Filtra per azione",
+            ["Tutte", "approved", "rejected", "snoozed"],
+            format_func=lambda x: {
+                "Tutte": "Tutte le azioni",
+                "approved": "✅ Approvate",
+                "rejected": "🚫 Rifiutate",
+                "snoozed":  "💤 Rimandate",
+            }.get(x, x),
+            key="hist_action_filter",
+        )
+
+    with fc2:
+        per_page = st.selectbox(
+            "Righe per pagina",
+            [25, 50, 100],
+            index=1,
+            key="hist_per_page",
+        )
+
+    # Reset automatico pagina se cambiano filtro o per_page
+    filter_key = f"{action_filter}_{per_page}"
+    if st.session_state.get("hist_filter_key") != filter_key:
+        st.session_state["hist_filter_key"] = filter_key
+        st.session_state["hist_page"] = 0
+
+    if "hist_page" not in st.session_state:
+        st.session_state["hist_page"] = 0
+
+    offset = st.session_state["hist_page"] * per_page
+
+    # ── Carica dati ───────────────────────────────────────────────
+    hist, err = api.approvals_history(limit=per_page, offset=offset)
     if err:
         st.error(f"Errore API: {err}")
     else:
-        history_items = (
-            hist.get("items", []) if isinstance(hist, dict) else (hist or [])
-        )
-        if not history_items:
+        hist_data     = hist if isinstance(hist, dict) else {}
+        history_items = hist_data.get("items", [])
+        total_hist    = hist_data.get("total", len(history_items))
+
+        # Filtra localmente per azione (il backend non ha filtro action)
+        if action_filter != "Tutte":
+            history_items = [
+                h for h in history_items if h.get("action") == action_filter
+            ]
+
+        total_pages = max(1, -(-total_hist // per_page))  # ceil division
+        current_page = st.session_state["hist_page"]
+
+        if not history_items and offset == 0:
             st.info("Nessuna azione registrata.")
         else:
+            st.caption(
+                f"Totale: **{total_hist}** azioni | "
+                f"Pagina **{current_page + 1}** di **{total_pages}**"
+            )
+
+            icons_act = {"approved": "✅", "rejected": "🚫", "snoozed": "💤"}
             rows = []
             for h in history_items:
                 action = h.get("action", "?")
-                icons_act = {"approved": "✅", "rejected": "🚫", "snoozed": "💤"}
-                rows.append(
-                    {
-                        "Data": (str(h.get("action_at") or "")[:16]).replace("T", " "),
-                        "Azione": f"{icons_act.get(action,'?')} {action}",
-                        "Errata": h.get("errata_id", "?"),
-                        "Operatore": h.get("action_by", "?"),
-                        "Motivo": (h.get("reason") or "")[:60],
-                    }
-                )
+                rows.append({
+                    "Data":       (str(h.get("action_at") or "")[:16]).replace("T", " "),
+                    "Azione":     f"{icons_act.get(action, '?')} {action}",
+                    "Errata":     h.get("errata_id", "?"),
+                    "OS":         h.get("target_os", "?"),
+                    "Operatore":  h.get("action_by", "?"),
+                    "Motivo":     (h.get("reason") or "")[:70],
+                })
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+            # ── Navigazione pagine ────────────────────────────────────
+            p1, p2, p3, p4 = st.columns([1, 1, 3, 1])
+            with p1:
+                if st.button(
+                    "⬅ Prima",
+                    disabled=(current_page == 0),
+                    use_container_width=True,
+                ):
+                    st.session_state["hist_page"] = 0
+                    st.rerun()
+            with p2:
+                if st.button(
+                    "◀ Prec",
+                    disabled=(current_page == 0),
+                    use_container_width=True,
+                ):
+                    st.session_state["hist_page"] = current_page - 1
+                    st.rerun()
+            with p4:
+                if st.button(
+                    "Succ ▶",
+                    disabled=(current_page >= total_pages - 1),
+                    use_container_width=True,
+                ):
+                    st.session_state["hist_page"] = current_page + 1
+                    st.rerun()

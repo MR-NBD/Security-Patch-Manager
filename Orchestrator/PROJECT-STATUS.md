@@ -168,7 +168,7 @@ viene saltata silenziosamente e il test continua.
 - [x] `0_Home.py` — Health componenti, notifiche non lette, stats coda/test, sync manuale
 - [x] `1_Gruppi_UYUNI.py` — Gruppi test-* (filtrati per org), patch con colonna Reboot, aggiunta in coda
 - [x] `2_Test_Batch.py` — Selezione patch queued con banner reboot, avvio batch, monitor live polling 5s
-- [x] `3_Approvazioni.py` — Pending approvals con dettaglio CVE/fasi/risk, approve/reject/snooze + storico
+- [x] `3_Approvazioni.py` — Pending approvals con dettaglio CVE/fasi/risk, approve/reject/snooze + storico paginato
 - [x] `api_client.py` — Wrapper REST, tutte le funzioni ritornano (data, error_str)
 - [x] `azure_auth.py` — MSAL helpers: get_auth_url, exchange_code, get_user_info
 
@@ -389,6 +389,17 @@ non durante il sync. Risparmio: ~100s per 634 errata.
 
 ---
 
+## 8. Da fare — Backlog (aggiornato 2026-03-09)
+
+### Completati in sessione 9
+- [x] Rimosse notifiche SMTP/webhook (canale unico: dashboard) + bug fix constraint DB
+- [x] `ensure_snapper()` auto-provisioning via UYUNI channels
+- [x] Batch persistenti su DB (`patch_test_batches`) + cancellazione batch
+- [x] Paginazione storico approvazioni (filtro azione, 25/50/100 righe, prev/next)
+- [x] Paginazione pending approvals (20 per pagina)
+
+---
+
 ## 8. Da fare — Backlog
 
 > Legenda: **[VM]** = azione sul VM, nessun codice | **[CODICE]** = modifica codebase
@@ -496,12 +507,6 @@ che solo in memoria. Compatibile con istanze multiple.
 
 ---
 
-### [CODICE] BASSA — Paginazione storico approvazioni
-
-`3_Approvazioni.py` carica `limit=100` hardcoded per il tab Storico. In ambienti con molti
-cicli di patch lo storico diventa inutilizzabile. Aggiungere paginazione o filtro per data.
-
----
 
 ## 9. Note tecniche e decisioni rilevanti
 
