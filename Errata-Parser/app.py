@@ -155,19 +155,30 @@ def _db():
         conn.close()
 
 
+_UYUNI_TIMEOUT = int(os.environ.get('UYUNI_TIMEOUT', '30'))
+
+
 @contextlib.contextmanager
 def _uyuni():
-    """Sessione UYUNI XML-RPC con logout garantito."""
+    """Sessione UYUNI XML-RPC con logout garantito e timeout configurabile."""
     if not UYUNI_URL:
         raise RuntimeError('UYUNI_URL not configured')
     ctx = ssl.create_default_context()
     ctx.check_hostname = UYUNI_VERIFY_SSL
     ctx.verify_mode    = ssl.CERT_REQUIRED if UYUNI_VERIFY_SSL else ssl.CERT_NONE
-    client  = xmlrpc.client.ServerProxy(f'{UYUNI_URL}/rpc/api', context=ctx)
-    session = client.auth.login(UYUNI_USER, UYUNI_PASSWORD)
+    import socket as _socket
+    old_timeout = _socket.getdefaulttimeout()
+    _socket.setdefaulttimeout(_UYUNI_TIMEOUT)
+    try:
+        client  = xmlrpc.client.ServerProxy(f'{UYUNI_URL}/rpc/api', context=ctx)
+        session = client.auth.login(UYUNI_USER, UYUNI_PASSWORD)
+    except Exception:
+        _socket.setdefaulttimeout(old_timeout)
+        raise
     try:
         yield client, session
     finally:
+        _socket.setdefaulttimeout(old_timeout)
         try:
             client.auth.logout(session)
         except Exception:
