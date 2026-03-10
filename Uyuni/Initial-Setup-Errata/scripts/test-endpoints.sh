@@ -13,7 +13,7 @@
 
 set -euo pipefail
 
-PUBLIC_API="${PUBLIC_API:-http://4.232.4.142:5000}"
+PUBLIC_API="${PUBLIC_API:-http://4.232.4.138:5000}"
 INTERNAL_API="${INTERNAL_API:-http://10.172.5.4:5000}"
 API_KEY="${API_KEY:-spm-key-2024}"
 TIMEOUT=30

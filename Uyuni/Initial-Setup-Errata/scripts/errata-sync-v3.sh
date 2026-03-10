@@ -36,7 +36,7 @@ LOCK_FILE="/var/run/errata-sync.lock"
 ERROR_LOG="/var/log/errata-sync-errors.log"
 
 # IPs dei due container ACI
-PUBLIC_API="${PUBLIC_API:-http://4.232.4.142:5000}"     # aci-errata-api (internet)
+PUBLIC_API="${PUBLIC_API:-http://4.232.4.138:5000}"     # aci-errata-api (internet)
 INTERNAL_API="${INTERNAL_API:-http://10.172.5.4:5000}"  # aci-errata-api-internal (VNet)
 API_KEY="${API_KEY:-spm-key-2024}"
 

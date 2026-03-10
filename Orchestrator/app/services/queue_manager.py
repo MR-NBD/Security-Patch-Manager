@@ -3,13 +3,23 @@ SPM Orchestrator - Queue Manager
 
 Gestisce la coda di test patch:
 - Aggiunta errata (con fetch on-demand pacchetti da UYUNI)
+- Auto-soppressione errata più vecchie (stessa famiglia USN o package overlap)
 - Analisi pacchetti per profilo di rischio
-- Calcolo Success Score
+- Calcolo Success Score (0-100)
 - CRUD su patch_test_queue e patch_risk_profile
+
+Funzioni pubbliche:
+  extract_advisory_base()            → USN-XXXX-N → USN-XXXX (None per non-USN)
+  add_to_queue()                     → inserisce errata, sopprime vecchie, ritorna row con "superseded"
+  get_queue() / get_queue_item()     → lettura coda con filtri e join
+  update_queue_item()                → aggiorna priority_override / notes
+  remove_from_queue()                → solo se status='queued'
+  get_queue_stats()                  → aggregati per status e OS
 """
 
 import json
 import logging
+import re
 from typing import Optional
 
 from app.services.db import get_db
@@ -233,6 +243,106 @@ def _upsert_risk_profile(errata_id: str, analysis: dict) -> dict:
 # Public API
 # ─────────────────────────────────────────────
 
+def extract_advisory_base(errata_id: str) -> Optional[str]:
+    """
+    Estrae il nome base di un advisory USN senza il numero di revisione.
+    'USN-7412-2' → 'USN-7412'
+    'USN-7412-1' → 'USN-7412'
+    Non-USN (RHSA, CVE, ecc.): ritorna None (nessuna revisione).
+    """
+    m = re.match(r'^(USN-\d+)-\d+$', errata_id)
+    return m.group(1) if m else None
+
+
+def _suppress_older_queued_errata(
+    new_errata_id: str,
+    target_os: str,
+    new_packages: list,
+    new_issued_date: Optional[str],
+) -> list:
+    """
+    Cerca nella coda errata più vecchie che la nuova patch sostituisce e le marca
+    come 'superseded'. L'operatore ha già scelto la patch più recente — le versioni
+    precedenti ancora in coda vengono automaticamente soppresse.
+
+    Due criteri (OR):
+      1. Stesso advisory base USN (es. USN-7412-1 viene soppressa da USN-7412-2)
+      2. Sovrapposizione dei package names + issued_date precedente
+
+    Ritorna lista degli errata_id soppressi.
+    """
+    suppressed = []
+    advisory_base = extract_advisory_base(new_errata_id)
+    new_pkg_names = {
+        p.get("name", "").lower() for p in new_packages if p.get("name")
+    }
+
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT q.id, q.errata_id, e.packages, e.issued_date
+                FROM patch_test_queue q
+                JOIN errata_cache e ON q.errata_id = e.errata_id
+                WHERE q.target_os = %s
+                  AND q.status IN ('queued', 'retry_pending')
+                  AND q.errata_id != %s
+                """,
+                (target_os, new_errata_id),
+            )
+            candidates = cur.fetchall()
+
+        to_suppress = []
+        for row in candidates:
+            old_id   = row["errata_id"]
+            old_pkgs = row["packages"] or []
+            old_date = str(row["issued_date"] or "")
+
+            should_suppress = False
+
+            # Criterio 1: stesso advisory base (USN-XXXX con revisione precedente)
+            if advisory_base:
+                old_base = extract_advisory_base(old_id)
+                if old_base == advisory_base:
+                    should_suppress = True
+
+            # Criterio 2: package overlap + data precedente
+            if not should_suppress and new_pkg_names and old_pkgs:
+                old_pkg_names = {
+                    p.get("name", "").lower() for p in old_pkgs if p.get("name")
+                }
+                if new_pkg_names & old_pkg_names:
+                    if new_issued_date and old_date and old_date < str(new_issued_date):
+                        should_suppress = True
+
+            if should_suppress:
+                to_suppress.append(old_id)
+                suppressed.append(old_id)
+
+        if to_suppress:
+            with get_db() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    UPDATE patch_test_queue
+                    SET status = 'superseded', superseded_by = %s
+                    WHERE errata_id = ANY(%s) AND target_os = %s
+                      AND status IN ('queued', 'retry_pending')
+                    """,
+                    (new_errata_id, to_suppress, target_os),
+                )
+            logger.info(
+                f"Queue: suppressed {len(to_suppress)} older errata "
+                f"→ {to_suppress} (superseded by {new_errata_id!r})"
+            )
+
+    except Exception as e:
+        logger.warning(f"Queue: _suppress_older_queued_errata failed: {e}")
+
+    return suppressed
+
+
 def add_to_queue(
     errata_id: str,
     target_os: str,
@@ -258,7 +368,7 @@ def add_to_queue(
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT errata_id, synopsis, severity"
+            "SELECT errata_id, synopsis, severity, issued_date"
             " FROM errata_cache WHERE errata_id = %s",
             (errata_id,),
         )
@@ -267,14 +377,18 @@ def add_to_queue(
     if not errata:
         raise ValueError(f"Errata {errata_id!r} not found in errata_cache")
 
+    issued_date = errata.get("issued_date")
+
     # 2. Controlla duplicato attivo
+    # 'superseded' è escluso: un errata precedentemente soppresso può essere
+    # re-aggiunto dall'operatore se necessario.
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute(
             """
             SELECT id, status FROM patch_test_queue
             WHERE errata_id = %s AND target_os = %s
-              AND status NOT IN ('completed', 'rolled_back', 'rejected')
+              AND status NOT IN ('completed', 'rolled_back', 'rejected', 'superseded')
             """,
             (errata_id, target_os),
         )
@@ -331,6 +445,16 @@ def add_to_queue(
         f"Queue: added {errata_id} "
         f"(os={target_os}, score={score}, id={row['id']})"
     )
+
+    # Sopprime errata più vecchie nella coda con stessa famiglia USN o package overlap
+    suppressed = _suppress_older_queued_errata(
+        new_errata_id=errata_id,
+        target_os=target_os,
+        new_packages=packages,
+        new_issued_date=str(issued_date) if issued_date else None,
+    )
+    row["superseded"] = suppressed
+
     return row
 
 
@@ -531,11 +655,13 @@ def get_queue_stats() -> dict:
             SELECT
                 COUNT(*)                                              AS total,
                 COUNT(*) FILTER (WHERE q.status = 'queued')            AS queued,
+                COUNT(*) FILTER (WHERE q.status = 'retry_pending')     AS retry_pending,
                 COUNT(*) FILTER (WHERE q.status = 'testing')           AS testing,
                 COUNT(*) FILTER (WHERE q.status = 'passed')            AS passed,
                 COUNT(*) FILTER (WHERE q.status = 'failed')            AS failed,
                 COUNT(*) FILTER (WHERE q.status = 'pending_approval')  AS pending_approval,
                 COUNT(*) FILTER (WHERE q.status = 'approved')          AS approved,
+                COUNT(*) FILTER (WHERE q.status = 'superseded')        AS superseded,
                 COUNT(*) FILTER (
                     WHERE q.status IN ('prod_applied', 'completed')
                 )                                                        AS deployed,
@@ -544,15 +670,15 @@ def get_queue_stats() -> dict:
                 AVG(q.success_score)                                     AS avg_score,
                 COUNT(*) FILTER (
                     WHERE rp.requires_reboot = TRUE
-                    AND q.status NOT IN ('rolled_back', 'rejected', 'completed')
+                    AND q.status NOT IN ('rolled_back', 'rejected', 'completed', 'superseded')
                 )                                                        AS requires_reboot,
                 COUNT(*) FILTER (
                     WHERE COALESCE(rp.requires_reboot, FALSE) = FALSE
-                    AND q.status NOT IN ('rolled_back', 'rejected', 'completed')
+                    AND q.status NOT IN ('rolled_back', 'rejected', 'completed', 'superseded')
                 )                                                        AS no_reboot
             FROM patch_test_queue q
             LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id
-            WHERE q.status NOT IN ('rolled_back', 'rejected', 'completed')
+            WHERE q.status NOT IN ('rolled_back', 'rejected', 'completed', 'superseded')
         """)
         row = dict(cur.fetchone())
 

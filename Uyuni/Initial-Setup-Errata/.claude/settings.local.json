@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(chmod +x /mnt/c/Users/alber/Documents/GitHub/Security-Patch-Manager/Uyuni/Initial-Setup-Errata/scripts/test-endpoints.sh && echo \"OK\")"
+    ]
+  }
+}

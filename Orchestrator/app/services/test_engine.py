@@ -1,24 +1,33 @@
 """
 SPM Orchestrator - Test Engine
 
-Esegue test automatici sulle patch in coda (status='queued').
+Esegue test automatici sulle patch in coda (status='queued' o 'retry_pending' pronto).
 Un test alla volta — mutex globale _testing.
 
 Flusso a fasi:
-  ① snapshot  — crea snapshot pre-patch via snapper (UYUNI scheduleScriptRun)
-  ② patch     — applica errata via UYUNI scheduleApplyErrata
-  ③ reboot    — riavvio + attesa online (solo se requires_reboot=True)
-  ④ validate  — verifica delta CPU/memoria via Prometheus
-  ⑤ services  — verifica servizi critici via UYUNI scheduleScriptRun (systemctl)
+  ⓪ pre_check  — pre-flight: servizi baseline, disco (min 500 MB), reboot pendente
+  ① snapshot   — crea snapshot pre-patch via snapper (UYUNI scheduleScriptRun)
+  ② patch      — applica errata via UYUNI scheduleApplyErrata
+  ③ reboot     — riavvio + attesa online (solo se requires_reboot=True)
+  ④ validate   — verifica delta CPU/memoria via Prometheus (skipped se non disponibile)
+  ⑤ services   — verifica servizi critici via UYUNI scheduleScriptRun (systemctl)
   ↓ (fallimento in qualsiasi fase)
-  ⑥ rollback  — snapshot: snapper undochange | package: apt downgrade
+  ⑥ rollback        — snapshot: snapper undochange | package: apt/dnf downgrade
+  ⑦ post_rollback   — verifica servizi dopo rollback (best-effort)
 
 Ogni fase è registrata in patch_test_phases.
 Il risultato finale aggiorna patch_tests e patch_test_queue.
 
 Rollback type:
   requires_reboot = True  → snapshot (snapper undochange, senza reboot)
-  requires_reboot = False → package (reinstalla versioni precedenti)
+  requires_reboot = False → package (reinstalla versioni precedenti via apt o dnf)
+  snapper non disponibile → fallback automatico a package rollback
+
+Retry intelligente (error classification):
+  INFRA      → pre-flight fallito, sistema offline    → max 2 retry, delay 2h
+  TRANSIENT  → timeout UYUNI, errori di rete, reboot  → max 3 retry, delay 30 min
+  PATCH      → applicazione patch fallita             → no retry
+  REGRESSION → servizi down o validate fallito        → no retry
 """
 
 import json
@@ -26,7 +35,7 @@ import logging
 import threading
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from app.config import Config
@@ -56,9 +65,9 @@ _cancel_flags: set = set()    # batch_id in questo set → cancellazione richies
 
 def _pick_next_queued() -> Optional[dict]:
     """
-    Preleva il prossimo elemento in coda (status='queued').
-    Ordinamento: priority_override DESC, success_score DESC, queued_at ASC.
-    FOR UPDATE SKIP LOCKED: sicuro in caso di istanze concorrenti.
+    Preleva il prossimo elemento in coda (status='queued' o 'retry_pending' pronto).
+    Ordinamento: priority_override DESC, no-reboot prima, success_score DESC, queued_at ASC.
+    FOR UPDATE OF q SKIP LOCKED: sicuro in caso di istanze concorrenti.
     """
     with get_db() as conn:
         cur = conn.cursor()
@@ -67,10 +76,12 @@ def _pick_next_queued() -> Optional[dict]:
                 q.id, q.errata_id, q.target_os,
                 q.success_score, q.priority_override, q.queued_at,
                 COALESCE(rp.requires_reboot, FALSE) AS requires_reboot,
-                COALESCE(rp.affects_kernel,  FALSE) AS affects_kernel
+                COALESCE(rp.affects_kernel,  FALSE) AS affects_kernel,
+                COALESCE(q.retry_count, 0)           AS retry_count
             FROM patch_test_queue q
             LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id
             WHERE q.status = 'queued'
+               OR (q.status = 'retry_pending' AND q.retry_after <= NOW())
             ORDER BY q.priority_override              DESC,
                      COALESCE(rp.requires_reboot, FALSE) ASC,
                      q.success_score                     DESC,
@@ -443,6 +454,59 @@ def _phase_services(
         raise RuntimeError(f"Services check failed: {e}") from e
 
 
+def _phase_preflight(
+    test_id: int,
+    uyuni: UyuniPatchClient,
+    target_os: str,
+) -> None:
+    """
+    Fase PRE_CHECK: valida lo stato del sistema prima di applicare la patch.
+    Controlla: servizi critici baseline, spazio disco, reboot pendente.
+    Raises: RuntimeError con prefisso [INFRA] se una condizione blocca il test.
+    """
+    phase_id = _create_phase(test_id, "pre_check")
+    issues = []
+
+    try:
+        # 1. Servizi critici — devono essere tutti up prima di partire
+        services = get_critical_services(target_os)
+        failed_svcs = uyuni.get_failed_services(services)
+        if failed_svcs:
+            issues.append(
+                f"Critical services DOWN before patch: {', '.join(failed_svcs)}"
+            )
+
+        # 2. Spazio disco — minimo 500 MB su /
+        disk_ok, available_mb, disk_msg = uyuni.check_disk_space(min_mb=500)
+        if not disk_ok:
+            issues.append(disk_msg)
+
+        # 3. Reboot pendente da precedente aggiornamento
+        reboot_pending, reboot_msg = uyuni.check_reboot_pending(target_os)
+        if reboot_pending:
+            issues.append(reboot_msg)
+
+        output = {
+            "services_checked":  services,
+            "failed_services":   failed_svcs,
+            "disk_available_mb": available_mb,
+            "reboot_pending":    reboot_pending,
+        }
+
+        if issues:
+            err = "[INFRA] Pre-flight checks failed: " + "; ".join(issues)
+            _complete_phase(phase_id, "failed", error=err, output=output)
+            raise RuntimeError(err)
+
+        _complete_phase(phase_id, "completed", output=output)
+
+    except RuntimeError:
+        raise
+    except Exception as e:
+        _complete_phase(phase_id, "failed", error=str(e))
+        raise RuntimeError(f"[INFRA] Pre-flight check error: {e}") from e
+
+
 def _phase_rollback(
     test_id: int,
     uyuni: UyuniPatchClient,
@@ -497,6 +561,170 @@ def _phase_rollback(
         logger.error(f"TestEngine: ROLLBACK FAILED on {system_name!r}: {e}")
 
 
+def _phase_verify_rollback(
+    test_id: int,
+    uyuni: UyuniPatchClient,
+    target_os: str,
+) -> None:
+    """
+    Fase POST_ROLLBACK: verifica che i servizi critici siano attivi dopo il rollback.
+    Best-effort: non solleva eccezioni, registra solo l'esito nella fase.
+    """
+    phase_id = _create_phase(test_id, "post_rollback")
+    try:
+        services = get_critical_services(target_os)
+        failed = uyuni.get_failed_services(services)
+        status = "completed" if not failed else "failed"
+        output = {
+            "services_checked":    services,
+            "failed_services":     failed,
+            "rollback_verified":   not failed,
+        }
+        error = f"Services DOWN after rollback: {', '.join(failed)}" if failed else None
+        _complete_phase(phase_id, status, error=error, output=output)
+        if failed:
+            logger.warning(
+                f"TestEngine: services DOWN after rollback on "
+                f"{uyuni._system_name!r}: {failed}"
+            )
+        else:
+            logger.info(
+                f"TestEngine: post-rollback services OK on {uyuni._system_name!r}"
+            )
+    except Exception as e:
+        _complete_phase(phase_id, "failed", error=str(e))
+        logger.warning(f"TestEngine: _phase_verify_rollback error: {e}")
+
+
+def _rollback_and_verify(
+    test_id: int,
+    uyuni: UyuniPatchClient,
+    rollback_type: str,
+    snapshot_id: Optional[str],
+    packages_before: dict,
+    target_os: str,
+) -> None:
+    """Esegue rollback e poi verifica post-rollback (best-effort)."""
+    _phase_rollback(
+        test_id, uyuni,
+        rollback_type, snapshot_id, packages_before,
+        target_os=target_os,
+    )
+    _phase_verify_rollback(test_id, uyuni, target_os)
+
+
+# ─────────────────────────────────────────────
+# Error classification + retry
+# ─────────────────────────────────────────────
+
+def _classify_error(
+    failure_phase: Optional[str],
+    failure_reason: Optional[str],
+) -> str:
+    """
+    Classifica la categoria dell'errore per decidere il comportamento di retry.
+
+    INFRA      → problema infrastrutturale (sistema offline, disco pieno, servizi
+                 già down prima della patch, reboot pendente).
+                 Retry dopo 2h, max 2 volte.
+    TRANSIENT  → errore transitorio UYUNI o di rete (timeout azione, polling fallito).
+                 Retry dopo 30min, max 3 volte.
+    PATCH      → la patch ha causato problemi (applicazione fallita).
+                 No retry: problema intrinseco della patch.
+    REGRESSION → la patch sembra aver rotto qualcosa (servizi down, validate fallito).
+                 No retry: richiede analisi manuale.
+    """
+    phase  = (failure_phase  or "").lower()
+    reason = (failure_reason or "").lower()
+
+    # Errori infrastrutturali esplicitamente marcati con [INFRA]
+    if "[infra]" in reason:
+        return "INFRA"
+
+    # Fase pre-check o sistema non raggiungibile
+    if phase == "pre_check" or "not reachable" in reason:
+        return "INFRA"
+
+    # Errori transitori: timeout, polling, connessione
+    _transient_keywords = [
+        "timeout", "timed out", "connection", "xmlrpc",
+        "socket", "eoferror", "http error",
+    ]
+    if any(kw in reason for kw in _transient_keywords):
+        return "TRANSIENT"
+
+    # Reboot fallito: può essere transitorio (sistema lento a tornare online)
+    if phase == "reboot":
+        return "TRANSIENT"
+
+    # Patch fallita: problema intrinseco della patch
+    if phase == "patch":
+        return "PATCH"
+
+    # Servizi down o validate fallito → regressione introdotta dalla patch
+    if phase in ("services", "validate"):
+        return "REGRESSION"
+
+    # Default: PATCH (segnala per analisi manuale)
+    return "PATCH"
+
+
+def _set_queue_retry(
+    queue_id: int,
+    retry_after: datetime,
+    retry_count: int,
+) -> None:
+    """Imposta status='retry_pending', aggiorna retry_after e retry_count."""
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """UPDATE patch_test_queue
+               SET status      = 'retry_pending',
+                   retry_after = %s,
+                   retry_count = %s
+               WHERE id = %s""",
+            (retry_after, retry_count, queue_id),
+        )
+
+
+def _maybe_retry(
+    queue_id: int,
+    current_retry_count: int,
+    category: str,
+) -> bool:
+    """
+    Decide se programmare un retry in base alla categoria di errore.
+    Ritorna True se il retry è stato programmato, False altrimenti.
+
+    INFRA:     max 2 retry, delay 2h
+    TRANSIENT: max 3 retry, delay 30min
+    PATCH/REGRESSION: no retry
+    """
+    now = datetime.now(timezone.utc)
+
+    if category == "INFRA" and current_retry_count < 2:
+        retry_at = now + timedelta(hours=2)
+        _set_queue_retry(queue_id, retry_at, current_retry_count + 1)
+        logger.info(
+            f"TestEngine: queue {queue_id} → retry_pending "
+            f"(INFRA, attempt {current_retry_count + 1}/2, "
+            f"after {retry_at.isoformat()})"
+        )
+        return True
+
+    if category == "TRANSIENT" and current_retry_count < 3:
+        retry_at = now + timedelta(minutes=30)
+        _set_queue_retry(queue_id, retry_at, current_retry_count + 1)
+        logger.info(
+            f"TestEngine: queue {queue_id} → retry_pending "
+            f"(TRANSIENT, attempt {current_retry_count + 1}/3, "
+            f"after {retry_at.isoformat()})"
+        )
+        return True
+
+    return False
+
+
 # ─────────────────────────────────────────────
 # Core test execution
 # ─────────────────────────────────────────────
@@ -506,10 +734,11 @@ def _execute_test(queue_item: dict) -> dict:
     Esegue il test completo per un elemento della coda.
     Gestisce il flusso a fasi con rollback automatico in caso di fallimento.
     """
-    queue_id       = queue_item["id"]
-    errata_id      = queue_item["errata_id"]
-    target_os      = queue_item["target_os"]
+    queue_id        = queue_item["id"]
+    errata_id       = queue_item["errata_id"]
+    target_os       = queue_item["target_os"]
     requires_reboot = bool(queue_item.get("requires_reboot", False))
+    retry_count     = int(queue_item.get("retry_count", 0))
 
     # Sistema di test: .env ha priorità, altrimenti auto-discovery da UYUNI
     cfg         = Config.TEST_SYSTEMS.get(target_os, {})
@@ -579,6 +808,14 @@ def _execute_test(queue_item: dict) -> dict:
                 failure_phase = "pre_check"
                 raise RuntimeError(failure_reason)
 
+            # ⓪ PRE-FLIGHT: servizi baseline, disco, reboot pendente
+            try:
+                _phase_preflight(test_id, uyuni, target_os)
+            except RuntimeError as e:
+                failure_reason = str(e)
+                failure_phase  = "pre_check"
+                raise
+
             # Assicura snapper installato e config root presente (via UYUNI channels)
             # Best-effort: se non disponibile il rollback_type passa a 'package'.
             snapper_ok = uyuni.ensure_snapper(target_os)
@@ -619,7 +856,7 @@ def _execute_test(queue_item: dict) -> dict:
             except RuntimeError as e:
                 failure_reason = str(e)
                 failure_phase  = "patch"
-                _phase_rollback(
+                _rollback_and_verify(
                     test_id, uyuni,
                     rollback_type, snapshot_id, apply_result,
                     target_os=target_os,
@@ -634,7 +871,7 @@ def _execute_test(queue_item: dict) -> dict:
                 except RuntimeError as e:
                     failure_reason = str(e)
                     failure_phase  = "reboot"
-                    _phase_rollback(
+                    _rollback_and_verify(
                         test_id, uyuni,
                         rollback_type, snapshot_id, apply_result,
                         target_os=target_os,
@@ -656,7 +893,7 @@ def _execute_test(queue_item: dict) -> dict:
                 except RuntimeError as e:
                     failure_reason = str(e)
                     failure_phase  = "validate"
-                    _phase_rollback(
+                    _rollback_and_verify(
                         test_id, uyuni,
                         rollback_type, snapshot_id, apply_result,
                         target_os=target_os,
@@ -670,7 +907,7 @@ def _execute_test(queue_item: dict) -> dict:
             except RuntimeError as e:
                 failure_reason = str(e)
                 failure_phase  = "services"
-                _phase_rollback(
+                _rollback_and_verify(
                     test_id, uyuni,
                     rollback_type, snapshot_id, apply_result,
                     target_os=target_os,
@@ -709,6 +946,17 @@ def _execute_test(queue_item: dict) -> dict:
     # patch_test_queue.chk_queue_status non ammette 'error': mappa a 'failed'
     queue_status = "failed" if final_result == "error" else final_result
     _set_queue_status(queue_id, queue_status)
+
+    # Retry intelligente: classifica errore e riprogramma se appropriato.
+    # _maybe_retry sovrascrive lo status a 'retry_pending' se il retry è schedulato.
+    if final_result in ("failed", "error"):
+        error_category = _classify_error(failure_phase, failure_reason)
+        retried = _maybe_retry(queue_id, retry_count, error_category)
+        if retried:
+            logger.info(
+                f"TestEngine: {errata_id!r} → retry_pending "
+                f"(category={error_category}, attempt {retry_count + 1})"
+            )
 
     # Notifica operatore (best-effort: failed/error → alert, pending_approval → info)
     notify_test_result(
@@ -946,7 +1194,7 @@ def _db_get_batch(batch_id: str) -> Optional[dict]:
 
 
 def _fetch_queue_item(queue_id: int) -> Optional[dict]:
-    """Legge un item dalla coda solo se ancora in stato 'queued'."""
+    """Legge un item dalla coda se in stato 'queued' o 'retry_pending' pronto."""
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute(
@@ -955,10 +1203,13 @@ def _fetch_queue_item(queue_id: int) -> Optional[dict]:
                 q.id, q.errata_id, q.target_os,
                 q.success_score, q.priority_override, q.queued_at,
                 COALESCE(rp.requires_reboot, FALSE) AS requires_reboot,
-                COALESCE(rp.affects_kernel,  FALSE) AS affects_kernel
+                COALESCE(rp.affects_kernel,  FALSE) AS affects_kernel,
+                COALESCE(q.retry_count, 0)           AS retry_count
             FROM patch_test_queue q
             LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id
-            WHERE q.id = %s AND q.status = 'queued'
+            WHERE q.id = %s
+              AND (q.status = 'queued'
+                   OR (q.status = 'retry_pending' AND q.retry_after <= NOW()))
             """,
             (queue_id,),
         )

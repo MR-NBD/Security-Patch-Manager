@@ -12,6 +12,12 @@ GET /api/v1/groups[?org_id=N]
 
 GET /api/v1/groups/<group_name>/patches
     Patch applicabili a tutti i sistemi nel gruppo (merge + dedup).
+    Ogni patch include:
+      requires_reboot  bool|None  — da patch_risk_profile o inferenza package names
+      affects_kernel   bool|None  — da patch_risk_profile
+      is_latest        bool       — True se è la versione più recente nella sua famiglia
+      superseded_by    str|None   — advisory_name della patch più recente (se is_latest=False)
+    Ordinamento: latest first → no-reboot first → data discendente.
 """
 
 import logging
@@ -19,7 +25,7 @@ from flask import Blueprint, jsonify, request
 
 from app.services.uyuni_client import UyuniSession, os_from_group
 from app.services.db import get_db
-from app.services.queue_manager import KERNEL_PATTERNS, REBOOT_PATTERNS
+from app.services.queue_manager import KERNEL_PATTERNS, REBOOT_PATTERNS, extract_advisory_base
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +186,105 @@ def _enrich_reboot_info(patches_by_name: dict) -> None:
 
 
 # ─────────────────────────────────────────────
+# DB helper: latest info enrichment
+# ─────────────────────────────────────────────
+
+def _enrich_latest_info(patches_by_name: dict) -> None:
+    """
+    Arricchisce in-place le patch con is_latest e superseded_by.
+
+    Due criteri per identificare le patch più recenti:
+      1. Famiglia USN (USN-XXXX-N): la revisione più alta è latest, le altre no.
+      2. Package overlap: tra patch attive che condividono pacchetti, la più recente
+         per issued_date è latest (le altre hanno superseded_by impostato).
+
+    Questi campi sono informativi: l'operatore vede le patch recenti in evidenza
+    e può scegliere di partire da quelle. Le più vecchie vengono soppresse
+    automaticamente al momento dell'aggiunta in coda.
+    """
+    # Inizializza tutte come latest (default ottimistico)
+    for p in patches_by_name.values():
+        p["is_latest"] = True
+        p["superseded_by"] = None
+
+    # ── 1. Raggruppamento per famiglia USN ───────────────────────────────────
+    families: dict = {}  # advisory_base → [(revision_int, advisory_name), ...]
+    for name in patches_by_name:
+        base = extract_advisory_base(name)
+        if base:
+            try:
+                rev = int(name.rsplit("-", 1)[-1])
+            except (ValueError, IndexError):
+                rev = 0
+            families.setdefault(base, []).append((rev, name))
+
+    for base, members in families.items():
+        if len(members) < 2:
+            continue
+        _, max_name = max(members, key=lambda x: x[0])
+        for _, name in members:
+            if name != max_name:
+                patches_by_name[name]["is_latest"] = False
+                patches_by_name[name]["superseded_by"] = max_name
+
+    # ── 2. Package overlap tra patch non ancora marcate come superate ─────────
+    active_names = [
+        name for name, p in patches_by_name.items()
+        if p.get("is_latest") is True
+    ]
+    if len(active_names) < 2:
+        return
+
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT errata_id, packages, issued_date"
+                " FROM errata_cache WHERE errata_id = ANY(%s)",
+                (active_names,),
+            )
+            pkg_data = {row["errata_id"]: row for row in cur.fetchall()}
+    except Exception as e:
+        logger.warning(f"_enrich_latest_info: DB query failed: {e}")
+        return
+
+    # Mappa pkg_name → [advisory_name] per trovare patch che condividono pacchetti
+    pkg_to_advisories: dict = {}
+    for name, row in pkg_data.items():
+        pkgs = row.get("packages") or []
+        if isinstance(pkgs, list):
+            for p in pkgs:
+                pkg_name = (p.get("name") or "").lower()
+                if pkg_name:
+                    pkg_to_advisories.setdefault(pkg_name, []).append(name)
+
+    processed_pairs: set = set()
+    for pkg_name, advisories in pkg_to_advisories.items():
+        if len(advisories) < 2:
+            continue
+        # Trova la più recente tra quelle che condividono questo pacchetto
+        dated = []
+        for adv_name in advisories:
+            date_str = str(pkg_data.get(adv_name, {}).get("issued_date") or "")
+            dated.append((date_str, adv_name))
+        dated.sort(reverse=True)  # più recente prima
+        newest_date, newest_name = dated[0]
+
+        for date_str, adv_name in dated[1:]:
+            if adv_name == newest_name:
+                continue
+            pair = frozenset([adv_name, newest_name])
+            if pair in processed_pairs:
+                continue
+            # Sopprimi solo se la data è effettivamente precedente
+            if date_str < newest_date:
+                processed_pairs.add(pair)
+                patches_by_name[adv_name]["is_latest"] = False
+                if not patches_by_name[adv_name].get("superseded_by"):
+                    patches_by_name[adv_name]["superseded_by"] = newest_name
+
+
+# ─────────────────────────────────────────────
 # GET /api/v1/groups/<group_name>/patches
 # ─────────────────────────────────────────────
 
@@ -237,13 +342,15 @@ def group_patches(group_name: str):
 
             if patches_by_name:
                 _enrich_reboot_info(patches_by_name)
+                _enrich_latest_info(patches_by_name)
 
-            # Ordinamento: no-reboot/sconosciuto prima, poi reboot; a pari categoria
-            # le patch piu' recenti vengono prima.
+            # Ordinamento: patch più recenti (is_latest=True) prima,
+            # poi no-reboot prima di reboot, poi data discendente.
             patches = sorted(
                 patches_by_name.values(),
                 key=lambda p: (
-                    bool(p.get("requires_reboot")),  # False/None < True
+                    p.get("is_latest", True),          # True > False → latest first
+                    not bool(p.get("requires_reboot")), # True (no-reboot) first
                     p.get("date") or "",
                 ),
                 reverse=True,

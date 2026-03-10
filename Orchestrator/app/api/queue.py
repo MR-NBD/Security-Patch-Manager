@@ -21,6 +21,7 @@ _VALID_STATUSES = {
     "queued", "testing", "passed", "failed", "needs_reboot", "rebooting",
     "pending_approval", "approved", "rejected", "snoozed",
     "promoting", "prod_pending", "prod_applied", "completed", "rolled_back",
+    "retry_pending", "superseded",
 }
 
 

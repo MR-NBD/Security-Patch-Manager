@@ -2,22 +2,23 @@
 SPM Orchestrator - UYUNI Patch Client
 
 Applica patch sui sistemi test tramite UYUNI XML-RPC.
-Sostituisce Salt API con UYUNI come backend di orchestrazione:
+Tutte le azioni UYUNI sono asincrone: schedule → action_id → polling _wait_action().
 
-  ping()                → verifica sistema registrato in UYUNI (system.getDetails)
-  take_snapshot()       → snapper create via scheduleScriptRun
-  apply_errata()        → scheduleApplyErrata (asincrono + polling)
-  reboot()              → scheduleReboot (schedula, non attende)
-  wait_online()         → attesa consegna reboot Salt + polling echo script fino a online
-  ensure_node_exporter()→ installa/avvia node_exporter via UYUNI channels se mancante
-  ensure_snapper()      → installa snapper + crea config root via UYUNI channels se mancante
-  get_failed_services() → bash check via scheduleScriptRun
-  rollback_snapshot()   → snapper undochange via scheduleScriptRun
-  rollback_packages()   → apt downgrade via scheduleScriptRun
+Metodi pubblici:
+  ping()                  → verifica sistema registrato in UYUNI (system.getDetails)
+  check_disk_space()      → verifica spazio disco disponibile su / (min 500 MB)
+  check_reboot_pending()  → controlla /var/run/reboot-required (Ubuntu) o needs-restarting (RHEL)
+  take_snapshot()         → snapper create via scheduleScriptRun
+  apply_errata()          → scheduleApplyErrata (asincrono + polling); cattura versioni pre-patch
+  reboot()                → scheduleReboot (schedula, non attende)
+  wait_online()           → attesa consegna reboot Salt + polling echo script fino a online
+  ensure_node_exporter()  → installa/avvia node_exporter via UYUNI channels se mancante
+  ensure_snapper()        → installa snapper + crea config root via UYUNI channels se mancante
+  get_failed_services()   → bash check via scheduleScriptRun (systemctl is-active)
+  rollback_snapshot()     → snapper undochange via scheduleScriptRun
+  rollback_packages()     → apt/dnf downgrade (Ubuntu: apt-get --allow-downgrades, RHEL: dnf install)
 
-Ogni azione UYUNI è asincrona: viene schedulata e ritorna un action_id.
-_wait_action() fa polling su schedule.listCompleted/FailedActions fino
-a completamento o timeout.
+_wait_action() polling: schedule.listCompletedSystems / listFailedSystems (scoped per action_id).
 """
 
 import ipaddress
@@ -810,3 +811,63 @@ class UyuniPatchClient:
             f"UyuniPatchClient: package rollback ({len(pkgs_old)} packages, "
             f"os={target_os!r}) done on {self._system_name!r}"
         )
+
+    def check_disk_space(self, min_mb: int = 500) -> tuple:
+        """
+        Verifica spazio disco disponibile su /.
+        Ritorna (ok: bool, available_mb: int, message: str).
+        Best-effort: ritorna (True, 0, "") se lo script fallisce.
+        """
+        script = (
+            "#!/bin/bash\n"
+            "df -BM / | awk 'NR==2{gsub(\"M\",\"\"); print $4}'\n"
+        )
+        ok, output = self._run_script(script, script_timeout=10, wait_timeout=30)
+        if not ok or not (output or "").strip().isdigit():
+            logger.warning(
+                f"UyuniPatchClient: check_disk_space script failed "
+                f"on {self._system_name!r}: {output!r}"
+            )
+            return True, 0, ""  # best-effort: non blocca il test
+
+        available_mb = int(output.strip())
+        if available_mb < min_mb:
+            msg = (
+                f"Insufficient disk space: {available_mb}MB available, "
+                f"{min_mb}MB required on {self._system_name!r}"
+            )
+            return False, available_mb, msg
+
+        return True, available_mb, f"{available_mb}MB available"
+
+    def check_reboot_pending(self, target_os: str) -> tuple:
+        """
+        Verifica se è pendente un reboot dal precedente aggiornamento.
+        Ubuntu: controlla /var/run/reboot-required
+        RHEL:   usa needs-restarting -r
+        Ritorna (pending: bool, message: str).
+        Best-effort: ritorna (False, "") se lo script fallisce.
+        """
+        if target_os == "rhel":
+            script = (
+                "#!/bin/bash\n"
+                "needs-restarting -r > /dev/null 2>&1 "
+                "&& echo no_reboot || echo reboot_required\n"
+            )
+        else:
+            script = (
+                "#!/bin/bash\n"
+                "[ -f /var/run/reboot-required ] "
+                "&& echo reboot_required || echo no_reboot\n"
+            )
+        ok, output = self._run_script(script, script_timeout=10, wait_timeout=30)
+        if not ok:
+            logger.warning(
+                f"UyuniPatchClient: check_reboot_pending script failed "
+                f"on {self._system_name!r}"
+            )
+            return False, ""  # best-effort: non blocca il test
+
+        pending = "reboot_required" in (output or "")
+        msg = f"Reboot pending on {self._system_name!r}" if pending else ""
+        return pending, msg

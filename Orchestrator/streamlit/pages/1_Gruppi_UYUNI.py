@@ -88,6 +88,20 @@ rb3.metric(
 
 st.subheader(f"Patch applicabili — {len(patches)} trovate")
 
+# ── Filtro: solo patch più recenti ───────────────────────────────
+latest_only = st.toggle(
+    "Solo patch più recenti per pacchetto",
+    value=False,
+    key="latest_only",
+    help=(
+        "Mostra solo le patch marcate come più recenti per ogni famiglia o set di pacchetti. "
+        "Le patch superate vengono nascoste ma rimangono in UYUNI."
+    ),
+)
+if latest_only:
+    patches = [p for p in patches if p.get("is_latest", True)]
+    st.caption(f"Filtro attivo: {len(patches)} patch mostrate.")
+
 # ── Tabella patch con selezione ───────────────────────────────────
 _TYPE_ICON = {
     "Security Advisory": "🔴",
@@ -105,6 +119,15 @@ def _reboot_label(p: dict) -> str:
     return "— ?"
 
 
+def _latest_label(p: dict) -> str:
+    if p.get("is_latest") is False:
+        sup = p.get("superseded_by") or "?"
+        return f"⬜ Superata da {sup}"
+    if p.get("is_latest") is True:
+        return "🟢 Ultima"
+    return ""
+
+
 rows = []
 for p in patches:
     atype = p.get("advisory_type", "")
@@ -112,6 +135,7 @@ for p in patches:
         {
             "Seleziona": False,
             "Advisory": p.get("advisory_name", "?"),
+            "Stato": _latest_label(p),
             "Tipo": f"{_TYPE_ICON.get(atype,'⚪')} {atype}",
             "Reboot": _reboot_label(p),
             "Synopsis": (p.get("synopsis") or "")[:65],
@@ -127,9 +151,10 @@ edited = st.data_editor(
     hide_index=True,
     column_config={
         "Seleziona": st.column_config.CheckboxColumn("Seleziona", default=False),
+        "Stato": st.column_config.TextColumn("Stato", width="medium"),
         "Reboot": st.column_config.TextColumn("Reboot", width="small"),
     },
-    disabled=["Advisory", "Tipo", "Reboot", "Synopsis", "Data", "Sistemi"],
+    disabled=["Advisory", "Stato", "Tipo", "Reboot", "Synopsis", "Data", "Sistemi"],
     key="patch_selection",
 )
 
@@ -160,35 +185,32 @@ if st.button(
     disabled=not selected_patches,
     use_container_width=True,
 ):
-    if not selected_patches:
-        st.warning("Seleziona almeno una patch.")
-    else:
-        added = 0
-        errors = []
-        progress = st.progress(0, text="Aggiunta patch in coda...")
-        for i, errata_id in enumerate(selected_patches):
-            res, err = api.queue_add(
-                errata_id=errata_id,
-                target_os=target_os,
-                priority_override=priority,
-                created_by=created_by.strip() or None,
-            )
-            progress.progress((i + 1) / len(selected_patches))
-            if err:
-                errors.append(f"{errata_id}: {err}")
-            else:
-                queued = res.get("queued", [])
-                added += len(queued)
-                for e in res.get("errors", []):
-                    errors.append(f"{e.get('errata_id')}: {e.get('error')}")
+    added = 0
+    errors = []
+    progress = st.progress(0, text="Aggiunta patch in coda...")
+    for i, errata_id in enumerate(selected_patches):
+        res, err = api.queue_add(
+            errata_id=errata_id,
+            target_os=target_os,
+            priority_override=priority,
+            created_by=created_by.strip() or None,
+        )
+        progress.progress((i + 1) / len(selected_patches))
+        if err:
+            errors.append(f"{errata_id}: {err}")
+        else:
+            queued = res.get("queued", [])
+            added += len(queued)
+            for e in res.get("errors", []):
+                errors.append(f"{e.get('errata_id')}: {e.get('error')}")
 
-        progress.empty()
-        if added:
-            st.success(
-                f"**{added}** patch aggiunte in coda. "
-                "Vai su **Test Batch** per avviare il test."
-            )
-        for e in errors:
-            st.error(e)
-        if added:
-            st.page_link("pages/2_Test_Batch.py", label="→ Vai a Test Batch")
+    progress.empty()
+    if added:
+        st.success(
+            f"**{added}** patch aggiunte in coda. "
+            "Vai su **Test Batch** per avviare il test."
+        )
+    for e in errors:
+        st.error(e)
+    if added:
+        st.page_link("pages/2_Test_Batch.py", label="→ Vai a Test Batch")

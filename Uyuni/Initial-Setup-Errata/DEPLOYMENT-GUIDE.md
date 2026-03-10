@@ -11,17 +11,15 @@ Internet (ubuntu.com, debian.org, nvd.nist.gov)
         │
         ▼
 ┌─────────────────────────────┐
-│  aci-errata-api  (pubblico) │  IP: 4.232.4.142:5000
+│  aci-errata-api  (pubblico) │  IP: 4.232.4.138:5000
 │  Resource Group: test_group │  ← accesso internet pubblico
 │                             │  → /api/sync/usn
 │                             │  → /api/sync/dsa
 │                             │  → /api/sync/nvd
 └──────────────┬──────────────┘
-               │ DB condiviso
+               │ DB condiviso (endpoint pubblico SSL)
                ▼
-       [PostgreSQL :5432]
-        10.172.2.6  (VNet)
-        pg-errata-test.postgres.database.azure.com (pubblico)
+  [PostgreSQL pg-errata-test.postgres.database.azure.com:5432]
                │
 ┌──────────────┴──────────────────┐
 │  aci-errata-api-internal (VNet) │  IP: 10.172.5.4:5000
@@ -64,11 +62,14 @@ I due container **condividono lo stesso database** ma accedono tramite endpoint 
 
 | Variabile | Obbligatoria | Valore |
 |---|---|---|
-| `DATABASE_URL` | **SI** | `postgresql://errataadmin:...@10.172.2.6:5432/uyuni_errata?sslmode=require` |
+| `DATABASE_URL` | **SI** | `postgresql://errataadmin:...@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require` |
 | `UYUNI_URL` | **SI** | `https://10.172.2.17` |
 | `UYUNI_USER` | **SI** | `admin` |
 | `UYUNI_PASSWORD` | **SI** | password admin UYUNI |
 | `SPM_API_KEY` | Raccomandato | stessa chiave del container pubblico |
+| `NVD_API_KEY` | Raccomandato | `49b6e254-d81d-4b61-abac-2dbe04471e38` |
+
+> **Nota DB**: entrambi i container usano l'endpoint pubblico `pg-errata-test.postgres.database.azure.com`. L'IP privato VNet `10.172.2.6` non è raggiungibile dalla subnet ACI (`errata-aci-subnet`).
 
 > **Nota IP UYUNI**: il server UYUNI ha IP `10.172.2.17` (non `10.172.2.5`). Usare sempre `10.172.2.17`.
 
@@ -82,13 +83,14 @@ UYUNI gira in un container Podman. Senza una regola di masquerade, il traffico d
 # Consente traffico esterno verso il container Podman UYUNI (10.89.0.3)
 iptables -t nat -I POSTROUTING -d 10.89.0.3 -p tcp --dport 443 -j MASQUERADE
 
-# Verifica
+# Verifica che ci sia UNA SOLA regola (non duplicati)
 iptables -t nat -L POSTROUTING -n | grep 10.89.0.3
 
-# Rendi persistente (SUSE/openSUSE)
-service iptables save
-# oppure:
-iptables-save > /etc/iptables/rules.v4
+# Se compaiono duplicati, rimuovili uno alla volta finché ne resta 1:
+# iptables -t nat -D POSTROUTING -d 10.89.0.3 -p tcp --dport 443 -j MASQUERADE
+
+# Rendi persistente (SUSE/openSUSE — NON usare "service iptables save", non esiste)
+iptables-save > /etc/sysconfig/iptables
 ```
 
 ---
@@ -100,8 +102,8 @@ iptables-save > /etc/iptables/rules.v4
 Applicare lo schema se non già presente (dalla VNet o dal server UYUNI):
 
 ```bash
-# Dal server UYUNI
-psql "postgresql://errataadmin:ErrataSecure2024@10.172.2.6:5432/uyuni_errata?sslmode=require" \
+# Dal server UYUNI (o da qualsiasi macchina con accesso internet)
+psql "postgresql://errataadmin:ErrataSecure2024@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require" \
     -f /tmp/errata-schema.sql
 ```
 
@@ -168,7 +170,7 @@ az container create \
   --restart-policy Always \
   --environment-variables \
     FLASK_ENV=production \
-    DATABASE_URL="postgresql://errataadmin:ErrataSecure2024@10.172.2.6:5432/uyuni_errata?sslmode=require" \
+    DATABASE_URL="postgresql://errataadmin:ErrataSecure2024@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require" \
     UYUNI_URL="https://10.172.2.17" \
     UYUNI_USER="admin" \
     UYUNI_PASSWORD="Admin1234567!" \
@@ -182,8 +184,8 @@ az container create \
 
 ```bash
 # Container pubblico (accessibile da internet)
-curl -s http://4.232.4.142:5000/api/health | jq
-curl -s http://4.232.4.142:5000/api/health/detailed | jq
+curl -s http://4.232.4.138:5000/api/health | jq
+curl -s http://4.232.4.138:5000/api/health/detailed | jq
 
 # Container interno (dal server UYUNI o da altra VM nella VNet)
 curl -s http://10.172.5.4:5000/api/health | jq
@@ -215,7 +217,7 @@ Configurare cron:
 cat > /etc/cron.d/errata-sync << 'EOF'
 # UYUNI Errata Manager v3.1 - Sync settimanale domenica 02:00
 0 2 * * 0 root \
-  PUBLIC_API=http://4.232.4.142:5000 \
+  PUBLIC_API=http://4.232.4.138:5000 \
   INTERNAL_API=http://10.172.5.4:5000 \
   API_KEY=spm-key-2024 \
   /root/errata-sync.sh >> /var/log/errata-sync.log 2>&1
@@ -243,7 +245,7 @@ EOF
 scp scripts/test-endpoints.sh root@10.172.2.17:/root/
 
 ssh root@10.172.2.17
-PUBLIC_API=http://4.232.4.142:5000 \
+PUBLIC_API=http://4.232.4.138:5000 \
 INTERNAL_API=http://10.172.5.4:5000 \
 API_KEY=spm-key-2024 \
 bash /root/test-endpoints.sh
@@ -255,7 +257,7 @@ bash /root/test-endpoints.sh
 
 Auth: header `X-API-Key` richiesto su tutti gli endpoint tranne `/api/health*`.
 
-### Container Pubblico (`4.232.4.142:5000`)
+### Container Pubblico (`4.232.4.138:5000`)
 
 | Endpoint | Metodo | Descrizione |
 |---|---|---|

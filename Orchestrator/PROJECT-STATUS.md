@@ -1,7 +1,7 @@
 # SPM-Orchestrator — Project Status & Development Notes
 
 > Documento vivente. Aggiornare ad ogni sessione di sviluppo.
-> Ultima modifica: 2026-03-09 (sessione 10)
+> Ultima modifica: 2026-03-10 (sessione 11)
 
 ---
 
@@ -14,8 +14,8 @@
 5. [Database Schema](#5-database-schema)
 6. [Decisioni architetturali](#6-decisioni-architetturali)
 7. [Performance e ottimizzazioni](#7-performance-e-ottimizzazioni)
-8. [Da fare — backlog](#8-da-fare--backlog)
-9. [Note tecniche e decisioni rilevanti](#9-note-tecniche-e-decisioni-rilevanti)
+8. [Backlog](#8-backlog)
+9. [Note tecniche](#9-note-tecniche)
 10. [Deploy](#10-deploy)
 
 ---
@@ -32,21 +32,18 @@ VM-ORCHESTRATOR (Ubuntu 24.04 — 10.172.2.22)
 Dipendenze esterne:
 ├── UYUNI Server    10.172.2.17:443   → XML-RPC (fonte errata + scheduling patch)
 ├── Prometheus      localhost:9090    → Metriche validazione         [ATTIVO]
-└── node_exporter   :9100             → sui sistemi test (gia' attivo)
+└── node_exporter   :9100             → sui sistemi test (auto-provisioning via UYUNI)
 
 Sistemi di test:
 ├── Ubuntu 24.04   10.172.2.18   system_id=1000010000   (gruppo UYUNI: test-ubuntu-2404)
 └── RHEL 9         10.172.2.19   system_id=1000010008   (gruppo UYUNI: test-rhel9)
 ```
 
-**Nota Prometheus:** `PROMETHEUS_URL` ha gia' il default `http://localhost:9090` in `config.py`.
-Non serve aggiungere la variabile al `.env` — basta installare il server Prometheus sul VM.
-Il codice ha graceful degradation completa: se Prometheus non e' raggiungibile, la fase validate
-viene saltata silenziosamente e il test continua.
-
-**Gruppi UYUNI monitorati:** prefisso `test-` (es. `test-ubuntu-2404`, `test-rhel9`)
-**OS supportati:** Ubuntu 24.04, RHEL 9
-**Accesso VM:** Azure Bastion (no SCP/rsync diretto)
+**Note architetturali:**
+- `PROMETHEUS_URL` ha default `http://localhost:9090` — non serve nel `.env`
+- Prometheus non è critico: se non disponibile la fase `validate` è skippata silenziosamente
+- Gruppi UYUNI monitorati: prefisso `test-` (es. `test-ubuntu-2404`, `test-rhel9`)
+- Accesso VM: Azure Bastion (no SCP/rsync diretto)
 
 ---
 
@@ -70,6 +67,8 @@ viene saltata silenziosamente e il test continua.
 
 ## 3. Stato implementazione
 
+### Versione corrente: 1.2.0
+
 ### COMPLETATO
 
 #### Infrastruttura backend
@@ -89,73 +88,67 @@ viene saltata silenziosamente e il test continua.
 - [x] Severity mapping: Security Advisory → Medium, Bug Fix/Enhancement → Low
 - [x] `os_from_group()` — mappa gruppo UYUNI → target_os (ubuntu/rhel/debian)
 - [x] `add_note()` — aggiunge nota su sistema UYUNI (usato da batch summary)
-- ~~`validate_credentials()`~~ — rimossa (residuo pre-SSO)
-- [x] `get_current_org()` — ritorna nome organizzazione UYUNI (usato dalla dashboard)
+- [x] `get_current_org()` — ritorna nome organizzazione UYUNI
 - [x] `list_orgs()` — lista tutte le org UYUNI (satellite admin); fallback a org corrente
 - [x] `get_system_network_ip()` — risolve IP via system.getNetwork (per Prometheus)
 - [x] Auto-discovery attiva quando `system_id`, `system_name` o `system_ip` mancano
+- [x] `advisory_synopsis` (non `synopsis`) — campo corretto in system.getRelevantErrata
+- [x] `UYUNI_TIMEOUT` propagato via `_UyuniTransport` (nessun timeout di sistema implicito)
 
 #### Performance sync (ottimizzato 2026-02-23)
 - [x] ThreadPoolExecutor per fetch parallelo sistemi + errata + CVEs
 - [x] `execute_values` batch upsert (1 transazione vs N individuali)
 - [x] CVEs fetchati solo per Security Advisory (non Bug Fix/Enhancement)
-- [x] Eliminata chiamata `get_errata_details()` (non necessaria)
-- [x] `advisory_synopsis` (non `synopsis`) — campo corretto in system.getRelevantErrata
+- [x] `as_completed()` con `timeout=Config.UYUNI_TIMEOUT * 3` — evita hang indefinito
 
 #### Queue Manager
 - [x] `add_to_queue` — fetch pacchetti on-demand, calcolo Success Score, insert coda
+- [x] `add_to_queue` ritorna `row["superseded"]` con lista errata auto-soppressi
+- [x] `extract_advisory_base()` — `USN-7412-2` → `USN-7412` (None per non-USN)
+- [x] `_suppress_older_queued_errata()` — sopprime errata più vecchie per famiglia USN o package overlap
 - [x] `get_queue` — lista con filtri (status, target_os, severity, limit, offset)
-- [x] `get_queue_item` — dettaglio con errata + risk profile + test results
-- [x] `update_queue_item` — aggiorna priority_override / notes
+- [x] `get_queue_stats` — include `retry_pending` e `superseded` nei conteggi
 - [x] `remove_from_queue` — rimozione solo se status='queued'
-- [x] `get_queue_stats` — aggregati coda (total, by_status, by_os, avg_score)
 
 #### Success Score (0-100)
-- [x] Penalita' kernel: -30
-- [x] Penalita' reboot: -15
-- [x] Penalita' config: -10
-- [x] Penalita' dipendenze: -3/dep (max -15)
-- [x] Penalita' dimensione: -2/MB (max -10)
-- [x] Penalita' storico fallimenti: fino a -20 (se tested >= 3)
+- [x] Penalità kernel: -30, reboot: -15, config: -10
+- [x] Penalità dipendenze: -3/dep (max -15)
+- [x] Penalità dimensione: -2/MB (max -10)
+- [x] Penalità storico fallimenti: fino a -20 (se tested >= 3)
 - [x] Bonus patch piccola (<100 KB): +5
-- [x] Pesi configurabili da `orchestrator_config` (DB) o `.env`
+- [x] Pesi configurabili da `orchestrator_config` (DB)
 
 #### Test Engine
 - [x] `run_next_test()` — singolo test bloccante, thread-safe con `_testing_lock`
-- [x] Flusso a fasi: pre_check → snapshot → patch → reboot → validate → services
-- [x] Rollback: snapshot (snapper undochange) o package (apt/dnf downgrade versioni reali)
-- [x] Rollback package: Ubuntu → `apt-get --allow-downgrades`, RHEL → `dnf install` (target_os propagato)
+- [x] Flusso a fasi: **pre_check** → snapshot → patch → reboot → validate → services → rollback → **post_rollback**
+- [x] `_phase_preflight()` — verifica servizi baseline, spazio disco (min 500 MB), reboot pendente
+- [x] `_phase_verify_rollback()` — verifica servizi dopo rollback (best-effort)
+- [x] `_rollback_and_verify()` — rollback + verifica combinati
+- [x] `_classify_error()` — INFRA / TRANSIENT / PATCH / REGRESSION
+- [x] `_maybe_retry()` — INFRA: max 2 retry 2h delay; TRANSIENT: max 3 retry 30min delay
+- [x] `_pick_next_queued()` — include anche `retry_pending` con `retry_after <= NOW()`
+- [x] Rollback Ubuntu → `apt-get --allow-downgrades`, RHEL → `dnf install` (target_os propagato)
 - [x] Fallback automatico da snapshot a package rollback se snapper non disponibile
 - [x] Service check con 6 retry x 20s (tolleranza SSH post-patch)
 - [x] `_DEFAULT_SERVICES["ubuntu"]` = `["ssh.socket", "cron", "rsyslog"]`
-- [x] Auto-provisioning node_exporter: prima della baseline, l'engine verifica se node_exporter
-      e' attivo sul sistema test; se manca lo installa automaticamente via UYUNI
-      schedulePackageInstall dai canali software sincronizzati (senza intervento manuale)
+- [x] Auto-provisioning `ensure_node_exporter()` + `ensure_snapper()` via UYUNI channels
 - [x] Baseline metriche Prometheus pre-patch + delta post-patch (skipped se non disponibile)
-- [x] Poll scheduler ogni 2 minuti (APScheduler)
-- [x] Batch asincrono: `start_batch()` → thread background → polling ogni 5s dalla dashboard
+- [x] `_wait_action()` — `schedule.listCompletedSystems/listFailedSystems` (scoped per action_id)
+- [x] Batch asincrono: `start_batch()` → thread background → polling ogni 5s dashboard
 - [x] Batch persistenti su DB (`patch_test_batches`) — sopravvivono al restart Flask
-- [x] `cancel_batch()` — cancella batch in esecuzione tra un test e il successivo (status='cancelled')
-- [x] `ensure_snapper()` — installa snapper + `create-config /` via UYUNI channels se mancante
-- [x] `_add_batch_note()` — aggiunge nota di riepilogo su tutti i sistemi del gruppo UYUNI
-- [x] `_prune_old_batches()` — pulizia automatica batch >24h in memoria (chiamata da start_batch)
-- [x] Vincoli DB rispettati: queue usa 'failed' (non 'error'), test usa 'passed' (non 'pending_approval')
-- [x] `FOR UPDATE OF q SKIP LOCKED` — safe per istanze concorrenti
+- [x] `cancel_batch()` — cancella tra un test e il successivo (status='cancelled')
 - [x] Ordinamento coda: priority DESC → no-reboot prima → score DESC → queued_at ASC
-- [x] Reboot delivery wait configurabile (`TEST_REBOOT_DELIVERY_WAIT_SECONDS`, default 60s)
-- [x] Reboot stabilization wait configurabile (`TEST_REBOOT_STABILIZATION_SECONDS`, default 30s)
+- [x] Timing configurabile: `TEST_REBOOT_DELIVERY_WAIT_SECONDS` (60s), `TEST_REBOOT_STABILIZATION_SECONDS` (30s)
 
 #### Approval Workflow
 - [x] approve/reject/snooze con audit trail completo in `patch_approvals`
-- [x] process_snoozed() ogni 15 min — riporta a pending_approval le patch scadute
-- [x] Storia approvazioni con join errata + queue
+- [x] `process_snoozed()` ogni 15 min — riporta a pending_approval le patch scadute
 
 #### Notification Manager
 - [x] Scrittura sempre in `orchestrator_notifications` (delivered=FALSE → banner dashboard)
-- [x] Dashboard legge notifiche non lette (banner di attenzione Home)
-- [x] Tipi: `test_failure`, `pending_approval`
 - [x] Canale unico: `dashboard` — audit esteso delegato a note UYUNI (`add_note`)
-- [x] Rimossi: email SMTP, webhook — bug fix constraint DB (`channel='dashboard'` ora accettato)
+- [x] Tipi: `test_failure`, `pending_approval`
+- [x] Fix storico: constraint `channel='dashboard'` (bug critico migration 003)
 
 #### Sicurezza API
 - [x] `FLASK_HOST=127.0.0.1` — Flask binds solo su loopback
@@ -164,74 +157,29 @@ viene saltata silenziosamente e il test continua.
 - [x] Validazione `ids` (lista interi positivi, max 1000) in `POST /notifications/mark-read`
 - [x] Azure AD SSO — `require_auth()` su ogni pagina Streamlit (defense-in-depth)
 
-#### Dashboard Streamlit — aggiornamenti sessione 9
-- [x] `2_Test_Batch.py` — pulsante "⏹ Annulla batch" + gestione status `cancelled`
-- [x] `3_Approvazioni.py` — storico paginato (25/50/100 righe, filtro azione, prev/next/prima)
-- [x] `3_Approvazioni.py` — pending paginato (20 per pagina, prev/next)
-- [x] Reset automatico pagina al cambio filtro via `hist_filter_key` in session_state
+#### Dashboard Streamlit (4 pagine)
+- [x] `app.py` — Azure AD SSO (MSAL OAuth2/OIDC), `st.navigation()`, sidebar multi-org
+- [x] `0_Home.py` — Health componenti, notifiche non lette, stats coda/test, sync manuale
+- [x] `1_Gruppi_UYUNI.py` — Gruppi test-* per org, patch con colonna **Reboot** e **Stato** (🟢 Ultima / ⬜ Superata), toggle "Solo patch più recenti", aggiunta in coda
+- [x] `2_Test_Batch.py` — Selezione patch queued, avvio batch, monitor live 5s, annullamento
+- [x] `3_Approvazioni.py` — Pending (20/pagina) + storico paginato (25/50/100, filtro azione)
+- [x] `api_client.py` — Wrapper REST, ritorna `(data, error_str)`
+
+#### Groups API
+- [x] `_enrich_reboot_info()` — arricchisce requires_reboot/affects_kernel da DB o inferenza
+- [x] `_enrich_latest_info()` — arricchisce is_latest/superseded_by (famiglia USN + package overlap)
+- [x] Ordinamento: latest first → no-reboot first → data discendente
+- [x] Multi-org: `GET /api/v1/orgs` + filtro `org_id` su `/api/v1/groups`
 
 #### Prometheus Integration
 - [x] `PrometheusClient` con graceful degradation completa
-- [x] Snapshot CPU% e memoria% via PromQL (node_exporter standard)
-- [x] `evaluate_delta()` — confronta baseline vs post-patch con threshold configurabili
-- [x] `is_available()` — check disponibilita' prima di ogni uso
-- [x] `GET /api/v1/prometheus/targets` — HTTP Service Discovery dinamico per Prometheus
-  - Interroga UYUNI per tutti i sistemi test-*
-  - Risolve IP via system.getNetwork se il nome profilo non e' un IP
-  - Restituisce formato HTTP SD: `[{"targets": ["IP:9100"], "labels": {...}}]`
-
-#### Dashboard Streamlit (4 pagine)
-- [x] `app.py` — Azure AD SSO (MSAL OAuth2/OIDC), st.navigation(), sidebar utente+org con selector multi-org
-- [x] `0_Home.py` — Health componenti, notifiche non lette, stats coda/test, sync manuale
-- [x] `1_Gruppi_UYUNI.py` — Gruppi test-* (filtrati per org), patch con colonna Reboot, aggiunta in coda
-- [x] `2_Test_Batch.py` — Selezione patch queued con banner reboot, avvio batch, monitor live polling 5s
-- [x] `3_Approvazioni.py` — Pending approvals con dettaglio CVE/fasi/risk, approve/reject/snooze + storico paginato
-- [x] `api_client.py` — Wrapper REST, tutte le funzioni ritornano (data, error_str)
-- [x] `azure_auth.py` — MSAL helpers: get_auth_url, exchange_code, get_user_info
+- [x] `GET /api/v1/prometheus/targets` — HTTP Service Discovery dinamico da UYUNI
+- [x] `is_available()` usa `Config.PROMETHEUS_TIMEOUT` (non hardcoded 5s)
 
 #### Azure AD SSO
 - [x] Tenant: fae8df93-7cf5-40da-b480-f272e15b6242
 - [x] App Registration "SPM Dashboard" (OAuth2/OIDC separata da Enterprise App SAML UYUNI)
-- [x] Redirect URI: `https://10.172.2.22:8501`
-- [x] Operatore identificato da UPN (user_upn) e display_name (user_name)
-- [x] UYUNI XML-RPC usa account admin da .env (NON le credenziali dell'operatore)
 - [x] UPN operatore registrato nelle note UYUNI e nei record SPM (audit trail)
-
-#### API Endpoints implementati (tutti)
-- [x] `GET  /api/v1/health`
-- [x] `GET  /api/v1/health/detail`
-- [x] `GET  /api/v1/notifications`
-- [x] `POST /api/v1/notifications/mark-read`
-- [x] `GET  /api/v1/sync/status`
-- [x] `POST /api/v1/sync/trigger`
-- [x] `GET  /api/v1/errata/cache/stats`
-- [x] `GET  /api/v1/queue`
-- [x] `POST /api/v1/queue`
-- [x] `GET  /api/v1/queue/stats`
-- [x] `GET  /api/v1/queue/<id>`
-- [x] `PATCH /api/v1/queue/<id>`
-- [x] `DELETE /api/v1/queue/<id>`
-- [x] `GET  /api/v1/tests/status`
-- [x] `POST /api/v1/tests/run`
-- [x] `POST /api/v1/tests/batch`
-- [x] `GET  /api/v1/tests/batch/<batch_id>/status`
-- [x] `POST /api/v1/tests/batch/<batch_id>/cancel`
-- [x] `GET  /api/v1/tests/<test_id>`
-- [x] `GET  /api/v1/approvals/pending`
-- [x] `GET  /api/v1/approvals/pending/<queue_id>`
-- [x] `POST /api/v1/approvals/<queue_id>/approve`
-- [x] `POST /api/v1/approvals/<queue_id>/reject`
-- [x] `POST /api/v1/approvals/<queue_id>/snooze`
-- [x] `GET  /api/v1/approvals/history`
-- [x] `GET  /api/v1/orgs`
-- [x] `GET  /api/v1/groups[?org_id=N]`
-- [x] `GET  /api/v1/groups/<name>/patches`
-- [x] `GET  /api/v1/prometheus/targets`
-
-#### Rimosso (fuori scope)
-- deployment_manager.py (produzione out of scope)
-- salt_client.py (sostituito da UYUNI XML-RPC diretto)
-- api/deployments.py
 
 ---
 
@@ -241,10 +189,10 @@ viene saltata silenziosamente e il test continua.
 
 | Metodo | Path | Descrizione |
 |---|---|---|
-| GET | `/api/v1/health` | Ping rapido (usato da watchdog/load balancer) |
+| GET | `/api/v1/health` | Ping rapido |
 | GET | `/api/v1/health/detail` | Health check con DB/UYUNI/Prometheus |
-| GET | `/api/v1/notifications` | Notifiche non lette (param: limit, mark_read) |
-| POST | `/api/v1/notifications/mark-read` | Marca come lette (body: {ids: [...]} o {} per tutte) |
+| GET | `/api/v1/notifications` | Notifiche non lette |
+| POST | `/api/v1/notifications/mark-read` | Marca come lette (body: `{ids: [...]}`) |
 
 ### Sync UYUNI
 
@@ -259,8 +207,8 @@ viene saltata silenziosamente e il test continua.
 | Metodo | Path | Descrizione |
 |---|---|---|
 | GET | `/api/v1/queue` | Lista coda (filtri: status, target_os, severity) |
-| POST | `/api/v1/queue` | Aggiungi errata(s) alla coda |
-| GET | `/api/v1/queue/stats` | Aggregati coda |
+| POST | `/api/v1/queue` | Aggiungi errata(s); risposta include `superseded: [...]` |
+| GET | `/api/v1/queue/stats` | Aggregati (include retry_pending, superseded) |
 | GET | `/api/v1/queue/<id>` | Dettaglio elemento |
 | PATCH | `/api/v1/queue/<id>` | Aggiorna priority_override / notes |
 | DELETE | `/api/v1/queue/<id>` | Rimuovi (solo se status='queued') |
@@ -271,10 +219,10 @@ viene saltata silenziosamente e il test continua.
 |---|---|---|
 | GET | `/api/v1/tests/status` | Stato engine + stats 24h |
 | POST | `/api/v1/tests/run` | Trigger manuale test singolo (bloccante) |
-| POST | `/api/v1/tests/batch` | Avvia batch asincrono (body: queue_ids, group_name, operator) |
+| POST | `/api/v1/tests/batch` | Avvia batch asincrono |
 | GET | `/api/v1/tests/batch/<id>/status` | Polling stato batch |
-| GET | `/api/v1/tests/<id>` | Dettaglio test con fasi |
 | POST | `/api/v1/tests/batch/<id>/cancel` | Cancella batch in esecuzione |
+| GET | `/api/v1/tests/<id>` | Dettaglio test con fasi |
 
 ### Approvazioni
 
@@ -282,18 +230,18 @@ viene saltata silenziosamente e il test continua.
 |---|---|---|
 | GET | `/api/v1/approvals/pending` | Lista patch in attesa (paginata) |
 | GET | `/api/v1/approvals/pending/<id>` | Dettaglio patch per revisione |
-| POST | `/api/v1/approvals/<id>/approve` | Approva (body: action_by, reason) |
-| POST | `/api/v1/approvals/<id>/reject` | Rifiuta (body: action_by, reason) |
-| POST | `/api/v1/approvals/<id>/snooze` | Rimanda (body: action_by, snooze_until, reason) |
+| POST | `/api/v1/approvals/<id>/approve` | Approva |
+| POST | `/api/v1/approvals/<id>/reject` | Rifiuta |
+| POST | `/api/v1/approvals/<id>/snooze` | Rimanda |
 | GET | `/api/v1/approvals/history` | Storico audit trail |
 
 ### Gruppi UYUNI e Organizzazioni
 
 | Metodo | Path | Descrizione |
 |---|---|---|
-| GET | `/api/v1/orgs` | Lista organizzazioni UYUNI visibili all'account admin |
-| GET | `/api/v1/groups[?org_id=N]` | Lista gruppi test-* con sistemi e patch count (filtro org opzionale) |
-| GET | `/api/v1/groups/<name>/patches` | Patch applicabili per gruppo (con requires_reboot da DB) |
+| GET | `/api/v1/orgs` | Lista organizzazioni UYUNI |
+| GET | `/api/v1/groups[?org_id=N]` | Gruppi test-* con sistemi e patch count |
+| GET | `/api/v1/groups/<name>/patches` | Patch per gruppo con `is_latest`, `superseded_by` |
 
 ### Prometheus
 
@@ -305,7 +253,7 @@ viene saltata silenziosamente e il test continua.
 
 ## 5. Database Schema
 
-### Tabelle (10)
+### Tabelle
 
 | Tabella | Ruolo |
 |---|---|
@@ -313,22 +261,24 @@ viene saltata silenziosamente e il test continua.
 | `patch_risk_profile` | Success Score + analisi pacchetti per errata |
 | `patch_test_queue` | Coda test patch con stato workflow completo |
 | `patch_tests` | Dettaglio singolo test (metriche, snapshot, reboot) |
-| `patch_test_phases` | Fasi di ogni test (snapshot/patch/reboot/validate/services/rollback) |
-| `patch_test_batches` | Batch asincroni persistenti (status: running/completed/cancelled/error) |
+| `patch_test_phases` | Fasi di ogni test (pre_check/snapshot/patch/reboot/validate/services/rollback/post_rollback) |
+| `patch_test_batches` | Batch asincroni persistenti (running/completed/cancelled/error) |
 | `patch_approvals` | Log approvazioni/rifiuti/snooze operatore |
 | `patch_deployments` | Deployment produzione (schema presente, non usato — out of scope) |
 | `patch_rollbacks` | Log rollback deployment (schema presente, non usato) |
 | `orchestrator_notifications` | Notifiche operatore dashboard (delivered=FALSE = non lette) |
-| `orchestrator_config` | Configurazione runtime (score_weights, test_thresholds, ecc.) |
+| `orchestrator_config` | Configurazione runtime (score_weights, critical_services, ecc.) |
 
-**Migrations applicate:**
+### Migrations applicate
 
-| File | Contenuto |
-|---|---|
-| `001_orchestrator_schema.sql` | Schema completo + views + triggers + config iniziale |
-| `002_fix_errata_cache.sql` | Fix errata_cache |
-| `003_simplify_notifications.sql` | Fix constraint `channel` (bug critico) + rimozione `notification_config` |
-| `004_batch_persistence.sql` | Tabella `patch_test_batches` |
+| File | Contenuto | Stato |
+|---|---|---|
+| `001_orchestrator_schema.sql` | Schema completo + views + triggers + config iniziale | ✅ APPLICATA |
+| `002_fix_errata_cache.sql` | Fix errata_cache | ✅ APPLICATA |
+| `003_simplify_notifications.sql` | Fix constraint `channel` (bug critico) | ✅ APPLICATA |
+| `004_batch_persistence.sql` | Tabella `patch_test_batches` | ✅ APPLICATA |
+| `005_critical_services_config.sql` | Configurazione runtime servizi critici | ✅ APPLICATA |
+| `006_retry_grouping.sql` | retry_count, retry_after, superseded_by; stati retry_pending, superseded | ⚠ DA APPLICARE |
 
 ### Views
 
@@ -338,21 +288,24 @@ viene saltata silenziosamente e il test continua.
 | `v_pending_approvals` | Patch passed in attesa approvazione (con hours_pending) |
 | `v_daily_stats` | Statistiche giornaliere ultimi 30 giorni |
 
-### Vincoli critici
-
-```sql
--- patch_test_queue.status: 'error' NON e' un valore valido → usare 'failed'
--- patch_tests.result: 'pending_approval' NON e' un valore valido → usare 'passed'
--- FOR UPDATE su JOIN con LEFT JOIN → usare FOR UPDATE OF q SKIP LOCKED
-```
-
 ### Stati patch_test_queue
 
 ```
-queued → testing → pending_approval → approved → [operatore applica su produzione]
-                                    → rejected
-                                    → snoozed  → pending_approval (allo scadere)
-               → failed → rolled_back
+queued         → testing → pending_approval → approved → [operatore applica su produzione]
+                                             → rejected
+                                             → snoozed  → pending_approval (allo scadere)
+                        → failed → rolled_back
+                        → failed → retry_pending → queued (allo scadere retry_after)
+superseded     (rimossa dalla vista principale — sostituita da patch più recente)
+```
+
+### Vincoli critici
+
+```sql
+-- patch_test_queue.status: 'error' NON è un valore valido → usare 'failed'
+-- patch_tests.result: 'pending_approval' NON è un valore valido → usare 'passed'
+-- FOR UPDATE su JOIN con LEFT JOIN → usare FOR UPDATE OF q SKIP LOCKED
+-- superseded va escluso dal duplicate check (può essere re-accodato)
 ```
 
 ---
@@ -360,42 +313,66 @@ queued → testing → pending_approval → approved → [operatore applica su p
 ## 6. Decisioni architetturali
 
 ### 6.1 UYUNI come source of truth
-UYUNI conosce gia' quali patch sono applicabili a ciascun sistema. Il poller interroga
-direttamente via XML-RPC: solo 634 errata rilevanti invece di ~50.000.
+UYUNI conosce già quali patch sono applicabili a ciascun sistema. Il poller interroga
+direttamente via XML-RPC: solo ~634 errata rilevanti invece di ~50.000.
 
 ### 6.2 UyuniSession singola (1 login/logout per ciclo)
 Ogni login XML-RPC costa ~300ms. Con 634 errata in sequenza = ~200s overhead.
 Soluzione: login una sola volta, chiave condivisa tra thread via `threading.local()`.
 
 ### 6.3 Produzione out of scope
-Deployment_manager rimosso deliberatamente. Il sistema copre solo il flusso
-test → approvazione. L'applicazione in produzione e' competenza dell'operatore su UYUNI.
+Il sistema copre solo il flusso test → approvazione. L'applicazione in produzione
+è competenza dell'operatore su UYUNI (deployment_manager rimosso deliberatamente).
 
-### 6.4 Azure AD SSO (MSAL) — NON credenziali UYUNI
+### 6.4 Azure AD SSO — NON credenziali UYUNI
 La dashboard usa Azure AD per autenticare l'operatore. Le chiamate XML-RPC UYUNI
-usano sempre le credenziali admin da .env. L'UPN operatore e' registrato nel
-audit trail SPM e nelle note UYUNI (add_note), ma non e' mai usato per autenticare su UYUNI.
+usano sempre le credenziali admin da `.env`. L'UPN operatore è registrato nel
+audit trail SPM e nelle note UYUNI, ma non è mai usato per autenticare su UYUNI.
 
-### 6.5 Prometheus opzionale
-Prometheus non e' critico per il flusso base. Se non disponibile:
-- La fase validate e' saltata silenziosamente (skipped, non failed)
-- Il test engine continua normalmente
-- L'health check riporta Prometheus come "unavailable" (non blocca il servizio)
-- `PROMETHEUS_URL` ha default `http://localhost:9090` — non serve nel .env
-  a meno che il server sia su un host diverso.
+### 6.5 Prometheus opzionale con graceful degradation
+- Se non disponibile: fase `validate` skippata silenziosamente, test continua
+- `PROMETHEUS_URL` ha default `http://localhost:9090` — non serve nel `.env`
+- `is_available()` controlla prima di ogni uso (timeout da `Config.PROMETHEUS_TIMEOUT`)
 
-### 6.6 Rollback — due metodi
+### 6.6 Rollback — due metodi + fallback automatico
+
 ```
 Patch fallita:
   ├── requires_reboot = True  →  snapshot (snapper undochange via UYUNI)
-  └── requires_reboot = False →  package (apt-get install --allow-downgrades versioni reali)
+  └── requires_reboot = False →  package rollback
 
-Se snapper non disponibile (Ubuntu 24.04): fallback automatico a package rollback
-in qualsiasi caso, anche per patch kernel.
+Package rollback:
+  ├── Ubuntu  →  apt-get install --allow-downgrades 'pkg=version'
+  └── RHEL    →  dnf install -y 'pkg-version'
+
+Se snapper non disponibile: fallback automatico a package rollback
+(anche per patch kernel — prefer rollable over nothing)
 ```
 
-### 6.7 Pacchetti fetchati on-demand
-`packages` in `errata_cache` e' popolato solo quando l'errata viene accodata,
+Post-rollback: `_phase_verify_rollback()` controlla servizi critici (best-effort).
+
+### 6.7 Retry intelligente (sessione 11)
+
+```
+Classificazione errore:
+  INFRA      → [INFRA] in reason, pre_check fallito, sistema offline
+               → max 2 retry, delay 2h
+  TRANSIENT  → timeout, connection error, socket, reboot fallito
+               → max 3 retry, delay 30min
+  PATCH      → applicazione patch fallita (fase 'patch')
+               → no retry (problema intrinseco della patch)
+  REGRESSION → servizi down o validate fallito post-patch
+               → no retry (richiede analisi manuale)
+```
+
+### 6.8 Supersessione patch (sessione 11)
+L'operatore sceglie le patch più recenti dalla vista arricchita (`is_latest`, `superseded_by`).
+Al momento dell'inserimento in coda, le patch più vecchie con stessa famiglia USN o
+package overlap vengono automaticamente marcate come `superseded`.
+Il toggle "Solo patch più recenti" in dashboard filtra la vista per OS.
+
+### 6.9 Pacchetti fetchati on-demand
+`packages` in `errata_cache` è popolato solo quando l'errata viene accodata,
 non durante il sync. Risparmio: ~100s per 634 errata.
 
 ---
@@ -415,72 +392,33 @@ non durante il sync. Risparmio: ~100s per 634 errata.
 
 **Configurazione parallelismo:** `UYUNI_SYNC_WORKERS=10`
 
----
-
-## 8. Da fare — Backlog (aggiornato 2026-03-09)
-
-### Completati in sessione 9
-- [x] Rimosse notifiche SMTP/webhook (canale unico: dashboard) + bug fix constraint DB
-- [x] `ensure_snapper()` auto-provisioning via UYUNI channels
-- [x] Batch persistenti su DB (`patch_test_batches`) + cancellazione batch
-- [x] Paginazione storico approvazioni (filtro azione, 25/50/100 righe, prev/next)
-- [x] Paginazione pending approvals (20 per pagina)
-
-### Completati in sessione 10
-- [x] Migration 003 applicata sul VM — notifiche dashboard operative (verificato: 0 wrong_channel)
-- [x] Prometheus installato e attivo su `localhost:9090` (verificato: `/-/healthy`)
-- [x] **`_wait_action()` ottimizzato** — uso di `schedule.listCompletedSystems` / `listFailedSystems`
-      (scoped per action_id) invece di `listCompletedActions` / `listFailedActions` (globali).
-      Riduce drasticamente il payload su istanze UYUNI con molte azioni storiche.
-- [x] **RHEL rollback fix** — `rollback_packages()` ora supporta `target_os`: Ubuntu → `apt-get
-      --allow-downgrades`, RHEL → `dnf install`. `target_os` propagato da `_execute_test()` a
-      `_phase_rollback()` a `rollback_packages()`.
-- [x] **Migration 005** — inserisce `critical_services_ubuntu` e `critical_services_rhel` in
-      `orchestrator_config` (configurabili a runtime via DB, senza modifiche al codice)
-- [x] `APP_VERSION` → 1.1.0
+### `_wait_action()` ottimizzato (sessione 10)
+Usa `schedule.listCompletedSystems(key, action_id)` / `listFailedSystems(key, action_id)`
+invece di `listCompletedActions` / `listFailedActions` (globali). Riduce drasticamente
+il payload su istanze UYUNI con molte azioni storiche.
 
 ---
 
-## 8. Da fare — Backlog
+## 8. Backlog
 
-> Legenda: **[VM]** = azione sul VM, nessun codice | **[CODICE]** = modifica codebase
-
----
-
-### ~~[VM] Installare Prometheus~~ — COMPLETATO
-Prometheus attivo su `localhost:9090` (verificato da `/api/v1/health/detail`).
-
----
-
-### ~~[VM] Installare snapper~~ / ~~Verificare canali node_exporter~~
-Gestiti automaticamente dal codice: `ensure_snapper()` e `ensure_node_exporter()`
-installano i pacchetti via UYUNI channels al primo test su ogni sistema.
-
----
-
-
-### ~~[VM] Applicare migrazione 003~~ — COMPLETATO (sessione 10)
-Applicata. Verificato: 0 wrong_channel, 7 notifiche totali, 1 unread.
-
----
-
-### [VM] Applicare migration 005 (critical_services config)
+### [VM] Da applicare — ALTA PRIORITÀ
 
 ```bash
+# Migration 006: retry_count, retry_after, superseded_by + stati retry_pending/superseded
 psql -h localhost -U spm_orch -d spm_orchestrator \
-    -f /opt/Security-Patch-Manager/Orchestrator/sql/migrations/005_critical_services_config.sql
+    -f /opt/Security-Patch-Manager/Orchestrator/sql/migrations/006_retry_grouping.sql
+
+# Poi deployare il codice aggiornato
+cd /opt/Security-Patch-Manager && git pull origin main
+cp -r /opt/Security-Patch-Manager/Orchestrator/app /opt/spm-orchestrator/
+sudo systemctl restart spm-orchestrator
+sudo systemctl restart spm-dashboard
 ```
 
-Inserisce `critical_services_ubuntu` e `critical_services_rhel` in `orchestrator_config`.
-Permette di modificare i servizi critici da verificare post-patch direttamente dal DB,
-senza modificare il codice. Se non applicata, il fallback ai default hardcoded funziona ugualmente.
-
----
-
-### [CODICE] — NVD Enrichment severity (da integrare esternamente)
+### [CODICE — futuro] NVD Enrichment severity
 
 Problema: tutte le Security Advisory hanno `severity=Medium` (mapping da advisory_type).
-Una CVE puo' essere Critical, High, Medium o Low in base al CVSS score reale.
+Una CVE può essere Critical, High, Medium o Low in base al CVSS score reale.
 Soluzione prevista esternamente (servizio dedicato / pipeline CI-CD).
 
 Note tecniche se si volesse integrare nel backend:
@@ -489,34 +427,39 @@ Note tecniche se si volesse integrare nel backend:
 - Solo Security Advisory hanno CVE → ca. 30-40% delle errata
 - Hook suggerito: job APScheduler giornaliero, 50 errata/run
 
+### [CODICE — futuro] Validazione funzionale
+Oltre a `systemctl is-active`, validare che i servizi siano effettivamente operativi
+(es. HTTP health check per webserver, query DB per database, ecc.).
+Non implementato: richiede configurazione per-servizio, out of scope per ora.
+
 ---
 
-### ~~[CODICE] Batch persistenti su DB~~ — COMPLETATO (sessione 9)
-Tabella `patch_test_batches` + migration 004 + `cancel_batch()`.
-
----
-
-
-## 9. Note tecniche e decisioni rilevanti
+## 9. Note tecniche
 
 ### SSH socket activation (Ubuntu 24.04)
-`ssh.service` e' inactive tra connessioni su Ubuntu 24.04 con socket activation.
-Usare `ssh.socket` (non `ssh.service`) nella lista dei servizi critici. Gia' configurato
-in `_DEFAULT_SERVICES["ubuntu"]`.
+`ssh.service` è inactive tra connessioni su Ubuntu 24.04 con socket activation.
+Usare `ssh.socket` (non `ssh.service`) nella lista dei servizi critici.
+Già configurato in `_DEFAULT_SERVICES["ubuntu"]` e in `orchestrator_config` (migration 005).
 
 ### Package rollback — limitazione
-Il rollback package su Ubuntu puo' fallire se la versione precedente non e' piu' nel
-repository apt (rimossa dopo una security patch). In questo caso l'operatore viene
+Il rollback package può fallire se la versione precedente non è più nel repository
+(rimossa dopo una security patch successiva). In questo caso l'operatore viene
 notificato via `orchestrator_notifications` e deve intervenire manualmente.
+Snapper evita questo problema — installarlo sui sistemi test è raccomandato.
 
 ### Azure AD — SAML vs OAuth2
 - UYUNI web UI usa SAML 2.0 con Azure AD (Enterprise App separata)
 - SPM Dashboard usa OAuth2/OIDC (App Registration "SPM Dashboard")
 - Le due registrazioni Azure AD sono separate e indipendenti
 
-### Timeout UYUNI (risolto)
-`UYUNI_TIMEOUT` e' ora propagato tramite `_UyuniTransport` a tutti i ServerProxy XML-RPC.
-Aggiunto in sessione 8 (2026-03-05). Prima xmlrpc.client usava il timeout di sistema.
+### Fasi registrate in patch_test_phases
+Tutti i nomi fase validi (usati per il DB e per i log):
+`pre_check`, `snapshot`, `patch`, `reboot`, `validate`, `services`, `rollback`, `post_rollback`
+
+### Retry e concurrent batch
+Il retry è gestito a livello di singolo item in coda, non a livello di batch.
+Se un batch è in esecuzione e un item fa retry, l'item riapparirà nella coda
+solo dopo `retry_after` ed essere processato da un batch successivo (o da `run_next_test`).
 
 ---
 
@@ -555,7 +498,7 @@ curl -X POST http://localhost:5001/api/v1/sync/trigger | python3 -m json.tool
 curl http://localhost:5001/api/v1/prometheus/targets | python3 -m json.tool
 ```
 
-### Variabili ambiente critiche
+### Variabili ambiente
 
 ```bash
 # /opt/spm-orchestrator/.env
@@ -566,16 +509,23 @@ UYUNI_VERIFY_SSL=false
 UYUNI_POLL_INTERVAL_MINUTES=30
 UYUNI_SYNC_WORKERS=10
 DB_PASSWORD=...
+SPM_API_KEY=<token-hex-32>
 
-# Azure AD SSO (obbligatori per dashboard)
+# Test Engine timing (tutti opzionali — defaults in config.py)
+TEST_WAIT_AFTER_PATCH_SECONDS=300
+TEST_WAIT_AFTER_REBOOT_SECONDS=180
+TEST_REBOOT_DELIVERY_WAIT_SECONDS=60
+TEST_REBOOT_STABILIZATION_SECONDS=30
+
+# PROMETHEUS_URL — NON necessario se Prometheus è su localhost:9090 (default)
+
+# /opt/Security-Patch-Manager/Orchestrator/streamlit/.env
+SPM_API_URL=http://localhost:5001
+SPM_API_KEY=<stesso-token-hex-32>
 AZURE_TENANT_ID=fae8df93-7cf5-40da-b480-f272e15b6242
 AZURE_CLIENT_ID=<client-id>
 AZURE_CLIENT_SECRET=<client-secret>
 AZURE_REDIRECT_URI=https://10.172.2.22:8501
-
-# PROMETHEUS_URL — NON necessario se Prometheus e' su localhost:9090 (default)
-# Aggiungere solo se su host diverso:
-# PROMETHEUS_URL=http://altro-host:9090
 ```
 
 ### Path VM
@@ -583,7 +533,7 @@ AZURE_REDIRECT_URI=https://10.172.2.22:8501
 | Risorsa | Path |
 |---|---|
 | App Flask | `/opt/spm-orchestrator/app/` |
-| .env | `/opt/spm-orchestrator/.env` |
+| .env Flask | `/opt/spm-orchestrator/.env` |
 | Venv Flask | `/opt/spm-orchestrator/venv/` |
 | Repo | `/opt/Security-Patch-Manager/` |
 | Streamlit | `/opt/Security-Patch-Manager/Orchestrator/streamlit/` |
@@ -599,9 +549,19 @@ AZURE_REDIRECT_URI=https://10.172.2.22:8501
 SELECT id, errata_id, result, failure_phase, failure_reason, duration_seconds
   FROM patch_tests ORDER BY started_at DESC LIMIT 10;
 
--- Coda attuale
-SELECT id, errata_id, status, success_score, target_os
+-- Coda attuale (include retry_pending e superseded)
+SELECT id, errata_id, status, success_score, target_os, retry_count, retry_after
   FROM patch_test_queue ORDER BY queued_at DESC LIMIT 20;
+
+-- Retry programmati
+SELECT id, errata_id, retry_count, retry_after
+  FROM patch_test_queue WHERE status = 'retry_pending'
+  ORDER BY retry_after ASC;
+
+-- Patch soppresse
+SELECT id, errata_id, superseded_by, queued_at
+  FROM patch_test_queue WHERE status = 'superseded'
+  ORDER BY queued_at DESC LIMIT 20;
 
 -- Notifiche non lette
 SELECT id, notification_type, subject, delivered, sent_at

@@ -6,12 +6,12 @@ Sincronizza automaticamente errata Ubuntu USN e Debian DSA verso UYUNI Server, c
 
 | Container | IP | Accesso | Ruolo |
 |---|---|---|---|
-| `aci-errata-api` | `4.232.4.142:5000` | Internet pubblico | Sync USN, DSA, NVD |
+| `aci-errata-api` | `4.232.4.138:5000` | Internet pubblico | Sync USN, DSA, NVD |
 | `aci-errata-api-internal` | `10.172.5.4:5000` | VNet Azure | Sync packages, Push UYUNI |
 
-- Il container **pubblico** non ha accesso alla VNet (no NAT Gateway) → non può raggiungere UYUNI
+- Il container **pubblico** non ha accesso alla VNet → non può raggiungere UYUNI
 - Il container **interno** non ha accesso a internet → non può sincronizzare da ubuntu.com/debian.org
-- Entrambi condividono lo stesso database PostgreSQL (endpoint diverso per ciascuno)
+- Entrambi condividono lo stesso database PostgreSQL tramite **endpoint pubblico** `pg-errata-test.postgres.database.azure.com` (l'IP privato VNet `10.172.2.6` non è raggiungibile dalla subnet ACI)
 
 ## Quick Start
 
@@ -19,13 +19,13 @@ Sincronizza automaticamente errata Ubuntu USN e Debian DSA verso UYUNI Server, c
 
 ```bash
 # Container pubblico
-curl -s http://4.232.4.142:5000/api/health | jq
+curl -s http://4.232.4.138:5000/api/health | jq
 
 # Container interno (dal server UYUNI o da VM nella VNet)
 curl -s http://10.172.5.4:5000/api/health | jq
 
 # Stato dettagliato
-curl -s http://4.232.4.142:5000/api/health/detailed | jq
+curl -s http://4.232.4.138:5000/api/health/detailed | jq
 curl -s http://10.172.5.4:5000/api/health/detailed | jq
 ```
 
@@ -33,9 +33,9 @@ curl -s http://10.172.5.4:5000/api/health/detailed | jq
 
 ```bash
 # Sync da internet (container pubblico)
-curl -s -X POST -H "X-API-Key: spm-key-2024" http://4.232.4.142:5000/api/sync/usn | jq
-curl -s -X POST -H "X-API-Key: spm-key-2024" http://4.232.4.142:5000/api/sync/dsa | jq
-curl -s -X POST -H "X-API-Key: spm-key-2024" "http://4.232.4.142:5000/api/sync/nvd?batch_size=100" | jq
+curl -s -X POST -H "X-API-Key: spm-key-2024" http://4.232.4.138:5000/api/sync/usn | jq
+curl -s -X POST -H "X-API-Key: spm-key-2024" http://4.232.4.138:5000/api/sync/dsa | jq
+curl -s -X POST -H "X-API-Key: spm-key-2024" "http://4.232.4.138:5000/api/sync/nvd?batch_size=100" | jq
 
 # Push a UYUNI (container interno — dal server UYUNI)
 curl -s -X POST -H "X-API-Key: spm-key-2024" http://10.172.5.4:5000/api/uyuni/sync-packages | jq
@@ -50,7 +50,7 @@ scp scripts/errata-sync-v3.sh root@10.172.2.17:/root/errata-sync.sh
 
 # Configura cron (domenica 02:00)
 cat > /etc/cron.d/errata-sync << 'EOF'
-0 2 * * 0 root PUBLIC_API=http://4.232.4.142:5000 INTERNAL_API=http://10.172.5.4:5000 API_KEY=spm-key-2024 /root/errata-sync.sh >> /var/log/errata-sync.log 2>&1
+0 2 * * 0 root PUBLIC_API=http://4.232.4.138:5000 INTERNAL_API=http://10.172.5.4:5000 API_KEY=spm-key-2024 /root/errata-sync.sh >> /var/log/errata-sync.log 2>&1
 EOF
 ```
 
@@ -66,7 +66,7 @@ service iptables save
 
 ## API Endpoints
 
-### Container Pubblico (`4.232.4.142:5000`)
+### Container Pubblico (`4.232.4.138:5000`)
 
 | Endpoint | Metodo | Auth | Descrizione |
 |---|---|---|---|
