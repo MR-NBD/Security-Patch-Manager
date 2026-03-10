@@ -1,24 +1,59 @@
 {
   "resources": [
-    { "name": "windows-foreman",         "type": "vm",       "resource_group": "test_group" },
-    { "name": "uyuni-server-test",       "type": "vm",       "resource_group": "test_group" },
-    { "name": "uyuni-proxy-test",        "type": "vm",       "resource_group": "test_group" },
-    { "name": "uyuni-proxy-due-test",    "type": "vm",       "resource_group": "test_group" },
-    { "name": "test-VM-Production",      "type": "vm",       "resource_group": "test_group" },
-    { "name": "test-VM-Test",            "type": "vm",       "resource_group": "test_group" },
-    { "name": "test-VM-RHEL9",           "type": "vm",       "resource_group": "test_group" },
-    { "name": "onbording-test-VM-RHEL9", "type": "vm",       "resource_group": "test_group" },
-    { "name": "VM-ORCHESTRATOR",         "type": "vm",       "resource_group": "test_group" },
-    { "name": "vm-n8n",                  "type": "vm",       "resource_group": "test_group" },
-
-    { "name": "aci-errata-api",          "type": "aci",      "resource_group": "test_group" },
-    { "name": "aci-errata-api-internal", "type": "aci",      "resource_group": "ASL0603-spoke10-rg-spoke-italynorth" },
-
-    { "name": "pg-errata-test",          "type": "postgres", "resource_group": "test_group" },
-
-    { "name": "logic-usn-sync",          "type": "logicapp", "resource_group": "test_group" },
-    { "name": "logic-dsa-sync",          "type": "logicapp", "resource_group": "test_group" },
-    { "name": "logic-oval-sync",         "type": "logicapp", "resource_group": "test_group" },
-    { "name": "logic-nvd-sync",          "type": "logicapp", "resource_group": "test_group" }
+    {
+      "name": "windows-foreman",
+      "type": "vm",
+      "resource_group": "test_group"
+    },
+    {
+      "name": "uyuni-server-test",
+      "type": "vm",
+      "resource_group": "test_group"
+    },
+    {
+      "name": "uyuni-proxy-test",
+      "type": "vm",
+      "resource_group": "test_group"
+    },
+    {
+      "name": "uyuni-proxy-due-test",
+      "type": "vm",
+      "resource_group": "test_group"
+    },
+    {
+      "name": "test-VM-Production",
+      "type": "vm",
+      "resource_group": "test_group"
+    },
+    {
+      "name": "test-VM-Test",
+      "type": "vm",
+      "resource_group": "test_group"
+    },
+    {
+      "name": "test-VM-RHEL9",
+      "type": "vm",
+      "resource_group": "test_group"
+    },
+    {
+      "name": "onbording-test-VM-RHEL9",
+      "type": "vm",
+      "resource_group": "test_group"
+    },
+    {
+      "name": "VM-ORCHESTRATOR",
+      "type": "vm",
+      "resource_group": "test_group"
+    },
+    {
+      "name": "vm-n8n",
+      "type": "vm",
+      "resource_group": "test_group"
+    },
+    {
+      "name": "VM-ERRATA-PARSER",
+      "type": "vm",
+      "resource_group": "test_group"
+    }
   ]
 }

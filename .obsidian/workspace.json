@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "358144c5a7066897",
+        "id": "4ce3abdb502871bb",
         "type": "tabs",
         "children": [
           {
-            "id": "1044af1749dcd905",
+            "id": "48fb3366e12623b9",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "split-diff-view",
               "state": {
-                "file": "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
-                "mode": "source",
-                "source": false
+                "aFile": ".obsidian/workspace.json",
+                "bFile": ".obsidian/workspace.json",
+                "aRef": ""
               },
-              "icon": "lucide-file",
-              "title": "AzureAD-SAML-Authentication"
+              "icon": "diff",
+              "title": "Diff: workspace.json"
             }
           }
         ]
@@ -194,8 +194,9 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "f76e3691fbfccb78",
+  "active": "48fb3366e12623b9",
   "lastOpenFiles": [
+    "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Errata-Parser/tests/__pycache__/test_app.cpython-310.pyc",
     "Errata-Parser/tests/__pycache__/test_app.cpython-310.pyc.130415237953264",
     "Errata-Parser/__pycache__/app.cpython-310.pyc.130415240884624",
@@ -207,7 +208,6 @@
     "Errata-Parser/app.py.tmp.61595.1773177700450",
     "Errata-Parser/app.py.tmp.61595.1773177640412",
     "Errata-Parser/pytest-cache-files-lds417bs/README.md",
-    "Errata-Parser/pytest-cache-files-lds417bs",
     "Orchestrator/PROJECT-STATUS.md",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
     "Errata-Parser/README.md",

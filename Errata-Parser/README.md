@@ -1,4 +1,4 @@
-# Errata-Parser v3.2
+# Errata-Parser v3.3
 
 Microservizio Flask che sincronizza errata di sicurezza (Ubuntu USN, Debian DSA) verso UYUNI Server, con arricchimento severity tramite NVD/CVSS.
 
@@ -9,7 +9,7 @@ Internet (ubuntu.com, debian.org, nvd.nist.gov)
     │
     ▼
 ┌──────────────────────────────────────────┐
-│  Errata-Parser VM (Ubuntu dedicata)      │
+│  VM-ERRATA-PARSER (10.172.2.30)          │
 │  /opt/errata-parser — porta 5000         │
 │                                          │
 │  ┌─────────────────────────────────┐     │
@@ -20,25 +20,53 @@ Internet (ubuntu.com, debian.org, nvd.nist.gov)
 │  │  Pkg    → 01:00                 │     │
 │  │  Push   → 00:30,06:30,12:30,.. │     │
 │  └─────────────────────────────────┘     │
+│                                          │
+│  PostgreSQL locale (localhost:5432)      │
 └──────────────────────────────────────────┘
-    │                        │
-    ▼                        ▼
-[PostgreSQL]           [UYUNI :443]
-Fase 1: Azure DB       10.172.2.17
-Fase 2: locale
+    │
+    ▼
+[UYUNI Server 10.172.2.17:443]
 ```
 
-**Nessuna Logic App Azure. Nessun container ACI. Tutto sulla VM.**
+**Nessuna Logic App Azure. Nessun container ACI. Nessun Azure PostgreSQL. Tutto sulla VM.**
 
 ## Changelog
 
+### v3.3 (2026-03-10)
+- **Sicurezza**: `_check_api_key()` ritorna `503` se `SPM_API_KEY` non impostata — non bypassa più silenziosamente l'autenticazione
+- **Sicurezza**: audit log di ogni chiamata API (metodo, path, IP) e ogni tentativo di accesso fallito
+- **Sicurezza**: `_sanitize_error()` ritorna sempre `"Internal error"` — nessun dettaglio interno esposto nelle risposte API
+- **Fix `version_ge()`**: rimpiazzato con algoritmo dpkg completo (epoch + upstream version + debian revision, confronto carattere per carattere). Gestisce correttamente versioni Ubuntu come `8.9p1-3ubuntu0.10`, `7.81.0-1ubuntu1.15`, `1:2.3-4+deb12u1`
+- **Fix fallback `version_ge()`**: era `True` (permissivo) → ora `False` (conservativo). Versioni non confrontabili vengono escluse invece di essere incluse silenziosamente
+- **Fix cache pacchetti**: `_sync_packages()` non svuota più la cache se `listAllPackages` ritorna lista vuota (canale UYUNI temporaneamente irraggiungibile). Cache preservata
+- **Resilienza**: `_get_active_distributions()` usa cache in-memory (TTL 1h) — se UYUNI è temporaneamente offline la sync continua con l'ultimo set di distribuzioni noto
+- **Validazione CVE**: introdotto regex `CVE-YYYY-NNNNN` in USN e DSA sync — stringhe non valide (es. descrizioni testuali) non vengono inserite nella tabella `cves`
+- **Scheduler monitoring**: `_job_status` traccia `status/last_run/result/error` per ogni job; `/api/scheduler/jobs` espone `failed_count` e dettaglio errori
+- **Test**: aggiunta suite pytest con 52 test (version comparison, package matching, CVE regex, auth, health endpoint)
+- **Deploy**: `migrate-db-local.sh` non ha più credenziali hardcoded — legge `DATABASE_URL` dal `.env` esistente, genera password locale con `openssl rand`
+- **Deploy**: `install-vm.sh` aggiunge `chmod 750` sulla directory dei log
+
 ### v3.2 (2026-03-10)
-- **Fix critico**: `_try_lock()` usava `cursor.fetchone()[0]` su `RealDictCursor` → `KeyError(0)` → **il push verso UYUNI falliva sempre silenziosamente** con errore `"0"` nei log. Fix: accesso per nome colonna `['pg_try_advisory_lock']`
-- **Fix critico**: `version_ge()` supporta versioni Debian/Ubuntu con epoch (`1:2.3.0-1`, `2:8.9p1-3ubuntu0.10`) — prima tutti i push DSA/USN con epoch erano silenziosamente skippati
-- **Fix**: `_build_package_ids()` gestisce pacchetti con versioni diverse per release multipli (es. jammy + noble sullo stesso USN)
-- **Fix**: `errata.publish()` chiamato dopo `errata.create()` — errata ora visibili in UYUNI (alcune versioni creano in draft)
-- **Fix**: `_TimeoutTransport` sostituisce `socket.setdefaulttimeout()` globale con timeout per-connessione (thread-safe, evita worker timeout gunicorn quando UYUNI è hung)
-- **Fix**: whitelist release Ubuntu estesa — aggiunto `bionic` (18.04 LTS/ESM), `oracular` (24.10), `plucky` (25.04)
+- **Fix critico**: `_try_lock()` usava `cursor.fetchone()[0]` su `RealDictCursor` → `KeyError(0)` → il push verso UYUNI falliva sempre silenziosamente
+- **Fix critico**: `version_ge()` supporta versioni con epoch Debian/Ubuntu — prima tutti i push DSA/USN con epoch erano silenziosamente skippati
+- **Fix**: `_build_package_ids()` gestisce pacchetti con versioni diverse per release multipli (jammy + noble sullo stesso USN)
+- **Fix**: `errata.publish()` chiamato dopo `errata.create()` — errata visibili in UYUNI (alcune versioni creano in draft)
+- **Fix**: `_TimeoutTransport` sostituisce `socket.setdefaulttimeout()` globale (thread-safe)
+- **Fix**: whitelist release Ubuntu estesa — aggiunto `bionic`, `oracular`, `plucky`
+
+## Infrastruttura
+
+| Componente | Valore |
+|---|---|
+| VM | `10.172.2.30` |
+| Servizio | `errata-parser` (systemd) |
+| Porta | `5000` (loopback only) |
+| Repo sul VM | `/opt/repo` |
+| Install dir | `/opt/errata-parser` |
+| Log applicativo | `/opt/errata-parser/logs/errata-parser.log` |
+| Log gunicorn | `/opt/errata-parser/logs/error.log` |
+| DB | PostgreSQL locale `localhost:5432/uyuni_errata` |
+| UYUNI | `10.172.2.17:443` |
 
 ## Deploy
 
@@ -48,40 +76,53 @@ Fase 2: locale
 - Python 3.9+
 - Accesso SSH come root
 
-### Installazione
+### Installazione (prima volta)
 
 ```bash
 # 1. Clona il repo sulla VM
-git clone https://github.com/TUO-ORG/Security-Patch-Manager.git /opt/repo
+git clone https://github.com/MR-NBD/Security-Patch-Manager.git /opt/repo
 cd /opt/repo
 
 # 2. Esegui lo script di installazione
-sudo bash Errata-Parser/scripts/install-vm.sh
+bash Errata-Parser/scripts/install-vm.sh
 
-# 3. Verifica/aggiorna credenziali
-sudo nano /opt/errata-parser/.env
+# 3. Configura le credenziali
+nano /opt/errata-parser/.env
 
 # 4. Avvia
-sudo systemctl start errata-parser
+systemctl start errata-parser
 
 # 5. Verifica
 curl -s http://localhost:5000/api/health | python3 -m json.tool
-curl -s http://localhost:5000/api/scheduler/jobs | python3 -m json.tool
 ```
 
-### Update
+### Update (versioni successive)
 
 ```bash
-git pull
-sudo bash Errata-Parser/scripts/update-vm.sh
+cd /opt/repo && git pull
+cp Errata-Parser/app.py /opt/errata-parser/app.py
+systemctl restart errata-parser
+curl -s http://localhost:5000/api/health | python3 -m json.tool
 ```
 
-### Migrazione DB a PostgreSQL locale (Fase 2 — opzionale)
+### Migrazione DB a PostgreSQL locale
 
-Elimina la dipendenza da Azure PostgreSQL (~15-30€/mese):
+Se il servizio punta ancora a un DB remoto, migra in locale:
 
 ```bash
-sudo bash Errata-Parser/scripts/migrate-db-local.sh
+# Richiede postgresql e postgresql-client installati
+apt-get install -y postgresql postgresql-client
+bash /opt/repo/Errata-Parser/scripts/migrate-db-local.sh
+```
+
+Lo script legge `DATABASE_URL` dal `.env` esistente, esegue dump + restore, aggiorna il `.env` con `localhost` e genera una password locale sicura.
+
+### Esecuzione test
+
+```bash
+cd /opt/repo/Errata-Parser
+pip install -r requirements-dev.txt
+pytest tests/ -v
 ```
 
 ## Variabili d'Ambiente
@@ -91,44 +132,46 @@ sudo bash Errata-Parser/scripts/migrate-db-local.sh
 | `DATABASE_URL` | **SI** | — | PostgreSQL connection string |
 | `UYUNI_URL` | **SI** | — | `https://10.172.2.17` |
 | `UYUNI_USER` | **SI** | — | Utente admin UYUNI locale (es. `admin`) |
-| `UYUNI_PASSWORD` | **SI** | — | Password locale dell'utente UYUNI — **non la password Azure AD** (vedi nota sotto) |
+| `UYUNI_PASSWORD` | **SI** | — | Password locale dell'utente UYUNI — **non la password Azure AD** |
+| `SPM_API_KEY` | **SI** | — | Header `X-API-Key` — obbligatoria, senza di essa tutti gli endpoint autenticati ritornano `503` |
 | `UYUNI_TIMEOUT` | No | `30` | Timeout in secondi per le chiamate XML-RPC |
-| `SPM_API_KEY` | Raccomandato | — | Header `X-API-Key` |
-| `NVD_API_KEY` | Raccomandato | — | Rate limit NVD API |
+| `NVD_API_KEY` | Raccomandato | — | Rate limit NVD API (senza: 1 req/6s, con: 1 req/0.6s) |
 | `SCHEDULER_ENABLED` | No | `false` | `true` attiva APScheduler |
-| `LOG_FILE` | No | `/opt/errata-parser/logs/errata-parser.log` | Path log (lo script di installazione lo imposta automaticamente) |
+| `LOG_FILE` | No | `/opt/errata-parser/logs/errata-parser.log` | Path log |
 
 > **Nota `UYUNI_PASSWORD`**: UYUNI usa SAML 2.0 (Azure AD) per il login via browser, ma le
 > API XML-RPC usano **sempre credenziali locali**, indipendentemente dal SAML.
-> `UYUNI_PASSWORD` deve essere la password dell'account locale UYUNI (impostata al momento
-> della creazione dell'utente in UYUNI, non collegata ad Azure AD).
 > Con `java.sso = true` attivo, l'account `admin` non è accessibile via browser ma
 > **continua a funzionare per le API XML-RPC**.
 
 ## API Endpoints
 
-Auth: header `X-API-Key` richiesto su tutti tranne `/api/health*` e `/api/scheduler/jobs`.
+Auth: header `X-API-Key` richiesto su tutti tranne `/api/health` e `/api/health/detailed`.
+Se `SPM_API_KEY` non è impostata nel `.env`, tutti gli endpoint autenticati ritornano `503`.
 
-| Endpoint | Metodo | Descrizione |
-|---|---|---|
-| `/api/health` | GET | Stato API, DB, UYUNI |
-| `/api/health/detailed` | GET | Metriche complete |
-| `/api/scheduler/jobs` | GET | Stato e prossime esecuzioni job |
-| `/api/sync/usn` | POST | Sync Ubuntu USN (manuale) |
-| `/api/sync/dsa` | POST | Sync Debian DSA (manuale) |
-| `/api/sync/nvd` | POST | Enrichment NVD/CVSS (manuale) |
-| `/api/sync/auto` | POST | Pipeline completa |
-| `/api/sync/status` | GET | Log ultimi 20 sync |
-| `/api/uyuni/sync-packages` | POST | Cache pacchetti UYUNI |
-| `/api/uyuni/push` | POST | Push errata pendenti |
-| `/api/uyuni/channels` | GET | Canali UYUNI attivi |
+| Endpoint | Metodo | Auth | Descrizione |
+|---|---|---|---|
+| `/api/health` | GET | No | Stato API, DB, UYUNI, versione |
+| `/api/health/detailed` | GET | No | Metriche complete, alert staleness |
+| `/api/scheduler/jobs` | GET | **SI** | Stato job: next_run, last_run, status, error |
+| `/api/sync/usn` | POST | **SI** | Sync Ubuntu USN (manuale) |
+| `/api/sync/dsa` | POST | **SI** | Sync Debian DSA (manuale, ~15-30 min) |
+| `/api/sync/nvd` | POST | **SI** | Enrichment NVD/CVSS |
+| `/api/sync/auto` | POST | **SI** | Pipeline completa (USN+DSA+NVD+Pkg+Push) |
+| `/api/sync/status` | GET | **SI** | Log ultimi 20 sync |
+| `/api/uyuni/sync-packages` | POST | **SI** | Aggiorna cache pacchetti UYUNI |
+| `/api/uyuni/push` | POST | **SI** | Push errata pendenti verso UYUNI |
+| `/api/uyuni/channels` | GET | **SI** | Canali UYUNI attivi con distribuzione mappata |
 
-### Parametri
+### Parametri query string
 
 | Endpoint | Parametro | Default | Max |
 |---|---|---|---|
 | `/api/sync/nvd` | `batch_size` | 50 | 500 |
+| `/api/sync/nvd` | `force` | `false` | — |
 | `/api/uyuni/push` | `limit` | 10 | 200 |
+| `/api/sync/auto` | `nvd_batch` | 100 | 500 |
+| `/api/sync/auto` | `push_limit` | 50 | 200 |
 
 ## Operazioni manuali
 
@@ -136,8 +179,11 @@ Auth: header `X-API-Key` richiesto su tutti tranne `/api/health*` e `/api/schedu
 export KEY="$(grep SPM_API_KEY /opt/errata-parser/.env | cut -d= -f2)"
 export API="http://localhost:5000"
 
-# Health check
+# Health check (no auth)
 curl -s $API/api/health | python3 -m json.tool
+
+# Stato scheduler con dettaglio last_run e errori
+curl -s -H "X-API-Key: $KEY" $API/api/scheduler/jobs | python3 -m json.tool
 
 # Canali UYUNI attivi
 curl -s -H "X-API-Key: $KEY" $API/api/uyuni/channels | python3 -m json.tool
@@ -148,17 +194,14 @@ curl -s -X POST -H "X-API-Key: $KEY" $API/api/sync/usn | python3 -m json.tool
 # Sync manuale DSA (può richiedere 15-30 min)
 curl -s --max-time 1800 -X POST -H "X-API-Key: $KEY" $API/api/sync/dsa | python3 -m json.tool
 
-# Aggiorna cache pacchetti UYUNI (necessario prima del push se ci sono version mismatch)
+# Aggiorna cache pacchetti UYUNI
 curl -s -X POST -H "X-API-Key: $KEY" $API/api/uyuni/sync-packages | python3 -m json.tool
 
-# Push errata
+# Push errata (limit=50 per batch)
 curl -s -X POST -H "X-API-Key: $KEY" "$API/api/uyuni/push?limit=50" | python3 -m json.tool
 
 # Pipeline completa
 curl -s --max-time 3600 -X POST -H "X-API-Key: $KEY" $API/api/sync/auto | python3 -m json.tool
-
-# Stato scheduler
-curl -s $API/api/scheduler/jobs | python3 -m json.tool
 
 # Log sync recenti
 curl -s -H "X-API-Key: $KEY" $API/api/sync/status | python3 -m json.tool
@@ -169,10 +212,10 @@ curl -s -H "X-API-Key: $KEY" $API/api/sync/status | python3 -m json.tool
 ```bash
 systemctl status errata-parser
 systemctl restart errata-parser
-journalctl -u errata-parser -f                         # log live
-journalctl -u errata-parser -n 50                      # ultimi 50 log
-tail -f /opt/errata-parser/logs/errata-parser.log      # log applicativo
-tail -f /opt/errata-parser/logs/error.log              # log gunicorn
+journalctl -u errata-parser -f              # log live
+journalctl -u errata-parser -n 50          # ultimi 50 righe
+tail -f /opt/errata-parser/logs/errata-parser.log   # log applicativo
+tail -f /opt/errata-parser/logs/error.log           # log gunicorn
 ```
 
 ## Note architettura UYUNI
@@ -186,8 +229,7 @@ Le chiamate di errata-parser verso `/rpc/api` sono indipendenti dal SAML.
 
 ### `uyuni: "error: Internal error"` nel health check
 
-L'errore è oscurato perché il messaggio di UYUNI contiene parole sensibili.
-Diagnosi rapida — legge le credenziali dal `.env` e testa la connessione:
+Diagnosi rapida — testa la connessione UYUNI con le credenziali dal `.env`:
 
 ```bash
 python3 - <<'EOF'
@@ -235,7 +277,7 @@ Aggiorna il `.env` e riavvia: `systemctl restart errata-parser`
 ### TLS handshake timeout verso UYUNI
 
 Il sintomo è: TCP si connette a `10.172.2.17:443` ma la risposta non arriva mai.
-**La causa è il web server interno di UYUNI hung**, non un problema di rete.
+La causa è tipicamente il web server interno di UYUNI hung.
 
 ```bash
 # Step 1 — verifica TCP
@@ -255,23 +297,32 @@ mgradm restart
 
 ### Worker errata-parser bloccato (WORKER TIMEOUT in error.log)
 
-Si verifica quando UYUNI è hung durante una sync e il worker rimane bloccato
-sull'handshake TLS. Dopo aver riavviato UYUNI con `mgradm restart`:
+Si verifica quando UYUNI è hung durante una sync. Dopo aver riavviato UYUNI con `mgradm restart`:
 
 ```bash
 systemctl restart errata-parser
 ```
 
+### Job scheduler in errore
+
+Controllare lo stato dei job con dettaglio errore:
+
+```bash
+export KEY="$(grep SPM_API_KEY /opt/errata-parser/.env | cut -d= -f2)"
+curl -s -H "X-API-Key: $KEY" http://localhost:5000/api/scheduler/jobs | python3 -m json.tool
+```
+
+Il campo `status` per ogni job può essere `never_run`, `running`, `ok`, `error`.
+In caso di `error`, il campo `error` contiene il messaggio. `failed_count` indica quanti job sono in errore.
+
 ### Push ritorna `pending_processed: 0`
 
-Due cause possibili:
-
-**A) Tutte le errata per i canali presenti sono già state pushate** (normale).
-Verificare con il health/detailed:
+**A) Tutte le errata per i canali attivi sono già state pushate** (normale).
+Verificare con health/detailed:
 ```bash
 curl -s http://localhost:5000/api/health/detailed | python3 -m json.tool
 ```
-Se `errata_pending > 0` ma la distribuzione non corrisponde ai canali UYUNI (es. errata Debian ma nessun canale Debian in UYUNI), il comportamento è corretto — il push processa solo le distribuzioni con canali attivi.
+Se `errata_pending > 0` ma la distribuzione non corrisponde ai canali UYUNI (es. errata Debian ma nessun canale Debian attivo in UYUNI), il comportamento è corretto.
 
 **B) Nessuna errata nel DB** → eseguire la prima sync:
 ```bash
@@ -287,6 +338,5 @@ del pacchetto non è ancora nella cache UYUNI. Aggiornare prima la cache:
 ```bash
 export KEY="$(grep SPM_API_KEY /opt/errata-parser/.env | cut -d= -f2)"
 curl -s -X POST -H "X-API-Key: $KEY" http://localhost:5000/api/uyuni/sync-packages | python3 -m json.tool
-# poi riprovare il push
 curl -s -X POST -H "X-API-Key: $KEY" "http://localhost:5000/api/uyuni/push?limit=50" | python3 -m json.tool
 ```
