@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-UYUNI Errata Manager - v3.1
+UYUNI Errata Manager - v3.2
 
 Sincronizza errata Ubuntu USN e/o Debian DSA verso UYUNI Server.
 Le distribuzioni vengono rilevate automaticamente dai canali UYUNI attivi.
@@ -20,17 +20,24 @@ Endpoints:
 
 Auth: header X-API-Key richiesto su tutti gli endpoint tranne /api/health*.
       Disabilitato se SPM_API_KEY non è impostata.
+
+Changelog v3.2:
+  - version_ge(): supporto epoch Debian/Ubuntu (fix push sempre skippato)
+  - _push_errata(): fixed_ver_map multi-release + errata.publish() dopo create
+  - _uyuni(): transport con timeout per-connessione (thread-safe, no socket global)
+  - _sync_usn(): whitelist release Ubuntu estesa (bionic, oracular, plucky)
 """
 
 import contextlib
 import os
+import re
 import ssl
 import sys
 import time
 import xmlrpc.client
 from datetime import datetime
 
-from flask import Flask, g, jsonify, request
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import psycopg2
 from psycopg2.extras import RealDictCursor, execute_values
@@ -60,14 +67,15 @@ logger = logging.getLogger('errata-manager')
 # ============================================================
 # CONFIG — validazione fail-fast al startup
 # ============================================================
-DATABASE_URL    = os.environ.get('DATABASE_URL')
-UYUNI_URL       = os.environ.get('UYUNI_URL', '')
-UYUNI_USER      = os.environ.get('UYUNI_USER', '')
-UYUNI_PASSWORD  = os.environ.get('UYUNI_PASSWORD', '')
+DATABASE_URL     = os.environ.get('DATABASE_URL')
+UYUNI_URL        = os.environ.get('UYUNI_URL', '')
+UYUNI_USER       = os.environ.get('UYUNI_USER', '')
+UYUNI_PASSWORD   = os.environ.get('UYUNI_PASSWORD', '')
 UYUNI_VERIFY_SSL = os.environ.get('UYUNI_VERIFY_SSL', 'false').lower() == 'true'
-NVD_API_KEY     = os.environ.get('NVD_API_KEY', '')
-NVD_API_BASE    = 'https://services.nvd.nist.gov/rest/json/cves/2.0'
-SPM_API_KEY     = os.environ.get('SPM_API_KEY', '')
+NVD_API_KEY      = os.environ.get('NVD_API_KEY', '')
+NVD_API_BASE     = 'https://services.nvd.nist.gov/rest/json/cves/2.0'
+SPM_API_KEY      = os.environ.get('SPM_API_KEY', '')
+_UYUNI_TIMEOUT   = int(os.environ.get('UYUNI_TIMEOUT', '30'))
 
 if not DATABASE_URL:
     logger.critical('DATABASE_URL env var is required — exiting')
@@ -89,7 +97,8 @@ if _CORS_ORIGIN:
 # ============================================================
 # CONSTANTS
 # ============================================================
-_REQUEST_HEADERS = {'User-Agent': 'UYUNI-Errata-Manager/3.1'}
+_APP_VERSION    = '3.2'
+_REQUEST_HEADERS = {'User-Agent': f'UYUNI-Errata-Manager/{_APP_VERSION}'}
 
 # severity interna → (label UYUNI, keywords per errata.create)
 SEVERITY_TO_UYUNI = {
@@ -99,7 +108,7 @@ SEVERITY_TO_UYUNI = {
     'low':      ('Low',       ['low',       'security']),
 }
 
-# Mappature severity sorgente (costanti di modulo, non ricostruite nel loop)
+# Mappature severity sorgente
 _USN_PRIORITY_MAP = {
     'critical': 'critical', 'high': 'high',
     'medium': 'medium', 'low': 'low', 'negligible': 'low',
@@ -110,7 +119,26 @@ _DSA_URGENCY_MAP = {
     'low': 'low', 'unimportant': 'low', 'not yet assigned': 'medium',
 }
 
-# advisory lock keys PostgreSQL — interi unici per tipo di operazione
+# Release Ubuntu supportate (USN) — nomi presenti in release_packages
+_UBUNTU_RELEASES = frozenset({
+    'noble',    # 24.04 LTS
+    'jammy',    # 22.04 LTS
+    'focal',    # 20.04 LTS
+    'bionic',   # 18.04 LTS (ESM)
+    'oracular', # 24.10
+    'plucky',   # 25.04
+    'mantic',   # 23.10
+    'lunar',    # 23.04
+})
+
+# Release Debian supportate
+_DEBIAN_RELEASE_MAP = {
+    'debian-bookworm': 'bookworm',
+    'debian-bullseye': 'bullseye',
+    'debian-trixie':   'trixie',
+}
+
+# Advisory lock keys PostgreSQL
 _LOCK_KEYS = {'usn': 1001, 'dsa': 1002, 'nvd': 1003, 'packages': 1004, 'push': 1005}
 
 # Limiti input API
@@ -119,13 +147,6 @@ _MAX_PUSH_LIMIT = 200
 
 # Endpoint che non richiedono autenticazione
 _AUTH_EXEMPT = {'health', 'health_detailed'}
-
-# Release Debian supportate
-_DEBIAN_RELEASE_MAP = {
-    'debian-bookworm': 'bookworm',
-    'debian-bullseye': 'bullseye',
-    'debian-trixie':   'trixie',
-}
 
 
 # ============================================================
@@ -136,9 +157,8 @@ def _check_api_key():
     if request.endpoint in _AUTH_EXEMPT:
         return
     if not SPM_API_KEY:
-        return  # auth disabilitata
-    key = request.headers.get('X-API-Key', '')
-    if key != SPM_API_KEY:
+        return
+    if request.headers.get('X-API-Key', '') != SPM_API_KEY:
         return jsonify({'error': 'Unauthorized'}), 401
 
 
@@ -155,30 +175,42 @@ def _db():
         conn.close()
 
 
-_UYUNI_TIMEOUT = int(os.environ.get('UYUNI_TIMEOUT', '30'))
+class _TimeoutTransport(xmlrpc.client.SafeTransport):
+    """Transport XML-RPC con timeout per-connessione (thread-safe)."""
+
+    def __init__(self, timeout, context=None):
+        super().__init__(context=context)
+        self._timeout = timeout
+
+    def make_connection(self, host):
+        conn = super().make_connection(host)
+        # http.client.HTTPSConnection espone .timeout
+        if hasattr(conn, 'timeout'):
+            conn.timeout = self._timeout
+        return conn
 
 
 @contextlib.contextmanager
 def _uyuni():
-    """Sessione UYUNI XML-RPC con logout garantito e timeout configurabile."""
+    """
+    Sessione UYUNI XML-RPC con logout garantito.
+    Usa transport con timeout per-connessione invece del socket globale
+    (thread-safe con gunicorn multi-thread).
+    """
     if not UYUNI_URL:
         raise RuntimeError('UYUNI_URL not configured')
+
     ctx = ssl.create_default_context()
     ctx.check_hostname = UYUNI_VERIFY_SSL
     ctx.verify_mode    = ssl.CERT_REQUIRED if UYUNI_VERIFY_SSL else ssl.CERT_NONE
-    import socket as _socket
-    old_timeout = _socket.getdefaulttimeout()
-    _socket.setdefaulttimeout(_UYUNI_TIMEOUT)
-    try:
-        client  = xmlrpc.client.ServerProxy(f'{UYUNI_URL}/rpc/api', context=ctx)
-        session = client.auth.login(UYUNI_USER, UYUNI_PASSWORD)
-    except Exception:
-        _socket.setdefaulttimeout(old_timeout)
-        raise
+
+    transport = _TimeoutTransport(timeout=_UYUNI_TIMEOUT, context=ctx)
+    client    = xmlrpc.client.ServerProxy(f'{UYUNI_URL}/rpc/api', transport=transport)
+
+    session = client.auth.login(UYUNI_USER, UYUNI_PASSWORD)
     try:
         yield client, session
     finally:
-        _socket.setdefaulttimeout(old_timeout)
         try:
             client.auth.logout(session)
         except Exception:
@@ -189,7 +221,6 @@ def _uyuni():
 # ADVISORY LOCK HELPERS
 # ============================================================
 def _try_lock(conn, name):
-    """Acquisisce un advisory lock PostgreSQL (non bloccante). Ritorna True se acquisito."""
     key = _LOCK_KEYS.get(name)
     if key is None:
         return True
@@ -206,7 +237,7 @@ def _unlock(conn, name):
         with conn.cursor() as cur:
             cur.execute('SELECT pg_advisory_unlock(%s)', (key,))
     except Exception:
-        pass  # connessione già chiusa rilascia i lock automaticamente
+        pass
 
 
 # ============================================================
@@ -227,13 +258,68 @@ def map_channel_to_distribution(label):
     return None
 
 
-def version_compare(v1, v2):
-    """True se v1 >= v2. Usa packaging.version; fallback conservativo su errore."""
+_RE_EPOCH = re.compile(r'^(\d+):(.+)$')
+
+
+def _split_epoch(v):
+    """
+    Separa epoch da versione Debian/Ubuntu.
+    '1:2.3-4+deb12u1' → (1, '2.3-4+deb12u1')
+    '2.3-4'           → (0, '2.3-4')
+    """
+    m = _RE_EPOCH.match(v)
+    if m:
+        return int(m.group(1)), m.group(2)
+    return 0, v
+
+
+def _strip_deb_revision(v):
+    """
+    Rimuove la revisione Debian/Ubuntu per il confronto upstream.
+    '2.3.1-4+deb12u1' → '2.3.1'
+    '8.9p1-3ubuntu0.10' → '8.9p1'
+    """
+    # rimuove tutto dal primo '-' in poi, poi da '+' in poi
+    return v.split('-')[0].split('+')[0]
+
+
+def version_ge(v1, v2):
+    """
+    Ritorna True se v1 >= v2.
+
+    Strategia a tre livelli:
+    1. PEP 440 puro (versioni semplici, es. '1.2.3')
+    2. Confronto epoch + upstream stripped (Debian/Ubuntu con epoch)
+    3. Fallback permissivo → True (include il pacchetto se non confrontabile)
+
+    Il fallback permissivo è preferibile a False perché evita di saltare
+    silenziosamente errata con versioni non-standard (es. epoche molto alte).
+    """
+    if not v1 or not v2:
+        return True
+
+    # Tentativo 1: PEP 440 diretto
     try:
         return pkg_version.parse(v1) >= pkg_version.parse(v2)
     except Exception:
-        # Non possiamo confrontare → non includiamo il pacchetto (sicuro per default)
-        return False
+        pass
+
+    # Tentativo 2: gestione epoch Debian/Ubuntu
+    try:
+        epoch1, rest1 = _split_epoch(v1)
+        epoch2, rest2 = _split_epoch(v2)
+        if epoch1 != epoch2:
+            return epoch1 >= epoch2
+        # Confronta upstream strippato dalla revisione Debian
+        up1 = _strip_deb_revision(rest1)
+        up2 = _strip_deb_revision(rest2)
+        return pkg_version.parse(up1) >= pkg_version.parse(up2)
+    except Exception:
+        pass
+
+    # Fallback permissivo: non scartiamo il pacchetto se non sappiamo confrontare
+    logger.debug(f'version_ge fallback (cannot compare {v1!r} >= {v2!r}) → True')
+    return True
 
 
 def cvss_to_severity(score):
@@ -246,7 +332,6 @@ def cvss_to_severity(score):
 
 
 def _clamp(value, default, min_val, max_val):
-    """Ritorna value forzato nell'intervallo [min_val, max_val]."""
     if value is None:
         return default
     return max(min_val, min(max_val, value))
@@ -255,7 +340,6 @@ def _clamp(value, default, min_val, max_val):
 def _sanitize_error(exc):
     """Ritorna stringa di errore sicura per API response (no credenziali)."""
     msg = str(exc)
-    # Oscura pattern di connection string
     for kw in ('password', 'passwd', 'secret', 'user=', 'host=', 'dbname='):
         if kw.lower() in msg.lower():
             return 'Internal error — see application logs'
@@ -446,7 +530,7 @@ def _sync_usn(conn):
                 packages = [
                     {'name': p['name'], 'version': p.get('version', ''), 'release': rel.lower()}
                     for rel, pkgs in n.get('release_packages', {}).items()
-                    if any(r in rel.lower() for r in ('noble', 'jammy', 'focal', 'mantic', 'lunar'))
+                    if rel.lower() in _UBUNTU_RELEASES
                     for p in (pkgs if isinstance(pkgs, list) else [])
                     if isinstance(p, dict) and p.get('name')
                 ]
@@ -526,7 +610,6 @@ def _sync_dsa(conn, active_dists=None):
     Sync completo Debian DSA da security-tracker.debian.org.
     Sincronizza solo i release Debian presenti nei canali UYUNI attivi.
     """
-    # Determina release da sincronizzare — inizializzazione esplicita
     target_releases = (
         [_DEBIAN_RELEASE_MAP[d] for d in (active_dists or []) if d in _DEBIAN_RELEASE_MAP]
         or list(_DEBIAN_RELEASE_MAP.values())
@@ -578,7 +661,6 @@ def _sync_dsa(conn, active_dists=None):
 
                         advisory_id = f'DEB-{cve_id}-{rel}'
 
-                        # Savepoint per isolamento: un record bad non abortisce il batch
                         cur.execute('SAVEPOINT dsa_sp')
                         try:
                             cur.execute("""
@@ -633,7 +715,7 @@ def _sync_dsa(conn, active_dists=None):
                     conn.commit()
                     logger.info(f'DSA progress: {total_errata} errata (batch {batch_count})')
 
-            conn.commit()  # commit residui finali
+            conn.commit()
 
     except Exception as ex:
         _log_error(conn, log_id, ex)
@@ -723,14 +805,14 @@ def _sync_nvd(conn, batch_size=50, force=False):
                 cvss_v3_score = cvss_v3_vector = cvss_v3_severity = cvss_v2_score = None
 
                 if 'cvssMetricV31' in metrics:
-                    cvss_data      = metrics['cvssMetricV31'][0]['cvssData']
-                    cvss_v3_score  = cvss_data['baseScore']
-                    cvss_v3_vector = cvss_data['vectorString']
+                    cvss_data        = metrics['cvssMetricV31'][0]['cvssData']
+                    cvss_v3_score    = cvss_data['baseScore']
+                    cvss_v3_vector   = cvss_data['vectorString']
                     cvss_v3_severity = cvss_data.get('baseSeverity', '').upper()
                 elif 'cvssMetricV30' in metrics:
-                    cvss_data      = metrics['cvssMetricV30'][0]['cvssData']
-                    cvss_v3_score  = cvss_data['baseScore']
-                    cvss_v3_vector = cvss_data['vectorString']
+                    cvss_data        = metrics['cvssMetricV30'][0]['cvssData']
+                    cvss_v3_score    = cvss_data['baseScore']
+                    cvss_v3_vector   = cvss_data['vectorString']
                     cvss_v3_severity = cvss_data.get('baseSeverity', '').upper()
 
                 if 'cvssMetricV2' in metrics:
@@ -806,7 +888,7 @@ def _sync_nvd(conn, batch_size=50, force=False):
 def _sync_packages(conn, channel_label=None):
     """
     Aggiorna la cache pacchetti UYUNI.
-    Usa execute_values per bulk insert (un round-trip per canale, non uno per pacchetto).
+    Usa execute_values per bulk insert (un round-trip per canale).
     """
     if not _try_lock(conn, 'packages'):
         logger.warning('Package sync already running — skipped')
@@ -864,19 +946,108 @@ def _sync_packages(conn, channel_label=None):
 # ============================================================
 # PUSH ERRATA → UYUNI
 # ============================================================
+def _build_package_ids(errata_pkgs, cached_pkgs):
+    """
+    Ritorna il set di package_id UYUNI da associare all'errata.
+
+    Gestisce correttamente il caso multi-release: un pacchetto può avere
+    versioni fisse diverse per release diversi (es. jammy vs noble).
+    Per ogni nome pacchetto raccoglie TUTTE le fixed_version e include
+    il package se la versione in cache è >= ad almeno una di esse.
+
+    Args:
+        errata_pkgs: righe da errata_packages (package_name, fixed_version, release_name)
+        cached_pkgs: righe da uyuni_package_cache (package_name, package_id, package_version)
+
+    Returns:
+        set di int (package_id)
+    """
+    # Costruisce {package_name → set(fixed_versions)} per gestire multi-release
+    fixed_versions: dict[str, set] = {}
+    for ep in errata_pkgs:
+        name = ep['package_name']
+        fv   = ep['fixed_version'] or ''
+        fixed_versions.setdefault(name, set()).add(fv)
+
+    package_ids = set()
+    for c in cached_pkgs:
+        name     = c['package_name']
+        cache_v  = c['package_version'] or ''
+        fixed_vs = fixed_versions.get(name, set())
+
+        if not fixed_vs:
+            # Pacchetto in cache ma non in errata_packages → non associare
+            continue
+
+        # Includi il package se la versione in cache è >= ad almeno una fixed_version
+        # (la versione fissa è disponibile nel canale UYUNI)
+        # Se tutte le fixed_version sono vuote → include comunque (no version info)
+        if all(not fv for fv in fixed_vs):
+            package_ids.add(c['package_id'])
+        elif any(version_ge(cache_v, fv) for fv in fixed_vs if fv):
+            package_ids.add(c['package_id'])
+
+    return package_ids
+
+
+def _push_single_errata(client, session, errata, package_ids, target_channels):
+    """
+    Chiama errata.create e poi errata.publish su UYUNI.
+
+    errata.create ritorna la struttura dell'errata creata.
+    errata.publish rende l'errata visibile ai sistemi nei canali specificati.
+    Alcune versioni UYUNI auto-pubblicano alla create, in quel caso publish
+    ritorna errore che viene ignorato silenziosamente.
+    """
+    dist      = errata['distribution']
+    severity  = (errata.get('severity') or 'medium').lower()
+    sev_label, keywords = SEVERITY_TO_UYUNI.get(severity, SEVERITY_TO_UYUNI['medium'])
+
+    errata_info = {
+        'synopsis':         (errata['title'] or errata['advisory_id'])[:200],
+        'advisory_name':    errata['advisory_id'],
+        'advisory_type':    'Security Advisory',
+        'advisory_release': 1,
+        'severity':         sev_label,
+        'product':          dist.replace('-', ' ').title(),
+        'topic':            (errata['title'] or '')[:500],
+        'description':      (errata['description'] or '')[:2000],
+        'solution':         'Apply the updated packages.',
+        'references':       '',
+        'notes':            f'Imported by UYUNI Errata Manager v{_APP_VERSION} from {errata["source"].upper()}',
+    }
+
+    logger.info(
+        f'Pushing {errata["advisory_id"]} [{sev_label}] '
+        f'— {len(package_ids)} packages, channels={target_channels}'
+    )
+    client.errata.create(session, errata_info, [], keywords, list(package_ids), target_channels)
+
+    # Pubblica esplicitamente l'errata (alcune versioni UYUNI creano in draft)
+    try:
+        client.errata.publish(session, errata['advisory_id'], target_channels)
+    except Exception as pub_err:
+        # Già pubblicata o versione UYUNI che auto-pubblica → non bloccante
+        logger.debug(f'errata.publish {errata["advisory_id"]}: {pub_err} (ignored)')
+
+
 def _push_errata(conn, limit=10):
     """
     Push errata pendenti verso UYUNI con severity corretta e version matching.
-    Package lookup: una singola query IN per errata (non N×M query individuali).
+
+    Fix v3.2:
+    - fixed_ver_map multi-release: raccoglie tutte le versioni per nome pacchetto
+    - version_ge() gestisce epoch Debian/Ubuntu
+    - errata.publish() chiamato dopo create per garantire visibilità
     """
     if not _try_lock(conn, 'push'):
         logger.warning('Push already running — skipped')
         return {'skipped': 'already_running'}
 
-    pending       = []
-    pushed        = 0
-    skipped_ver   = 0
-    errors        = []
+    pushed      = 0
+    skipped_ver = 0
+    errors      = []
+    pending     = []
 
     try:
         with _uyuni() as (client, session):
@@ -888,6 +1059,7 @@ def _push_errata(conn, limit=10):
                     channel_map.setdefault(dist, []).append(ch['label'])
 
             if not channel_map:
+                logger.warning('Push: no Ubuntu/Debian channels found in UYUNI')
                 return {'pushed': 0, 'message': 'No Ubuntu/Debian channels found in UYUNI'}
 
             active_dists = list(channel_map.keys())
@@ -907,7 +1079,7 @@ def _push_errata(conn, limit=10):
                         issued_date DESC
                     LIMIT %s
                 """, (active_dists, limit))
-                pending = cur.fetchall()
+                pending = list(cur.fetchall())
 
             for errata in pending:
                 try:
@@ -916,21 +1088,19 @@ def _push_errata(conn, limit=10):
                     if not target_channels:
                         continue
 
-                    # Recupera pacchetti dell'errata
                     with conn.cursor() as cur:
                         cur.execute(
-                            'SELECT package_name, fixed_version FROM errata_packages WHERE errata_id=%s',
+                            'SELECT package_name, fixed_version, release_name '
+                            'FROM errata_packages WHERE errata_id=%s',
                             (errata['id'],),
                         )
                         errata_pkgs = cur.fetchall()
 
                     if not errata_pkgs:
-                        # Errata senza pacchetti associati — push diretto senza package IDs
-                        package_ids = []
+                        # Errata senza pacchetti — push diretto (errata informativi)
+                        package_ids = set()
                     else:
-                        # Un'unica query per tutti i package × tutti i canali target
                         pkg_names = list({ep['package_name'] for ep in errata_pkgs})
-                        fixed_ver_map = {ep['package_name']: ep['fixed_version'] for ep in errata_pkgs}
 
                         with conn.cursor() as cur:
                             cur.execute("""
@@ -939,46 +1109,19 @@ def _push_errata(conn, limit=10):
                                 WHERE channel_label = ANY(%s)
                                   AND package_name  = ANY(%s)
                             """, (target_channels, pkg_names))
-                            cached = cur.fetchall()
+                            cached_pkgs = cur.fetchall()
 
-                        package_ids = list({
-                            c['package_id']
-                            for c in cached
-                            if (
-                                not fixed_ver_map.get(c['package_name'])
-                                or not c['package_version']
-                                or version_compare(c['package_version'], fixed_ver_map[c['package_name']])
-                            )
-                        })
+                        package_ids = _build_package_ids(errata_pkgs, cached_pkgs)
 
                         if not package_ids:
-                            # Versioni nel cache non ancora aggiornate — riprova al prossimo sync
                             skipped_ver += 1
-                            logger.debug(f'Push skipped {errata["advisory_id"]}: version mismatch, will retry')
+                            logger.debug(
+                                f'Push skipped {errata["advisory_id"]}: '
+                                f'no matching packages in UYUNI cache (version mismatch or not yet synced)'
+                            )
                             continue
 
-                    severity        = (errata.get('severity') or 'medium').lower()
-                    sev_label, keywords = SEVERITY_TO_UYUNI.get(severity, SEVERITY_TO_UYUNI['medium'])
-
-                    errata_info = {
-                        'synopsis':         (errata['title'] or errata['advisory_id'])[:200],
-                        'advisory_name':    errata['advisory_id'],
-                        'advisory_type':    'Security Advisory',
-                        'advisory_release': 1,
-                        'severity':         sev_label,
-                        'product':          dist.replace('-', ' ').title(),
-                        'topic':            (errata['title'] or '')[:500],
-                        'description':      (errata['description'] or '')[:2000],
-                        'solution':         'Apply the updated packages.',
-                        'references':       '',
-                        'notes':            f'Imported by UYUNI Errata Manager v3.1 from {errata["source"].upper()}',
-                    }
-
-                    logger.info(
-                        f'Pushing {errata["advisory_id"]} [{sev_label}] '
-                        f'— {len(package_ids)} packages, channels={target_channels}'
-                    )
-                    client.errata.create(session, errata_info, [], keywords, package_ids, target_channels)
+                    _push_single_errata(client, session, errata, package_ids, target_channels)
 
                     with conn.cursor() as cur:
                         cur.execute("UPDATE errata SET sync_status='synced' WHERE id=%s", (errata['id'],))
@@ -988,10 +1131,12 @@ def _push_errata(conn, limit=10):
                 except Exception as e:
                     msg = str(e)
                     if 'already exists' in msg.lower():
+                        # Errata già presente su UYUNI → marca come synced
                         with conn.cursor() as cur:
                             cur.execute("UPDATE errata SET sync_status='synced' WHERE id=%s", (errata['id'],))
                         conn.commit()
                         pushed += 1
+                        logger.debug(f'Errata {errata["advisory_id"]} already exists on UYUNI — marked synced')
                     else:
                         errors.append(f'{errata["advisory_id"]}: {msg[:80]}')
                         logger.error(f'Push error {errata["advisory_id"]}: {msg[:150]}')
@@ -1014,7 +1159,7 @@ def _push_errata(conn, limit=10):
 
 @app.route('/api/health', methods=['GET'])
 def health():
-    status = {'api': 'ok', 'database': 'unknown', 'uyuni': 'unknown', 'version': '3.1'}
+    status = {'api': 'ok', 'database': 'unknown', 'uyuni': 'unknown', 'version': _APP_VERSION}
     try:
         with _db() as conn:
             with conn.cursor() as cur:
@@ -1038,7 +1183,7 @@ def health():
 @app.route('/api/health/detailed', methods=['GET'])
 def health_detailed():
     result = {
-        'version':    '3.1',
+        'version':    _APP_VERSION,
         'timestamp':  datetime.utcnow().isoformat(),
         'database':   {'connected': False},
         'uyuni':      {'connected': False, 'url': UYUNI_URL or 'not configured'},
@@ -1065,7 +1210,7 @@ def health_detailed():
                     """, (sync_type,))
                     row = cur.fetchone()
                     if row and row['completed_at']:
-                        ts = row['completed_at'].replace(tzinfo=None)
+                        ts    = row['completed_at'].replace(tzinfo=None)
                         age_h = round((datetime.utcnow() - ts).total_seconds() / 3600, 1)
                         result['sync_status'][f'last_{sync_type}_sync'] = ts.isoformat()
                         result['sync_status'][f'{sync_type}_age_hours'] = age_h
@@ -1079,8 +1224,8 @@ def health_detailed():
                 row = cur.fetchone()
                 last_upd = row['last_update']
                 result['cache']['total_packages'] = row['total']
-                result['cache']['last_update'] = last_upd.isoformat() if last_upd else None
-                result['cache']['age_hours'] = (
+                result['cache']['last_update']    = last_upd.isoformat() if last_upd else None
+                result['cache']['age_hours']       = (
                     round((datetime.utcnow() - last_upd.replace(tzinfo=None)).total_seconds() / 3600, 1)
                     if last_upd else None
                 )
@@ -1090,7 +1235,7 @@ def health_detailed():
                     WHERE status='error' AND started_at >= NOW() - INTERVAL '24 hours'
                 """)
                 result['alerts']['failed_syncs_24h'] = cur.fetchone()['cnt']
-                result['alerts']['stale_cache'] = (
+                result['alerts']['stale_cache']      = (
                     result['cache']['age_hours'] is None or result['cache']['age_hours'] > 48
                 )
                 usn_age = result['sync_status'].get('usn_age_hours')
@@ -1270,10 +1415,9 @@ def route_push():
 
 # ============================================================
 # SCHEDULER (opzionale — attivato con SCHEDULER_ENABLED=true)
-# Sostituisce le Azure Logic Apps. Ogni job usa advisory lock
-# già integrato nelle funzioni _sync_*, quindi esecuzioni
-# parallele (es. 2 worker gunicorn) vengono gestite in modo
-# sicuro: il secondo worker riceve 'skipped — already_running'.
+# Ogni job usa advisory lock già integrato nelle funzioni _sync_*,
+# quindi esecuzioni parallele (es. 2 worker gunicorn) vengono gestite
+# in modo sicuro: il secondo worker riceve 'skipped — already_running'.
 # ============================================================
 _SCHEDULER_ENABLED = os.environ.get('SCHEDULER_ENABLED', 'false').lower() == 'true'
 
@@ -1282,7 +1426,6 @@ if _SCHEDULER_ENABLED:
     from apscheduler.triggers.cron import CronTrigger
 
     def _job(name, fn, **kwargs):
-        """Wrapper generico: crea connessione DB e chiama la funzione sync."""
         logger.info(f'[Scheduler] START {name}')
         try:
             with _db() as conn:
@@ -1293,27 +1436,22 @@ if _SCHEDULER_ENABLED:
 
     _scheduler = BackgroundScheduler(timezone='UTC')
 
-    # USN — 3 volte al giorno (06:00, 12:00, 18:00 UTC)
     _scheduler.add_job(
         lambda: _job('usn', _sync_usn),
         CronTrigger(hour='6,12,18', minute=0), id='usn', replace_existing=True,
     )
-    # DSA — ogni giorno alle 03:00 UTC
     _scheduler.add_job(
         lambda: _job('dsa', _sync_dsa),
         CronTrigger(hour=3, minute=0), id='dsa', replace_existing=True,
     )
-    # NVD enrichment — ogni giorno alle 04:00 UTC
     _scheduler.add_job(
         lambda: _job('nvd', _sync_nvd, batch_size=200),
         CronTrigger(hour=4, minute=0), id='nvd', replace_existing=True,
     )
-    # Package cache — ogni giorno alle 01:00 UTC
     _scheduler.add_job(
         lambda: _job('packages', _sync_packages),
         CronTrigger(hour=1, minute=0), id='packages', replace_existing=True,
     )
-    # Push → UYUNI — 4 volte al giorno (00:30, 06:30, 12:30, 18:30 UTC)
     _scheduler.add_job(
         lambda: _job('push', lambda conn: _push_errata(conn, limit=50)),
         CronTrigger(hour='0,6,12,18', minute=30), id='push', replace_existing=True,
@@ -1325,15 +1463,12 @@ if _SCHEDULER_ENABLED:
 
 @app.route('/api/scheduler/jobs', methods=['GET'])
 def scheduler_jobs():
-    """Stato jobs scheduler (solo se SCHEDULER_ENABLED=true)."""
     if not _SCHEDULER_ENABLED:
         return jsonify({'enabled': False, 'message': 'Scheduler non attivo — set SCHEDULER_ENABLED=true'})
-    jobs = []
-    for job in _scheduler.get_jobs():
-        jobs.append({
-            'id':       job.id,
-            'next_run': job.next_run_time.isoformat() if job.next_run_time else None,
-        })
+    jobs = [
+        {'id': job.id, 'next_run': job.next_run_time.isoformat() if job.next_run_time else None}
+        for job in _scheduler.get_jobs()
+    ]
     return jsonify({'enabled': True, 'jobs': jobs})
 
 
@@ -1341,6 +1476,5 @@ def scheduler_jobs():
 # ENTRY POINT
 # ============================================================
 if __name__ == '__main__':
-    logger.info('Starting UYUNI Errata Manager v3.1 (development mode)')
-    # In produzione usare gunicorn: gunicorn --bind 0.0.0.0:5000 app:app
+    logger.info(f'Starting UYUNI Errata Manager v{_APP_VERSION} (development mode)')
     app.run(host='127.0.0.1', port=5000, debug=False)

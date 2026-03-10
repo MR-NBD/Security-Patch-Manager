@@ -1,4 +1,4 @@
-# Errata-Parser v3.1
+# Errata-Parser v3.2
 
 Microservizio Flask che sincronizza errata di sicurezza (Ubuntu USN, Debian DSA) verso UYUNI Server, con arricchimento severity tramite NVD/CVSS.
 
@@ -140,18 +140,45 @@ journalctl -u errata-parser -f          # log live
 journalctl -u errata-parser -n 50       # ultimi 50 log
 ```
 
+## Note architettura UYUNI
+
+UYUNI gira come container Podman su openSUSE (`10.172.2.17`).
+La web UI usa **SAML 2.0 con Azure AD** — questo riguarda solo il browser,
+**non tocca le API XML-RPC** che continuano ad usare credenziali locali (`admin`/password).
+Le chiamate di errata-parser verso `/rpc/api` sono indipendenti dal SAML.
+
 ## Troubleshooting
 
-### `uyuni = "error: Connection refused"`
+### TLS handshake timeout verso UYUNI (`ssl.c: The handshake operation timed out`)
+
+Il sintomo è: TCP si connette a `10.172.2.17:443` ma il ServerHello non arriva mai.
+**La causa è il web server interno di UYUNI (Nginx/Tomcat) che non risponde**, non un
+problema di rete o iptables. Si verifica anche da localhost sul server UYUNI stesso.
+
 ```bash
-# Sul server UYUNI: verificare regola iptables
-iptables -t nat -L POSTROUTING -n | grep 10.89.0.3
-# Se manca:
-iptables -t nat -I POSTROUTING -d 10.89.0.3 -p tcp --dport 443 -j MASQUERADE
-iptables-save > /etc/sysconfig/iptables
+# Diagnosi: testa da localhost sul server UYUNI (10.172.2.17)
+python3 -c "
+import xmlrpc.client, ssl, socket
+ctx = ssl.create_default_context()
+ctx.check_hostname = False
+ctx.verify_mode = ssl.CERT_NONE
+socket.setdefaulttimeout(10)
+client = xmlrpc.client.ServerProxy('https://localhost/rpc/api', context=ctx)
+print(client.api.getVersion())
+"
+
+# Se fallisce anche da localhost → UYUNI è hung, riavviare:
+mgradm restart
+# attendere 90 secondi prima di riprovare
+
+# Verifica log container
+podman logs uyuni-server --tail 50
 ```
 
-### Worker bloccato / no risposta
+> **Nota**: UYUNI usa `mgradm restart`, non `systemctl restart tomcat`.
+> Solo `mgradm restart` ricarica correttamente tutta la stack containerizzata.
+
+### Worker errata-parser bloccato / no risposta
 ```bash
 systemctl restart errata-parser
 # Il worker è unico (--workers 1), se è occupato su una sync lunga
