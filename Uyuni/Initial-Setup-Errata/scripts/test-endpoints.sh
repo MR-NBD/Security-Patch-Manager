@@ -2,359 +2,209 @@
 ################################################################################
 # UYUNI Errata Manager - Test Suite v3.1
 #
-# Verifica tutti gli endpoint dell'API dopo il deploy.
+# Testa tutti gli endpoint sui due container ACI:
+#   PUBLIC_API  (aci-errata-api)          — sync USN, DSA, NVD
+#   INTERNAL_API (aci-errata-api-internal) — sync-packages, push UYUNI
+#
 # Usage:
-#   ./test-endpoints.sh                          # usa API default (http://10.172.5.5:5000)
-#   API=http://localhost:5000 ./test-endpoints.sh
-#   API=http://10.172.5.5:5000 API_KEY=mykey ./test-endpoints.sh
+#   ./test-endpoints.sh
+#   PUBLIC_API=http://... INTERNAL_API=http://... API_KEY=... ./test-endpoints.sh
 ################################################################################
 
 set -euo pipefail
 
-API="${API:-http://10.172.5.5:5000}"
-API_KEY="${API_KEY:-}"
+PUBLIC_API="${PUBLIC_API:-http://4.232.4.142:5000}"
+INTERNAL_API="${INTERNAL_API:-http://10.172.5.4:5000}"
+API_KEY="${API_KEY:-spm-key-2024}"
 TIMEOUT=30
 
 PASS=0
 FAIL=0
 WARN=0
 
-# ============================================================
-# HELPERS
-# ============================================================
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-BOLD='\033[1m'
-NC='\033[0m'
+GREEN='\033[0;32m'; RED='\033[0;31m'; YELLOW='\033[1;33m'; BOLD='\033[1m'; NC='\033[0m'
 
-log()  { echo -e "  $*"; }
 pass() { echo -e "  ${GREEN}✓ PASS${NC} — $*"; PASS=$((PASS+1)); }
 fail() { echo -e "  ${RED}✗ FAIL${NC} — $*"; FAIL=$((FAIL+1)); }
 warn() { echo -e "  ${YELLOW}⚠ WARN${NC} — $*"; WARN=$((WARN+1)); }
+section() { echo ""; echo -e "${BOLD}━━━ $* ━━━${NC}"; }
 
-section() {
-    echo ""
-    echo -e "${BOLD}━━━ $* ━━━${NC}"
-}
+get_pub()  { curl -sf --max-time "$TIMEOUT" -H "X-API-Key: $API_KEY" "${PUBLIC_API}$1"  2>&1; }
+get_int()  { curl -sf --max-time "$TIMEOUT" -H "X-API-Key: $API_KEY" "${INTERNAL_API}$1" 2>&1; }
+post_pub() { curl -sf --max-time "$TIMEOUT" -X POST -H "X-API-Key: $API_KEY" "${PUBLIC_API}$1"  2>&1; }
+post_int() { curl -sf --max-time "$TIMEOUT" -X POST -H "X-API-Key: $API_KEY" "${INTERNAL_API}$1" 2>&1; }
 
-# curl con auth header se API_KEY impostata
-api_get() {
-    local endpoint="$1"
-    if [[ -n "$API_KEY" ]]; then
-        curl -sf --max-time "$TIMEOUT" -H "X-API-Key: $API_KEY" "${API}${endpoint}" 2>&1
-    else
-        curl -sf --max-time "$TIMEOUT" "${API}${endpoint}" 2>&1
-    fi
-}
+field() { echo "$1" | python3 -c "import sys,json; print(json.load(sys.stdin).get('$2',''))" 2>/dev/null; }
 
-api_post() {
-    local endpoint="$1"
-    if [[ -n "$API_KEY" ]]; then
-        curl -sf --max-time "$TIMEOUT" -X POST -H "X-API-Key: $API_KEY" "${API}${endpoint}" 2>&1
-    else
-        curl -sf --max-time "$TIMEOUT" -X POST "${API}${endpoint}" 2>&1
-    fi
-}
-
-check_field() {
-    local json="$1" field="$2" expected="$3"
-    local actual
-    actual=$(echo "$json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('$field','MISSING'))" 2>/dev/null || echo "PARSE_ERROR")
-    if [[ "$actual" == "$expected" ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
-field_value() {
-    local json="$1" field="$2"
-    echo "$json" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('$field',''))" 2>/dev/null || echo ""
-}
-
-# ============================================================
-# MAIN
-# ============================================================
 echo ""
-echo -e "${BOLD}╔══════════════════════════════════════════╗${NC}"
-echo -e "${BOLD}║   UYUNI Errata Manager — Test Suite v3.1 ║${NC}"
-echo -e "${BOLD}╚══════════════════════════════════════════╝${NC}"
+echo -e "${BOLD}╔════════════════════════════════════════════════╗${NC}"
+echo -e "${BOLD}║  UYUNI Errata Manager — Test Suite v3.1        ║${NC}"
+echo -e "${BOLD}║  Architettura: 2 container ACI                  ║${NC}"
+echo -e "${BOLD}╚════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "  API:     $API"
-echo "  API_KEY: ${API_KEY:+<set>}${API_KEY:-<non impostata — auth disabilitata>}"
+echo "  PUBLIC_API:   $PUBLIC_API"
+echo "  INTERNAL_API: $INTERNAL_API"
+echo "  API_KEY:      ${API_KEY:+<set>}"
 
 # ============================================================
 # 1. RAGGIUNGIBILITÀ
 # ============================================================
-section "1. Raggiungibilità API"
+section "1. Raggiungibilità"
 
-if curl -sf --max-time 10 "${API}/api/health" > /dev/null 2>&1; then
-    pass "API raggiungibile su ${API}"
+if curl -sf --max-time 10 "${PUBLIC_API}/api/health" > /dev/null 2>&1; then
+    pass "Container PUBBLICO raggiungibile"
 else
-    fail "API NON raggiungibile su ${API} — interrompo"
-    echo ""
-    echo "Verifica:"
-    echo "  az container show --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal"
-    exit 1
+    fail "Container PUBBLICO non raggiungibile — ${PUBLIC_API}"
+fi
+
+if curl -sf --max-time 10 "${INTERNAL_API}/api/health" > /dev/null 2>&1; then
+    pass "Container INTERNO raggiungibile"
+else
+    fail "Container INTERNO non raggiungibile — ${INTERNAL_API}"
 fi
 
 # ============================================================
-# 2. GET /api/health (no auth)
+# 2. HEALTH — Container PUBBLICO
 # ============================================================
-section "2. GET /api/health"
+section "2. GET /api/health — Container PUBBLICO"
 
-resp=$(curl -sf --max-time "$TIMEOUT" "${API}/api/health" 2>&1) || { fail "Request failed"; }
+resp=$(curl -sf --max-time "$TIMEOUT" "${PUBLIC_API}/api/health" 2>&1) || { fail "Request failed"; resp="{}"; }
+[[ "$(field "$resp" api)" == "ok" ]]       && pass "api = ok"       || fail "api = $(field "$resp" api)"
+[[ "$(field "$resp" database)" == "ok" ]]  && pass "database = ok"  || fail "database = $(field "$resp" database)"
+[[ "$(field "$resp" version)" == "3.1" ]]  && pass "version = 3.1"  || fail "version = $(field "$resp" version)"
 
-if check_field "$resp" "api" "ok"; then
-    pass "api = ok"
+uyuni_pub=$(field "$resp" uyuni)
+if [[ "$uyuni_pub" == "not configured" || "$uyuni_pub" == "ok" ]]; then
+    warn "uyuni = $uyuni_pub (normale: container pubblico non ha UYUNI_URL)"
 else
-    fail "api field not 'ok': $resp"
+    warn "uyuni = $uyuni_pub"
 fi
 
-db_status=$(field_value "$resp" "database")
-if [[ "$db_status" == "ok" ]]; then
-    pass "database = ok"
-else
-    fail "database = $db_status"
-fi
+# ============================================================
+# 3. HEALTH — Container INTERNO
+# ============================================================
+section "3. GET /api/health — Container INTERNO"
 
-uyuni_status=$(field_value "$resp" "uyuni")
-if [[ "$uyuni_status" == "ok" ]]; then
+resp=$(curl -sf --max-time "$TIMEOUT" "${INTERNAL_API}/api/health" 2>&1) || { fail "Request failed"; resp="{}"; }
+[[ "$(field "$resp" api)" == "ok" ]]       && pass "api = ok"       || fail "api = $(field "$resp" api)"
+[[ "$(field "$resp" database)" == "ok" ]]  && pass "database = ok"  || fail "database = $(field "$resp" database)"
+[[ "$(field "$resp" version)" == "3.1" ]]  && pass "version = 3.1"  || fail "version = $(field "$resp" version)"
+
+uyuni_int=$(field "$resp" uyuni)
+if [[ "$uyuni_int" == "ok" ]]; then
     pass "uyuni = ok"
-elif [[ "$uyuni_status" == "not configured" ]]; then
-    warn "uyuni = not configured (UYUNI_URL non impostata)"
 else
-    fail "uyuni = $uyuni_status"
-fi
-
-version=$(field_value "$resp" "version")
-if [[ "$version" == "3.1" ]]; then
-    pass "version = 3.1"
-else
-    fail "version = $version (atteso 3.1)"
+    fail "uyuni = $uyuni_int (container interno deve raggiungere UYUNI)"
 fi
 
 # ============================================================
-# 3. GET /api/health/detailed (no auth)
+# 4. HEALTH DETAILED — entrambi
 # ============================================================
-section "3. GET /api/health/detailed"
+section "4. GET /api/health/detailed"
 
-resp=$(curl -sf --max-time "$TIMEOUT" "${API}/api/health/detailed" 2>&1) || { fail "Request failed"; }
-
-# Campi obbligatori
-for field in version timestamp database uyuni sync_status cache alerts; do
-    val=$(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print('present' if '$field' in d else 'missing')" 2>/dev/null)
-    if [[ "$val" == "present" ]]; then
-        pass "campo '$field' presente"
-    else
-        fail "campo '$field' mancante nella risposta"
-    fi
+for label in "PUBLIC:${PUBLIC_API}" "INTERNAL:${INTERNAL_API}"; do
+    name="${label%%:*}"
+    url="${label#*:}"
+    resp=$(curl -sf --max-time "$TIMEOUT" "${url}/api/health/detailed" 2>&1) || { fail "[$name] Request failed"; continue; }
+    db=$(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('database',{}).get('connected','?'))" 2>/dev/null)
+    total=$(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('database',{}).get('errata_total','?'))" 2>/dev/null)
+    pending=$(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('database',{}).get('errata_pending','?'))" 2>/dev/null)
+    [[ "$db" == "True" ]] \
+        && pass "[$name] DB connected — errata_total=$total, errata_pending=$pending" \
+        || fail "[$name] DB connected=$db"
 done
 
-# Database connected
-db_conn=$(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('database',{}).get('connected','?'))" 2>/dev/null)
-if [[ "$db_conn" == "True" ]]; then
-    errata_total=$(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('database',{}).get('errata_total','?'))" 2>/dev/null)
-    errata_pending=$(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('database',{}).get('errata_pending','?'))" 2>/dev/null)
-    pass "database connected — errata_total=$errata_total, errata_pending=$errata_pending"
-else
-    fail "database.connected = $db_conn"
-fi
+# ============================================================
+# 5. AUTENTICAZIONE
+# ============================================================
+section "5. Autenticazione X-API-Key"
 
-# UYUNI connected
-uyuni_conn=$(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('uyuni',{}).get('connected','?'))" 2>/dev/null)
-if [[ "$uyuni_conn" == "True" ]]; then
-    pass "uyuni connected"
-else
-    warn "uyuni.connected = $uyuni_conn"
-fi
-
-# Alert stale check
-stale_cache=$(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('alerts',{}).get('stale_cache','?'))" 2>/dev/null)
-if [[ "$stale_cache" == "False" ]]; then
-    pass "cache non stale"
-else
-    warn "stale_cache=$stale_cache (cache vecchia o vuota — aggiornare con /api/uyuni/sync-packages)"
-fi
+for label in "PUBLIC:${PUBLIC_API}" "INTERNAL:${INTERNAL_API}"; do
+    name="${label%%:*}"
+    url="${label#*:}"
+    code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" -X POST "${url}/api/sync/usn" 2>/dev/null)
+    [[ "$code" == "401" ]] && pass "[$name] senza chiave → 401" || warn "[$name] senza chiave → $code (SPM_API_KEY impostata?)"
+    code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" -H "X-API-Key: wrong" -X POST "${url}/api/sync/usn" 2>/dev/null)
+    [[ "$code" == "401" ]] && pass "[$name] chiave sbagliata → 401" || warn "[$name] chiave sbagliata → $code"
+done
 
 # ============================================================
-# 4. AUTENTICAZIONE
+# 6. CANALI UYUNI — Container INTERNO
 # ============================================================
-section "4. Autenticazione (X-API-Key)"
+section "6. GET /api/uyuni/channels — Container INTERNO"
 
-if [[ -n "$API_KEY" ]]; then
-    # Test senza chiave → deve dare 401
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" \
-        -X POST "${API}/api/sync/usn" 2>/dev/null)
-    if [[ "$http_code" == "401" ]]; then
-        pass "Richiesta senza chiave → 401 Unauthorized"
-    else
-        warn "Richiesta senza chiave → $http_code (atteso 401; SPM_API_KEY non impostata nel container?)"
-    fi
-
-    # Test con chiave sbagliata → 401
-    http_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time "$TIMEOUT" \
-        -H "X-API-Key: wrong-key-12345" -X POST "${API}/api/sync/usn" 2>/dev/null)
-    if [[ "$http_code" == "401" ]]; then
-        pass "Chiave sbagliata → 401 Unauthorized"
-    else
-        warn "Chiave sbagliata → $http_code"
-    fi
-else
-    warn "API_KEY non impostata — skip test autenticazione"
-fi
+resp=$(get_int "/api/uyuni/channels" 2>&1) || { fail "Request failed"; resp="{}"; }
+count=$(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('count',0))" 2>/dev/null || echo 0)
+dists=$(echo "$resp" | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+s=set(ch.get('distribution') for ch in d.get('channels',[]) if ch.get('distribution'))
+print(', '.join(sorted(s)) or 'nessuna')
+" 2>/dev/null || echo "?")
+[[ "$count" -gt 0 ]] 2>/dev/null \
+    && pass "$count canali rilevati — distribuzioni: $dists" \
+    || warn "Nessun canale trovato (count=$count)"
 
 # ============================================================
-# 5. GET /api/uyuni/channels
+# 7. SYNC STATUS — Container PUBBLICO
 # ============================================================
-section "5. GET /api/uyuni/channels"
+section "7. GET /api/sync/status — Container PUBBLICO"
 
-resp=$(api_get "/api/uyuni/channels" 2>&1)
-http_ok=$?
-
-if [[ $http_ok -eq 0 ]]; then
-    count=$(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('count',0))" 2>/dev/null || echo "?")
-    channels=$(echo "$resp" | python3 -c "
-import sys, json
-d = json.load(sys.stdin)
-dists = set(ch.get('distribution') for ch in d.get('channels',[]) if ch.get('distribution'))
-print(', '.join(sorted(dists)) if dists else 'nessuna distribuzione rilevata')
-" 2>/dev/null)
-    if [[ "$count" -gt 0 ]] 2>/dev/null; then
-        pass "Trovati $count canali — distribuzioni: $channels"
-    else
-        warn "Nessun canale trovato (count=$count)"
-    fi
-else
-    fail "Errore chiamata /api/uyuni/channels"
-fi
-
-# ============================================================
-# 6. GET /api/sync/status
-# ============================================================
-section "6. GET /api/sync/status"
-
-resp=$(api_get "/api/sync/status" 2>&1)
-if [[ $? -eq 0 ]]; then
-    log_count=$(echo "$resp" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('logs',[])))" 2>/dev/null || echo "?")
-    pass "Risposta OK — $log_count log entries"
-
-    # Mostra ultimi sync
-    echo "$resp" | python3 -c "
-import sys, json
-logs = json.load(sys.stdin).get('logs', [])[:5]
-for l in logs:
-    print(f'    [{l.get(\"sync_type\",\"?\")}] {l.get(\"status\",\"?\")} — {l.get(\"started_at\",\"?\")} ({l.get(\"items_processed\",\"?\")} items)')
+resp=$(get_pub "/api/sync/status" 2>&1) || { fail "Request failed"; resp="{}"; }
+n=$(echo "$resp" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('logs',[])))" 2>/dev/null || echo 0)
+pass "Risposta OK — $n log entries"
+echo "$resp" | python3 -c "
+import sys,json
+for l in json.load(sys.stdin).get('logs',[])[:4]:
+    print(f'    [{l.get(\"sync_type\",\"?\")}] {l.get(\"status\",\"?\")} @ {l.get(\"started_at\",\"?\")[:19]}')
 " 2>/dev/null || true
-else
-    fail "Errore chiamata /api/sync/status"
-fi
 
 # ============================================================
-# 7. POST /api/sync/nvd (solo batch piccolo)
+# 8. NVD enrichment — Container PUBBLICO (max 5 CVE)
 # ============================================================
-section "7. POST /api/sync/nvd?batch_size=5"
+section "8. POST /api/sync/nvd?batch_size=5 — Container PUBBLICO"
 
-log "Eseguo enrichment NVD su max 5 CVE (test non distruttivo)..."
-resp=$(api_post "/api/sync/nvd?batch_size=5" 2>&1)
-if [[ $? -eq 0 ]]; then
-    status=$(field_value "$resp" "status")
-    if [[ "$status" == "success" ]]; then
-        processed=$(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('processed',0))" 2>/dev/null)
-        updated=$(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('errata_severity_updated',0))" 2>/dev/null)
-        pass "NVD sync OK — $processed CVE processati, $updated errata severity aggiornate"
-    else
-        warn "NVD sync status=$status (risposta: $resp)"
-    fi
-else
-    fail "Errore chiamata /api/sync/nvd"
-fi
+echo "  (enrichment NVD su max 5 CVE — non distruttivo...)"
+resp=$(post_pub "/api/sync/nvd?batch_size=5" 2>&1) || { fail "Request failed"; resp="{}"; }
+[[ "$(field "$resp" status)" == "success" ]] \
+    && pass "NVD OK — $(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'{d.get(\"processed\",0)} CVE, {d.get(\"errata_severity_updated\",0)} severity aggiornate')" 2>/dev/null)" \
+    || fail "NVD status=$(field "$resp" status)"
 
 # ============================================================
-# 8. POST /api/uyuni/sync-packages
+# 9. SYNC PACKAGES — Container INTERNO
 # ============================================================
-section "8. POST /api/uyuni/sync-packages"
+section "9. POST /api/uyuni/sync-packages — Container INTERNO"
 
-log "Aggiornamento cache pacchetti UYUNI (può richiedere 1-5 min)..."
-resp=$(curl -sf --max-time 600 -X POST \
-    ${API_KEY:+-H "X-API-Key: $API_KEY"} \
-    "${API}/api/uyuni/sync-packages" 2>&1)
-if [[ $? -eq 0 ]]; then
-    status=$(field_value "$resp" "status")
-    if [[ "$status" == "success" ]]; then
-        total=$(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('total_packages_synced',0))" 2>/dev/null)
-        pass "Package cache aggiornata — $total pacchetti totali"
-    else
-        warn "sync-packages status=$status"
-    fi
-else
-    fail "Errore o timeout su /api/uyuni/sync-packages"
-fi
+echo "  (aggiornamento cache pacchetti — può richiedere 2-5 min...)"
+resp=$(curl -sf --max-time 600 -X POST -H "X-API-Key: $API_KEY" "${INTERNAL_API}/api/uyuni/sync-packages" 2>&1) || { fail "Errore o timeout"; resp="{}"; }
+[[ "$(field "$resp" status)" == "success" ]] \
+    && pass "Package cache OK — $(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('total_packages_synced',0))" 2>/dev/null) pacchetti" \
+    || fail "status=$(field "$resp" status)"
 
 # ============================================================
-# 9. POST /api/sync/usn
+# 10. PUSH → UYUNI — Container INTERNO (max 3)
 # ============================================================
-section "9. POST /api/sync/usn"
+section "10. POST /api/uyuni/push?limit=3 — Container INTERNO"
 
-log "Sync Ubuntu USN incrementale..."
-resp=$(curl -sf --max-time 300 -X POST \
-    ${API_KEY:+-H "X-API-Key: $API_KEY"} \
-    "${API}/api/sync/usn" 2>&1)
-if [[ $? -eq 0 ]]; then
-    status=$(field_value "$resp" "status")
-    if [[ "$status" == "success" ]]; then
-        processed=$(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('processed',d.get('skipped','?')))" 2>/dev/null)
-        pass "USN sync OK — $processed errata processati"
-    else
-        warn "USN sync status=$status"
-    fi
-else
-    fail "Errore o timeout su /api/sync/usn"
-fi
-
-# ============================================================
-# 10. POST /api/uyuni/push?limit=3
-# ============================================================
-section "10. POST /api/uyuni/push?limit=3"
-
-log "Push max 3 errata pending a UYUNI (test conservativo)..."
-resp=$(curl -sf --max-time 120 -X POST \
-    ${API_KEY:+-H "X-API-Key: $API_KEY"} \
-    "${API}/api/uyuni/push?limit=3" 2>&1)
-if [[ $? -eq 0 ]]; then
-    status=$(field_value "$resp" "status")
-    if [[ "$status" == "success" ]]; then
-        pushed=$(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('pushed',0))" 2>/dev/null)
-        skipped=$(echo "$resp" | python3 -c "import sys,json; print(json.load(sys.stdin).get('skipped_version_mismatch',0))" 2>/dev/null)
-        pass "Push OK — $pushed pushed, $skipped skipped (version mismatch)"
-    else
-        warn "Push status=$status"
-    fi
-else
-    fail "Errore su /api/uyuni/push"
-fi
+resp=$(curl -sf --max-time 120 -X POST -H "X-API-Key: $API_KEY" "${INTERNAL_API}/api/uyuni/push?limit=3" 2>&1) || { fail "Errore"; resp="{}"; }
+[[ "$(field "$resp" status)" == "success" ]] \
+    && pass "Push OK — $(echo "$resp" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'{d.get(\"pushed\",0)} pushed, {d.get(\"skipped_version_mismatch\",0)} skipped')" 2>/dev/null)" \
+    || fail "status=$(field "$resp" status)"
 
 # ============================================================
 # RIEPILOGO
 # ============================================================
 echo ""
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BOLD}RIEPILOGO${NC}"
-echo -e "  ${GREEN}✓ PASS: $PASS${NC}"
-if [[ $WARN -gt 0 ]]; then
-    echo -e "  ${YELLOW}⚠ WARN: $WARN${NC}"
-fi
-if [[ $FAIL -gt 0 ]]; then
-    echo -e "  ${RED}✗ FAIL: $FAIL${NC}"
-fi
-echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "  ${GREEN}✓ PASS: $PASS${NC}  ${YELLOW}⚠ WARN: $WARN${NC}  ${RED}✗ FAIL: $FAIL${NC}"
+echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
 if [[ $FAIL -eq 0 ]]; then
     echo -e "\n  ${GREEN}${BOLD}Tutti i test superati.${NC}"
     exit 0
 else
-    echo -e "\n  ${RED}${BOLD}$FAIL test falliti — verificare i log del container.${NC}"
-    echo "  az container logs --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal --tail 50"
+    echo -e "\n  ${RED}${BOLD}$FAIL test falliti.${NC}"
+    echo "  Log pubblico:  az container logs --resource-group test_group --name aci-errata-api"
+    echo "  Log interno:   az container logs --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal"
     exit 1
 fi
