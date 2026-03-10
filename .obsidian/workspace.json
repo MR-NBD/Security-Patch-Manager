@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "4ce3abdb502871bb",
+        "id": "52c026cf36d8e26b",
         "type": "tabs",
         "children": [
           {
-            "id": "48fb3366e12623b9",
+            "id": "259498039fcab34e",
             "type": "leaf",
             "state": {
-              "type": "split-diff-view",
+              "type": "markdown",
               "state": {
-                "aFile": ".obsidian/workspace.json",
-                "bFile": ".obsidian/workspace.json",
-                "aRef": ""
+                "file": "Uyuni/Teoria/UYUNI.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "diff",
-              "title": "Diff: workspace.json"
+              "icon": "lucide-file",
+              "title": "UYUNI"
             }
           }
         ]
@@ -194,8 +194,24 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "48fb3366e12623b9",
+  "active": "259498039fcab34e",
   "lastOpenFiles": [
+    "Uyuni/Teoria/Supported-Clients.md",
+    "Uyuni/Teoria/PKI-TLS-HLD.md",
+    "Uyuni/Teoria/HA-Architecture-UYUNI.md",
+    "Uyuni/Teoria/BUG-MGRPXY.md",
+    "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
+    "Uyuni/Teoria/Amministrazione-e-Troubleshooting.md",
+    "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
+    "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
+    "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-API-SPEC.md",
+    "Uyuni/Infrastructure-Design/SCHEMI-a-Blocchi-SPM.md",
+    "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
+    "Uyuni/Deployment/Setup-Canali-Ubuntu 24.04 LTS per UYUNI.md",
+    "Uyuni/Deployment/Migrazione-PostgreSQL-Azure-Flexible-Server.md",
+    "tools/GUIDA.md",
+    "GeneralDocumentation_TESI/Tabella_Comparativa.md",
+    "GeneralDocumentation_TESI/Patch Management Metrics.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Errata-Parser/tests/__pycache__/test_app.cpython-310.pyc",
     "Errata-Parser/tests/__pycache__/test_app.cpython-310.pyc.130415237953264",
@@ -209,29 +225,13 @@
     "Errata-Parser/app.py.tmp.61595.1773177640412",
     "Errata-Parser/pytest-cache-files-lds417bs/README.md",
     "Orchestrator/PROJECT-STATUS.md",
-    "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
     "Errata-Parser/README.md",
-    "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-API-SPEC.md",
-    "Uyuni/Infrastructure-Design/SCHEMI-a-Blocchi-SPM.md",
-    "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
-    "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
     "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
     "Orchestrator/README.md",
-    "Uyuni/Teoria/PKI-TLS-HLD.md",
-    "Uyuni/Teoria/Supported-Clients.md",
     "Uyuni/Teoria/UYUNI.md",
-    "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
-    "Uyuni/Teoria/Amministrazione-e-Troubleshooting.md",
-    "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "Uyuni/Deployment/UYUNI-Proxy-Cascata.md",
-    "Uyuni/Deployment/Setup-Canali-Ubuntu 24.04 LTS per UYUNI.md",
     "Uyuni/Deployment/OpenSCAP-Uyuni-RHEL9.md",
-    "Uyuni/Deployment/Migrazione-PostgreSQL-Azure-Flexible-Server.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Server.md",
-    "Uyuni/Deployment/Installazione-UYUNI-Proxy.md",
-    "Uyuni/Deployment/Configurazione-VHM-Azure.md",
-    "Uyuni/Deployment/Configurazione-Ubuntu-24.04.md",
     "Senza nome.canvas",
     "Senza nome 2.canvas",
     "Senza nome 1.canvas",
