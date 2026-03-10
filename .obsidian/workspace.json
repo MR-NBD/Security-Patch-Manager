@@ -194,8 +194,9 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "1044af1749dcd905",
+  "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
+    "Errata-Parser/app.py.tmp.57872.1773173429305",
     "Errata-Parser/__pycache__/app.cpython-310.pyc.133198741660464",
     "Errata-Parser/__pycache__/app.cpython-310.pyc",
     "Errata-Parser/__pycache__/app.cpython-310.pyc.131014008428048",
@@ -209,7 +210,6 @@
     "Errata-Parser/README.md",
     "Errata-Parser/scripts/migrate-db-local.sh",
     "Errata-Parser/scripts/update-vm.sh",
-    "Errata-Parser/scripts/install-vm.sh",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-API-SPEC.md",
     "Uyuni/Infrastructure-Design/SCHEMI-a-Blocchi-SPM.md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",

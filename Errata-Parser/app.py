@@ -226,7 +226,7 @@ def _try_lock(conn, name):
         return True
     with conn.cursor() as cur:
         cur.execute('SELECT pg_try_advisory_lock(%s)', (key,))
-        return cur.fetchone()[0]
+        return cur.fetchone()['pg_try_advisory_lock']
 
 
 def _unlock(conn, name):
