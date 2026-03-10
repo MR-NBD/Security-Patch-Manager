@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
+                "file": "Orchestrator/PROJECT-STATUS.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "SPM-ORCHESTRATOR-DESIGN"
+              "title": "PROJECT-STATUS"
             }
           }
         ]
@@ -196,6 +196,7 @@
   },
   "active": "1044af1749dcd905",
   "lastOpenFiles": [
+    "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
     "Errata-Parser/README.md",
     "Errata-Parser/scripts/migrate-db-local.sh",
     "Errata-Parser/scripts/update-vm.sh",
@@ -214,7 +215,6 @@
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
     "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
     "Orchestrator/README.md",
-    "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
     "Uyuni/Teoria/PKI-TLS-HLD.md",
     "Uyuni/Teoria/Supported-Clients.md",
     "Uyuni/Teoria/UYUNI.md",
