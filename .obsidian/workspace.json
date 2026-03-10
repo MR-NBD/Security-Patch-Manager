@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Orchestrator/PROJECT-STATUS.md",
+                "file": "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "PROJECT-STATUS"
+              "title": "AzureAD-SAML-Authentication"
             }
           }
         ]
@@ -196,6 +196,7 @@
   },
   "active": "1044af1749dcd905",
   "lastOpenFiles": [
+    "Orchestrator/PROJECT-STATUS.md",
     "Errata-Parser/app.py.tmp.54376.1773166528182",
     "Errata-Parser/app.py.tmp.54376.1773166523999",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-DESIGN.md",
@@ -208,7 +209,6 @@
     "Errata-Parser/app.py",
     "Errata-Parser/sql",
     "Errata-Parser/scripts",
-    "Errata-Parser",
     "Uyuni/Infrastructure-Design/SPM-ORCHESTRATOR-API-SPEC.md",
     "Uyuni/Infrastructure-Design/SCHEMI-a-Blocchi-SPM.md",
     "Uyuni/Infrastructure-Design/P3-PATCH-TESTING-DESIGN.md",
