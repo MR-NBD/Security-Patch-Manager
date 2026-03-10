@@ -1,59 +1,76 @@
-https://github.com/ATIX-AG/errata_parser
-Sistema per sincronizzare automaticamente gli avvisi di sicurezza (USN/DSA) verso UYUNI Server.
+# UYUNI Errata Manager — Setup & Deployment
+
+Sincronizza automaticamente errata Ubuntu USN e Debian DSA verso UYUNI Server, con arricchimento severity tramite NVD/CVSS.
+
 ## Quick Start
-### 1. Health Check Container
-```bash
-# Verifica stato container
-./scripts/check-containers.sh
 
-# Test connettività
+### 1. Health Check
+
+```bash
+# Stato base
 curl -s http://10.172.5.5:5000/api/health | jq
-```
-### 2. Sync Completo
-**Architettura a 2 Container:**
-- **Container Pubblico** (4.232.4.32): Sync USN, DSA, OVAL, NVD
-- **Container Interno** (10.172.5.5): Push UYUNI, Cache pacchetti
-```bash
-# FASE 1: Sync esterni (da PC/Azure Cloud Shell)
-./scripts/remote-sync.sh full
 
-# FASE 2: Sync interni (da server UYUNI)
-ssh root@10.172.2.5
-/root/uyuni-server-sync.sh quick
+# Stato dettagliato (metriche, alert, età sync)
+curl -s http://10.172.5.5:5000/api/health/detailed | jq
 ```
-### 3. Automazione (Cron)
+
+### 2. Sync Completo
+
 ```bash
-# Sul server UYUNI
+# Pipeline completa: auto-detect distribuzioni → USN → DSA → NVD → push
+curl -s -X POST \
+  -H "X-API-Key: <api-key>" \
+  "http://10.172.5.5:5000/api/sync/auto?nvd_batch=100&push_limit=50" | jq
+```
+
+### 3. Automazione (Cron sul server UYUNI)
+
+```bash
+# Copia script
+scp scripts/errata-sync-v3.sh root@10.172.2.5:/root/errata-sync.sh
+
+# Configura cron (domenica 02:00)
 cat > /etc/cron.d/errata-sync << 'EOF'
-0 2 * * 0 root /root/errata-sync.sh >> /var/log/errata-sync.log 2>&1
+0 2 * * 0 root API=http://10.172.5.5:5000 /root/errata-sync.sh >> /var/log/errata-sync.log 2>&1
 EOF
 ```
-## API Endpoints Principali
 
-| Endpoint | Metodo | Descrizione |
-|----------|--------|-------------|
-| `/api/health` | GET | Health check base |
-| `/api/health/detailed` | GET | Health check dettagliato |
-| `/api/sync/usn` | POST | Sync Ubuntu USN |
-| `/api/sync/dsa/full` | POST | Sync Debian DSA completo |
-| `/api/sync/oval?platform=all` | POST | Sync OVAL definitions |
-| `/api/uyuni/sync-packages` | POST | Update cache pacchetti |
-| `/api/uyuni/push` | POST | Push errata a UYUNI |
-| `/api/stats/overview` | GET | Statistiche generali |
+## API Endpoints
+
+| Endpoint | Metodo | Auth | Descrizione |
+|---|---|---|---|
+| `/api/health` | GET | No | Stato base |
+| `/api/health/detailed` | GET | No | Stato dettagliato con alert |
+| `/api/sync/auto` | POST | Si | Pipeline completa |
+| `/api/sync/usn` | POST | Si | Solo Ubuntu USN |
+| `/api/sync/dsa` | POST | Si | Solo Debian DSA |
+| `/api/sync/nvd` | POST | Si | Solo NVD enrichment |
+| `/api/uyuni/sync-packages` | POST | Si | Aggiorna cache pacchetti |
+| `/api/uyuni/push` | POST | Si | Push errata a UYUNI |
+| `/api/uyuni/channels` | GET | Si | Canali UYUNI con distribuzione |
+| `/api/sync/status` | GET | Si | Log ultimi 20 sync |
+
+Auth: header `X-API-Key: <valore>` su tutti gli endpoint tranne `/api/health*`.
+
 ## Documentazione
-- **Deployment**: [docs/DEPLOYMENT-GUIDE-v2.5.md](docs/DEPLOYMENT-GUIDE-v2.5.md)
-- **Changelog v2.5**: [docs/README-v2.5-IMPROVEMENTS.md](docs/README-v2.5-IMPROVEMENTS.md)
-- **Guida Completa**: [docs/UYUNI-ERRATA-MANAGER-v2.4-GUIDA-COMPLETA.md](UYUNI-ERRATA-MANAGER.md)
+
+- **Deployment completo**: [DEPLOYMENT-GUIDE.md](DEPLOYMENT-GUIDE.md)
+- **Schema database**: [sql/errata-schema.sql](sql/errata-schema.sql)
+- **Script sync**: [scripts/errata-sync-v3.sh](scripts/errata-sync-v3.sh)
+
 ## Troubleshooting
-### Container non risponde
+
 ```bash
-az container restart --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal
-```
-### Verificare log
-```bash
-az container logs --resource-group ASL0603-spoke10-rg-spoke-italynorth --name aci-errata-api-internal
-```
-### Statistiche errata
-```bash
-curl -s http://10.172.5.5:5000/api/stats/overview | jq
+# Container log
+az container logs \
+  --resource-group ASL0603-spoke10-rg-spoke-italynorth \
+  --name aci-errata-api-internal --tail 100
+
+# Restart
+az container restart \
+  --resource-group ASL0603-spoke10-rg-spoke-italynorth \
+  --name aci-errata-api-internal
+
+# Sync log
+curl -s -H "X-API-Key: <key>" http://10.172.5.5:5000/api/sync/status | jq '.logs[:5]'
 ```
