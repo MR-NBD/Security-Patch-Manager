@@ -1258,6 +1258,75 @@ def route_push():
 
 
 # ============================================================
+# SCHEDULER (opzionale — attivato con SCHEDULER_ENABLED=true)
+# Sostituisce le Azure Logic Apps. Ogni job usa advisory lock
+# già integrato nelle funzioni _sync_*, quindi esecuzioni
+# parallele (es. 2 worker gunicorn) vengono gestite in modo
+# sicuro: il secondo worker riceve 'skipped — already_running'.
+# ============================================================
+_SCHEDULER_ENABLED = os.environ.get('SCHEDULER_ENABLED', 'false').lower() == 'true'
+
+if _SCHEDULER_ENABLED:
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from apscheduler.triggers.cron import CronTrigger
+
+    def _job(name, fn, **kwargs):
+        """Wrapper generico: crea connessione DB e chiama la funzione sync."""
+        logger.info(f'[Scheduler] START {name}')
+        try:
+            with _db() as conn:
+                result = fn(conn, **kwargs)
+            logger.info(f'[Scheduler] DONE  {name}: {result}')
+        except Exception as e:
+            logger.error(f'[Scheduler] FAIL  {name}: {e}')
+
+    _scheduler = BackgroundScheduler(timezone='UTC')
+
+    # USN — 3 volte al giorno (06:00, 12:00, 18:00 UTC)
+    _scheduler.add_job(
+        lambda: _job('usn', _sync_usn),
+        CronTrigger(hour='6,12,18', minute=0), id='usn', replace_existing=True,
+    )
+    # DSA — ogni giorno alle 03:00 UTC
+    _scheduler.add_job(
+        lambda: _job('dsa', _sync_dsa),
+        CronTrigger(hour=3, minute=0), id='dsa', replace_existing=True,
+    )
+    # NVD enrichment — ogni giorno alle 04:00 UTC
+    _scheduler.add_job(
+        lambda: _job('nvd', _sync_nvd, batch_size=200),
+        CronTrigger(hour=4, minute=0), id='nvd', replace_existing=True,
+    )
+    # Package cache — ogni giorno alle 01:00 UTC
+    _scheduler.add_job(
+        lambda: _job('packages', _sync_packages),
+        CronTrigger(hour=1, minute=0), id='packages', replace_existing=True,
+    )
+    # Push → UYUNI — 4 volte al giorno (00:30, 06:30, 12:30, 18:30 UTC)
+    _scheduler.add_job(
+        lambda: _job('push', lambda conn: _push_errata(conn, limit=50)),
+        CronTrigger(hour='0,6,12,18', minute=30), id='push', replace_existing=True,
+    )
+
+    _scheduler.start()
+    logger.info('[Scheduler] APScheduler avviato — usn(6,12,18h) dsa(3h) nvd(4h) packages(1h) push(0:30,6:30,12:30,18:30)')
+
+
+@app.route('/api/scheduler/jobs', methods=['GET'])
+def scheduler_jobs():
+    """Stato jobs scheduler (solo se SCHEDULER_ENABLED=true)."""
+    if not _SCHEDULER_ENABLED:
+        return jsonify({'enabled': False, 'message': 'Scheduler non attivo — set SCHEDULER_ENABLED=true'})
+    jobs = []
+    for job in _scheduler.get_jobs():
+        jobs.append({
+            'id':       job.id,
+            'next_run': job.next_run_time.isoformat() if job.next_run_time else None,
+        })
+    return jsonify({'enabled': True, 'jobs': jobs})
+
+
+# ============================================================
 # ENTRY POINT
 # ============================================================
 if __name__ == '__main__':
