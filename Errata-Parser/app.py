@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-UYUNI Errata Manager - v3.2
+UYUNI Errata Manager - v3.3
 
 Sincronizza errata Ubuntu USN e/o Debian DSA verso UYUNI Server.
 Le distribuzioni vengono rilevate automaticamente dai canali UYUNI attivi.
@@ -19,7 +19,17 @@ Endpoints:
   GET  /api/health/detailed     — stato dettagliato con metriche e alert (no auth)
 
 Auth: header X-API-Key richiesto su tutti gli endpoint tranne /api/health*.
-      Disabilitato se SPM_API_KEY non è impostata.
+      Se SPM_API_KEY non è impostata tutti gli endpoint autenticati ritornano 503.
+
+Changelog v3.3:
+  - _check_api_key(): 503 se SPM_API_KEY non impostata (no silent bypass); audit log
+  - version_ge(): fallback conservativo → False (non include pkg non confrontabili)
+  - _sanitize_error(): sempre "Internal error" — no leak di dettagli interni
+  - _get_active_distributions(): cache in-memory (TTL 1h) per resilienza UYUNI
+  - _sync_packages(): skip DELETE se listAllPackages ritorna lista vuota (no cache wipe)
+  - CVE ID validation: regex CVE-YYYY-NNNNN in USN e DSA sync
+  - Scheduler: _job_status traccia last_run/status/error per ogni job
+  - scheduler_jobs(): espone _job_status nell'endpoint (visibilità fallimenti)
 
 Changelog v3.2:
   - version_ge(): supporto epoch Debian/Ubuntu (fix push sempre skippato)
@@ -36,6 +46,7 @@ import sys
 import time
 import xmlrpc.client
 from datetime import datetime
+from itertools import zip_longest
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -97,7 +108,7 @@ if _CORS_ORIGIN:
 # ============================================================
 # CONSTANTS
 # ============================================================
-_APP_VERSION    = '3.2'
+_APP_VERSION    = '3.3'
 _REQUEST_HEADERS = {'User-Agent': f'UYUNI-Errata-Manager/{_APP_VERSION}'}
 
 # severity interna → (label UYUNI, keywords per errata.create)
@@ -141,6 +152,13 @@ _DEBIAN_RELEASE_MAP = {
 # Advisory lock keys PostgreSQL
 _LOCK_KEYS = {'usn': 1001, 'dsa': 1002, 'nvd': 1003, 'packages': 1004, 'push': 1005}
 
+# Regex per validazione CVE ID (es. CVE-2024-12345)
+_RE_CVE = re.compile(r'^CVE-\d{4}-\d{4,}$')
+
+# Cache distribuzioni UYUNI attive (TTL 1h) — resilienza se UYUNI non raggiungibile
+_dist_cache: dict = {'dists': set(), 'ts': 0.0}
+_DIST_CACHE_TTL  = 3600  # secondi
+
 # Limiti input API
 _MAX_BATCH_SIZE = 500
 _MAX_PUSH_LIMIT = 200
@@ -157,9 +175,20 @@ def _check_api_key():
     if request.endpoint in _AUTH_EXEMPT:
         return
     if not SPM_API_KEY:
-        return
-    if request.headers.get('X-API-Key', '') != SPM_API_KEY:
+        # Non bypassare silenziosamente: se la chiave non è impostata il servizio
+        # è mal configurato — rifiuta tutte le richieste autenticate.
+        logger.error('SPM_API_KEY not set — rejecting request (503)')
+        return jsonify({'error': 'Service misconfigured — SPM_API_KEY not set'}), 503
+    key = request.headers.get('X-API-Key', '')
+    if key != SPM_API_KEY:
+        logger.warning(
+            f'API auth failed: method={request.method} path={request.path} '
+            f'ip={request.remote_addr}'
+        )
         return jsonify({'error': 'Unauthorized'}), 401
+    logger.info(
+        f'API call: {request.method} {request.path} ip={request.remote_addr}'
+    )
 
 
 # ============================================================
@@ -273,14 +302,57 @@ def _split_epoch(v):
     return 0, v
 
 
-def _strip_deb_revision(v):
+def _dpkg_char_order(c):
     """
-    Rimuove la revisione Debian/Ubuntu per il confronto upstream.
-    '2.3.1-4+deb12u1' → '2.3.1'
-    '8.9p1-3ubuntu0.10' → '8.9p1'
+    Ordine carattere per confronto non-numerico algoritmo dpkg.
+    ~ < fine-stringa < cifra < lettera < altro
     """
-    # rimuove tutto dal primo '-' in poi, poi da '+' in poi
-    return v.split('-')[0].split('+')[0]
+    if c == '~':    return -1
+    if not c:       return 0
+    if c.isdigit(): return 1
+    if c.isalpha(): return 2
+    return 3
+
+
+def _compare_dpkg_str(a, b):
+    """Confronta due segmenti non-numerici secondo l'ordine Debian."""
+    for ca, cb in zip_longest(a, b, fillvalue=''):
+        oa, ob = _dpkg_char_order(ca), _dpkg_char_order(cb)
+        if oa != ob:
+            return oa - ob
+        if ca != cb:
+            return -1 if ca < cb else 1
+    return 0
+
+
+def _compare_version_string(v1, v2):
+    """
+    Confronta due version string secondo l'algoritmo dpkg.
+    Alterna tra segmenti non-numerici e numerici.
+    Ritorna negativo se v1 < v2, 0 se v1 == v2, positivo se v1 > v2.
+    """
+    i1, i2 = 0, 0
+    while i1 < len(v1) or i2 < len(v2):
+        # Segmento non-numerico
+        s1, s2 = i1, i2
+        while i1 < len(v1) and not v1[i1].isdigit():
+            i1 += 1
+        while i2 < len(v2) and not v2[i2].isdigit():
+            i2 += 1
+        r = _compare_dpkg_str(v1[s1:i1], v2[s2:i2])
+        if r != 0:
+            return r
+        # Segmento numerico
+        s1, s2 = i1, i2
+        while i1 < len(v1) and v1[i1].isdigit():
+            i1 += 1
+        while i2 < len(v2) and v2[i2].isdigit():
+            i2 += 1
+        n1 = int(v1[s1:i1]) if s1 < i1 else 0
+        n2 = int(v2[s2:i2]) if s2 < i2 else 0
+        if n1 != n2:
+            return n1 - n2
+    return 0
 
 
 def version_ge(v1, v2):
@@ -288,12 +360,10 @@ def version_ge(v1, v2):
     Ritorna True se v1 >= v2.
 
     Strategia a tre livelli:
-    1. PEP 440 puro (versioni semplici, es. '1.2.3')
-    2. Confronto epoch + upstream stripped (Debian/Ubuntu con epoch)
-    3. Fallback permissivo → True (include il pacchetto se non confrontabile)
-
-    Il fallback permissivo è preferibile a False perché evita di saltare
-    silenziosamente errata con versioni non-standard (es. epoche molto alte).
+    1. PEP 440 puro (versioni numeriche semplici, es. '1.2.3')
+    2. Algoritmo dpkg completo: epoch + upstream version + debian revision.
+       Gestisce versioni Ubuntu/Debian come '8.9p1-3ubuntu0.10', '7.81.0-1ubuntu1.15'.
+    3. Fallback conservativo → False: non include il pacchetto se non confrontabile.
     """
     if not v1 or not v2:
         return True
@@ -304,22 +374,27 @@ def version_ge(v1, v2):
     except Exception:
         pass
 
-    # Tentativo 2: gestione epoch Debian/Ubuntu
+    # Tentativo 2: algoritmo dpkg con epoch + upstream/revision separati
     try:
         epoch1, rest1 = _split_epoch(v1)
         epoch2, rest2 = _split_epoch(v2)
         if epoch1 != epoch2:
-            return epoch1 >= epoch2
-        # Confronta upstream strippato dalla revisione Debian
-        up1 = _strip_deb_revision(rest1)
-        up2 = _strip_deb_revision(rest2)
-        return pkg_version.parse(up1) >= pkg_version.parse(up2)
+            return epoch1 > epoch2
+        # Separa upstream version da debian revision sull'ULTIMO trattino
+        up1, rev1 = rest1.rsplit('-', 1) if '-' in rest1 else (rest1, '0')
+        up2, rev2 = rest2.rsplit('-', 1) if '-' in rest2 else (rest2, '0')
+        r = _compare_version_string(up1, up2)
+        if r != 0:
+            return r > 0
+        return _compare_version_string(rev1, rev2) >= 0
     except Exception:
         pass
 
-    # Fallback permissivo: non scartiamo il pacchetto se non sappiamo confrontare
-    logger.debug(f'version_ge fallback (cannot compare {v1!r} >= {v2!r}) → True')
-    return True
+    # Fallback conservativo: escludiamo il pacchetto se non sappiamo confrontare.
+    # Preferibile perdere un match a versione non-standard piuttosto che includere
+    # pacchetti potenzialmente incompatibili.
+    logger.warning(f'version_ge: cannot compare {v1!r} >= {v2!r} → False (conservative skip)')
+    return False
 
 
 def cvss_to_severity(score):
@@ -338,22 +413,35 @@ def _clamp(value, default, min_val, max_val):
 
 
 def _sanitize_error(exc):
-    """Ritorna stringa di errore sicura per API response (no credenziali)."""
-    msg = str(exc)
-    for kw in ('password', 'passwd', 'secret', 'user=', 'host=', 'dbname='):
-        if kw.lower() in msg.lower():
-            return 'Internal error — see application logs'
-    return msg[:200]
+    """
+    Ritorna sempre una stringa generica per API response.
+    I dettagli dell'errore rimangono solo nel log applicativo.
+    """
+    logger.debug(f'Sanitized error detail: {exc}')
+    return 'Internal error — see application logs'
 
 
 def _get_active_distributions():
-    """Ritorna le distribuzioni mappate dai canali UYUNI attivi."""
+    """
+    Ritorna le distribuzioni mappate dai canali UYUNI attivi.
+    In caso di errore usa la cache in-memory (TTL 1h) per resilienza.
+    """
+    global _dist_cache
     try:
         with _uyuni() as (client, session):
             channels = client.channel.listAllChannels(session)
-            return {d for ch in channels if (d := map_channel_to_distribution(ch['label']))}
+            dists = {d for ch in channels if (d := map_channel_to_distribution(ch['label']))}
+            _dist_cache = {'dists': dists, 'ts': time.time()}
+            return dists
     except Exception as e:
         logger.error(f'Cannot read UYUNI channels: {e}')
+        cached = _dist_cache['dists']
+        if cached:
+            age_min = round((time.time() - _dist_cache['ts']) / 60, 1)
+            logger.warning(
+                f'Using cached distributions (age={age_min}min): {cached}'
+            )
+            return cached
         return set()
 
 
@@ -522,9 +610,11 @@ def _sync_usn(conn):
 
                 cves = n.get('cves', [])
                 cve_ids = [
-                    c if isinstance(c, str) else c.get('id', '')
+                    raw_id
                     for c in (cves if isinstance(cves, list) else [])
                     if c
+                    for raw_id in [c if isinstance(c, str) else c.get('id', '')]
+                    if _RE_CVE.match(raw_id)
                 ]
 
                 packages = [
@@ -558,18 +648,18 @@ def _sync_usn(conn):
                         page_processed += 1
 
                         for cve_id in cve_ids:
-                            if cve_id.startswith('CVE-'):
-                                cur.execute(
-                                    "INSERT INTO cves (cve_id) VALUES (%s) "
-                                    "ON CONFLICT (cve_id) DO UPDATE SET cve_id=EXCLUDED.cve_id RETURNING id",
-                                    (cve_id,),
-                                )
-                                cve_row = cur.fetchone()
-                                cur.execute(
-                                    "INSERT INTO errata_cves (errata_id, cve_id) VALUES (%s, %s) "
-                                    "ON CONFLICT DO NOTHING",
-                                    (errata_id, cve_row['id']),
-                                )
+                            # cve_ids già filtrati da _RE_CVE nella list comprehension sopra
+                            cur.execute(
+                                "INSERT INTO cves (cve_id) VALUES (%s) "
+                                "ON CONFLICT (cve_id) DO UPDATE SET cve_id=EXCLUDED.cve_id RETURNING id",
+                                (cve_id,),
+                            )
+                            cve_row = cur.fetchone()
+                            cur.execute(
+                                "INSERT INTO errata_cves (errata_id, cve_id) VALUES (%s, %s) "
+                                "ON CONFLICT DO NOTHING",
+                                (errata_id, cve_row['id']),
+                            )
 
                         if packages:
                             execute_values(cur, """
@@ -645,7 +735,7 @@ def _sync_dsa(conn, active_dists=None):
                     continue
 
                 for cve_id, cve_data in pkg_data.items():
-                    if not cve_id.startswith('CVE-') or not isinstance(cve_data, dict):
+                    if not _RE_CVE.match(cve_id) or not isinstance(cve_data, dict):
                         continue
 
                     urgency     = (cve_data.get('urgency') or 'medium').lower()
@@ -910,22 +1000,28 @@ def _sync_packages(conn, channel_label=None):
                 label = ch['label']
                 try:
                     pkgs = client.channel.software.listAllPackages(session, label)
+                    if not pkgs:
+                        # Lista vuota: il canale esiste ma non ha pacchetti (o UYUNI ha
+                        # restituito risposta vuota). Non svuotiamo la cache esistente —
+                        # meglio avere dati vecchi che perdere il matching.
+                        channel_results[label] = 0
+                        logger.debug(f'Package cache: channel {label} returned empty list — cache preserved')
+                        continue
                     with conn.cursor() as cur:
                         cur.execute('DELETE FROM uyuni_package_cache WHERE channel_label=%s', (label,))
-                        if pkgs:
-                            execute_values(cur, """
-                                INSERT INTO uyuni_package_cache
-                                    (channel_label, package_id, package_name,
-                                     package_version, package_release, package_arch)
-                                VALUES %s
-                                ON CONFLICT (channel_label, package_id) DO UPDATE SET
-                                    package_name = EXCLUDED.package_name,
-                                    last_sync    = NOW()
-                            """, [
-                                (label, p['id'], p['name'],
-                                 p.get('version', ''), p.get('release', ''), p.get('arch_label', ''))
-                                for p in pkgs
-                            ])
+                        execute_values(cur, """
+                            INSERT INTO uyuni_package_cache
+                                (channel_label, package_id, package_name,
+                                 package_version, package_release, package_arch)
+                            VALUES %s
+                            ON CONFLICT (channel_label, package_id) DO UPDATE SET
+                                package_name = EXCLUDED.package_name,
+                                last_sync    = NOW()
+                        """, [
+                            (label, p['id'], p['name'],
+                             p.get('version', ''), p.get('release', ''), p.get('arch_label', ''))
+                            for p in pkgs
+                        ])
                     conn.commit()
                     channel_results[label] = len(pkgs)
                     total_synced += len(pkgs)
@@ -1425,14 +1521,31 @@ if _SCHEDULER_ENABLED:
     from apscheduler.schedulers.background import BackgroundScheduler
     from apscheduler.triggers.cron import CronTrigger
 
+    # Traccia lo stato di ogni job (visibile in /api/scheduler/jobs)
+    _job_status: dict = {}
+
     def _job(name, fn, **kwargs):
         logger.info(f'[Scheduler] START {name}')
+        _job_status[name] = {
+            'status':   'running',
+            'last_run': datetime.utcnow().isoformat(),
+        }
         try:
             with _db() as conn:
                 result = fn(conn, **kwargs)
             logger.info(f'[Scheduler] DONE  {name}: {result}')
+            _job_status[name] = {
+                'status':   'ok',
+                'last_run': datetime.utcnow().isoformat(),
+                'result':   str(result)[:300],
+            }
         except Exception as e:
             logger.error(f'[Scheduler] FAIL  {name}: {e}')
+            _job_status[name] = {
+                'status':   'error',
+                'last_run': datetime.utcnow().isoformat(),
+                'error':    str(e)[:300],
+            }
 
     _scheduler = BackgroundScheduler(timezone='UTC')
 
@@ -1466,10 +1579,19 @@ def scheduler_jobs():
     if not _SCHEDULER_ENABLED:
         return jsonify({'enabled': False, 'message': 'Scheduler non attivo — set SCHEDULER_ENABLED=true'})
     jobs = [
-        {'id': job.id, 'next_run': job.next_run_time.isoformat() if job.next_run_time else None}
+        {
+            'id':       job.id,
+            'next_run': job.next_run_time.isoformat() if job.next_run_time else None,
+            **_job_status.get(job.id, {'status': 'never_run'}),
+        }
         for job in _scheduler.get_jobs()
     ]
-    return jsonify({'enabled': True, 'jobs': jobs})
+    failed = [j for j in jobs if j.get('status') == 'error']
+    return jsonify({
+        'enabled':      True,
+        'jobs':         jobs,
+        'failed_count': len(failed),
+    })
 
 
 # ============================================================

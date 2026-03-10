@@ -40,6 +40,7 @@ info "Python $(python3 --version) OK"
 # --------------------------------------------------------------------------
 info "Creazione directory $INSTALL_DIR..."
 mkdir -p "$INSTALL_DIR/logs"
+chmod 750 "$INSTALL_DIR/logs"
 
 # Copia file dall'attuale directory del repo
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -65,20 +66,25 @@ if [[ ! -f "$INSTALL_DIR/.env" ]]; then
 # Errata-Parser — Configurazione
 # ============================================================
 
-# Database PostgreSQL (Azure — fase 1)
-# Fase 2: migrare a PostgreSQL locale (vedere docs/migrate-db.md)
-DATABASE_URL=postgresql://errataadmin:ErrataSecure2024@pg-errata-test.postgres.database.azure.com:5432/uyuni_errata?sslmode=require
+# Database PostgreSQL
+# Fase 1: Azure PostgreSQL  → postgresql://user:pass@host:5432/dbname?sslmode=require
+# Fase 2: locale            → postgresql://user:pass@localhost:5432/dbname
+DATABASE_URL=CHANGE_ME
 
 # UYUNI Server (VNet)
+# NOTA: usare le credenziali LOCALI dell'utente UYUNI, NON la password Azure AD.
+# Con SAML attivo (java.sso=true) l'account admin è inaccessibile via browser
+# ma continua a funzionare per le API XML-RPC.
 UYUNI_URL=https://10.172.2.17
 UYUNI_USER=admin
-UYUNI_PASSWORD=Admin1234567!
+UYUNI_PASSWORD=CHANGE_ME
 
-# API key (protezione endpoint)
-SPM_API_KEY=spm-key-2024
+# API key (protezione endpoint — scegliere una stringa casuale lunga)
+SPM_API_KEY=CHANGE_ME
 
-# NVD severity enrichment
-NVD_API_KEY=49b6e254-d81d-4b61-abac-2dbe04471e38
+# NVD severity enrichment (opzionale ma raccomandato — aumenta rate limit)
+# Registrarsi su https://nvd.nist.gov/developers/request-an-api-key
+NVD_API_KEY=
 
 # Scheduler integrato (sostituisce Logic Apps)
 SCHEDULER_ENABLED=true
@@ -99,7 +105,7 @@ chmod 600 "$INSTALL_DIR/.env"
 info "Installazione servizio systemd $SERVICE_NAME..."
 cat > "/etc/systemd/system/$SERVICE_NAME.service" << EOF
 [Unit]
-Description=Errata-Parser v3.1 — Sync USN/DSA/NVD → UYUNI
+Description=Errata-Parser v3.2 — Sync USN/DSA/NVD → UYUNI
 After=network-online.target
 Wants=network-online.target
 

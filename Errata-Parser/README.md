@@ -33,10 +33,11 @@ Fase 2: locale
 ## Changelog
 
 ### v3.2 (2026-03-10)
-- **Fix critico**: `version_ge()` supporta versioni Debian/Ubuntu con epoch (`1:2.3.0-1`, `2:8.9p1-3ubuntu0.10`) — prima tutti i push DSA/USN erano silenziosamente skippati
+- **Fix critico**: `_try_lock()` usava `cursor.fetchone()[0]` su `RealDictCursor` → `KeyError(0)` → **il push verso UYUNI falliva sempre silenziosamente** con errore `"0"` nei log. Fix: accesso per nome colonna `['pg_try_advisory_lock']`
+- **Fix critico**: `version_ge()` supporta versioni Debian/Ubuntu con epoch (`1:2.3.0-1`, `2:8.9p1-3ubuntu0.10`) — prima tutti i push DSA/USN con epoch erano silenziosamente skippati
 - **Fix**: `_build_package_ids()` gestisce pacchetti con versioni diverse per release multipli (es. jammy + noble sullo stesso USN)
 - **Fix**: `errata.publish()` chiamato dopo `errata.create()` — errata ora visibili in UYUNI (alcune versioni creano in draft)
-- **Fix**: `_TimeoutTransport` sostituisce `socket.setdefaulttimeout()` globale con timeout per-connessione (thread-safe)
+- **Fix**: `_TimeoutTransport` sostituisce `socket.setdefaulttimeout()` globale con timeout per-connessione (thread-safe, evita worker timeout gunicorn quando UYUNI è hung)
 - **Fix**: whitelist release Ubuntu estesa — aggiunto `bionic` (18.04 LTS/ESM), `oracular` (24.10), `plucky` (25.04)
 
 ## Deploy
@@ -95,7 +96,7 @@ sudo bash Errata-Parser/scripts/migrate-db-local.sh
 | `SPM_API_KEY` | Raccomandato | — | Header `X-API-Key` |
 | `NVD_API_KEY` | Raccomandato | — | Rate limit NVD API |
 | `SCHEDULER_ENABLED` | No | `false` | `true` attiva APScheduler |
-| `LOG_FILE` | No | `/var/log/errata-manager.log` | Path log |
+| `LOG_FILE` | No | `/opt/errata-parser/logs/errata-parser.log` | Path log (lo script di installazione lo imposta automaticamente) |
 
 > **Nota `UYUNI_PASSWORD`**: UYUNI usa SAML 2.0 (Azure AD) per il login via browser, ma le
 > API XML-RPC usano **sempre credenziali locali**, indipendentemente dal SAML.
@@ -259,6 +260,23 @@ sull'handshake TLS. Dopo aver riavviato UYUNI con `mgradm restart`:
 
 ```bash
 systemctl restart errata-parser
+```
+
+### Push ritorna `pending_processed: 0`
+
+Due cause possibili:
+
+**A) Tutte le errata per i canali presenti sono già state pushate** (normale).
+Verificare con il health/detailed:
+```bash
+curl -s http://localhost:5000/api/health/detailed | python3 -m json.tool
+```
+Se `errata_pending > 0` ma la distribuzione non corrisponde ai canali UYUNI (es. errata Debian ma nessun canale Debian in UYUNI), il comportamento è corretto — il push processa solo le distribuzioni con canali attivi.
+
+**B) Nessuna errata nel DB** → eseguire la prima sync:
+```bash
+export KEY="$(grep SPM_API_KEY /opt/errata-parser/.env | cut -d= -f2)"
+curl -s --max-time 300 -X POST -H "X-API-Key: $KEY" http://localhost:5000/api/sync/usn | python3 -m json.tool
 ```
 
 ### Push errata skippati (version mismatch)
