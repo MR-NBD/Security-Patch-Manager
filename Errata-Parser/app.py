@@ -1062,20 +1062,23 @@ def _sync_nvd(conn, batch_size=50, force=False):
                 (batch_size,),
             )
         else:
+            # GROUP BY invece di SELECT DISTINCT: permette ORDER BY su aggregati
+            # (SELECT DISTINCT + ORDER BY su expr non-selezionata è invalido in PostgreSQL)
             cur.execute("""
-                SELECT DISTINCT c.cve_id
+                SELECT c.cve_id
                 FROM cves c
                 LEFT JOIN cve_details cd ON c.cve_id  = cd.cve_id
                 JOIN errata_cves ec      ON c.id      = ec.cve_id
                 JOIN errata e            ON ec.errata_id = e.id
                 WHERE cd.cve_id IS NULL
+                GROUP BY c.cve_id
                 ORDER BY
-                    CASE e.severity
+                    MIN(CASE e.severity
                         WHEN 'critical' THEN 1
                         WHEN 'high'     THEN 2
                         WHEN 'medium'   THEN 3
                         ELSE 4
-                    END,
+                    END),
                     c.cve_id DESC
                 LIMIT %s
             """, (batch_size,))
