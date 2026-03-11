@@ -8,6 +8,7 @@ GET /api/v1/health/detail  → stato dettagliato con check componenti
 import logging
 import time
 import requests
+from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request
 import xmlrpc.client
 
@@ -64,11 +65,14 @@ def health_detail():
 
     status_code = 200 if overall == "healthy" else 207
 
+    started_at = datetime.fromtimestamp(_start_time, tz=timezone.utc).isoformat()
+
     return jsonify({
         "status": overall,
         "version": Config.APP_VERSION,
         "app": Config.APP_NAME,
         "uptime_seconds": uptime,
+        "started_at": started_at,
         "components": components,
     }), status_code
 

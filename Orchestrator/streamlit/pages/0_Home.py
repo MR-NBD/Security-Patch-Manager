@@ -6,6 +6,7 @@ import sys, os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+from datetime import datetime, timezone
 import streamlit as st
 import api_client as api
 import auth_guard
@@ -52,9 +53,23 @@ with c3:
         st.caption("Non critico")
 
 with c4:
-    uptime_min = health.get("uptime_seconds", 0) // 60
-    st.metric("Uptime", f"{uptime_min} min")
-    st.caption(f"v{health.get('version','?')}")
+    started_at_raw = health.get("started_at")
+    if started_at_raw:
+        try:
+            dt = datetime.fromisoformat(started_at_raw.replace("Z", "+00:00"))
+            started_str = dt.strftime("%d %b %Y %H:%M")
+            started_date = dt.strftime("%d %b %Y")
+            started_time = dt.strftime("%H:%M UTC")
+        except Exception:
+            started_str = str(started_at_raw)[:16].replace("T", " ")
+            started_date = started_str
+            started_time = ""
+        st.metric("Avviato il", started_date)
+        st.caption(f"alle {started_time} — v{health.get('version','?')}")
+    else:
+        uptime_min = health.get("uptime_seconds", 0) // 60
+        st.metric("Uptime", f"{uptime_min} min")
+        st.caption(f"v{health.get('version','?')}")
 
 
 st.divider()

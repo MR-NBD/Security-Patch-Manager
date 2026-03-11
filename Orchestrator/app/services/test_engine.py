@@ -48,7 +48,7 @@ from app.config import Config
 from app.services.db import get_db
 from app.services.uyuni_patch_client import (
     UyuniPatchClient, get_critical_services,
-    get_test_system_for_os, get_all_test_systems_for_os,
+    get_all_test_systems_for_os,
 )
 from app.services.prometheus_client import PrometheusClient
 from app.services.notification_manager import notify_test_result
