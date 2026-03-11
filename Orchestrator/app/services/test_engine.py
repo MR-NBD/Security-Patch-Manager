@@ -4,7 +4,12 @@ SPM Orchestrator - Test Engine
 Esegue test automatici sulle patch in coda (status='queued' o 'retry_pending' pronto).
 Un test alla volta — mutex globale _testing.
 
-Flusso a fasi:
+Multi-sistema: se il gruppo UYUNI test-{os} contiene più sistemi, il test viene
+eseguito su TUTTI in sequenza. Il risultato finale è 'pending_approval' solo se
+tutti i sistemi passano; se anche uno fallisce → 'failed' con dettaglio per sistema.
+Con .env esplicito (TEST_SYSTEM_*_ID) → si usa solo quel sistema.
+
+Flusso a fasi (per ogni sistema):
   ⓪ pre_check  — pre-flight: servizi baseline, disco (min 500 MB), reboot pendente
   ① snapshot   — crea snapshot pre-patch via snapper (UYUNI scheduleScriptRun)
   ② patch      — applica errata via UYUNI scheduleApplyErrata
@@ -16,7 +21,8 @@ Flusso a fasi:
   ⑦ post_rollback   — verifica servizi dopo rollback (best-effort)
 
 Ogni fase è registrata in patch_test_phases.
-Il risultato finale aggiorna patch_tests e patch_test_queue.
+Ogni sistema ha il suo record in patch_tests (stesso queue_id).
+Il risultato aggregato aggiorna patch_test_queue.
 
 Rollback type:
   requires_reboot = True  → snapshot (snapper undochange, senza reboot)
@@ -41,7 +47,8 @@ from typing import Optional
 from app.config import Config
 from app.services.db import get_db
 from app.services.uyuni_patch_client import (
-    UyuniPatchClient, get_critical_services, get_test_system_for_os,
+    UyuniPatchClient, get_critical_services,
+    get_test_system_for_os, get_all_test_systems_for_os,
 )
 from app.services.prometheus_client import PrometheusClient
 from app.services.notification_manager import notify_test_result
@@ -98,23 +105,45 @@ def _set_queue_status(
     status: str,
     test_id: int = None,
 ) -> None:
-    """Aggiorna status in patch_test_queue. Se test_id fornito, lo collega."""
+    """
+    Aggiorna status in patch_test_queue.
+    - 'testing': imposta started_at; se test_id fornito, aggiorna anche test_id FK.
+    - stati finali ('passed','failed','pending_approval','rolled_back'): imposta
+      completed_at; se test_id fornito, aggiorna anche test_id FK.
+    - altri stati: aggiorna solo status.
+    """
     with get_db() as conn:
         cur = conn.cursor()
-        if test_id is not None:
-            cur.execute(
-                """UPDATE patch_test_queue
-                   SET status = %s, test_id = %s, started_at = NOW()
-                   WHERE id = %s""",
-                (status, test_id, queue_id),
-            )
-        elif status in ("passed", "failed", "pending_approval"):
-            cur.execute(
-                """UPDATE patch_test_queue
-                   SET status = %s, completed_at = NOW()
-                   WHERE id = %s""",
-                (status, queue_id),
-            )
+        if status == "testing":
+            if test_id is not None:
+                cur.execute(
+                    """UPDATE patch_test_queue
+                       SET status = %s, test_id = %s, started_at = NOW()
+                       WHERE id = %s""",
+                    (status, test_id, queue_id),
+                )
+            else:
+                cur.execute(
+                    """UPDATE patch_test_queue
+                       SET status = %s, started_at = NOW()
+                       WHERE id = %s""",
+                    (status, queue_id),
+                )
+        elif status in ("passed", "failed", "pending_approval", "rolled_back"):
+            if test_id is not None:
+                cur.execute(
+                    """UPDATE patch_test_queue
+                       SET status = %s, test_id = %s, completed_at = NOW()
+                       WHERE id = %s""",
+                    (status, test_id, queue_id),
+                )
+            else:
+                cur.execute(
+                    """UPDATE patch_test_queue
+                       SET status = %s, completed_at = NOW()
+                       WHERE id = %s""",
+                    (status, queue_id),
+                )
         else:
             cur.execute(
                 "UPDATE patch_test_queue SET status = %s WHERE id = %s",
@@ -729,70 +758,71 @@ def _maybe_retry(
 # Core test execution
 # ─────────────────────────────────────────────
 
-def _execute_test(queue_item: dict) -> dict:
+def _resolve_test_systems(target_os: str) -> list:
     """
-    Esegue il test completo per un elemento della coda.
-    Gestisce il flusso a fasi con rollback automatico in caso di fallimento.
-    """
-    queue_id        = queue_item["id"]
-    errata_id       = queue_item["errata_id"]
-    target_os       = queue_item["target_os"]
-    requires_reboot = bool(queue_item.get("requires_reboot", False))
-    retry_count     = int(queue_item.get("retry_count", 0))
+    Risolve tutti i sistemi di test per target_os.
 
-    # Sistema di test: .env ha priorità, altrimenti auto-discovery da UYUNI
+    Se .env configura un system_id esplicito → usa solo quel sistema (singolo).
+    Completa i dati mancanti (name/ip) tramite auto-discovery UYUNI se necessario.
+
+    Se .env non configura nulla → usa TUTTI i sistemi nel gruppo UYUNI test-{os},
+    così ogni nuovo sistema aggiunto al gruppo viene automaticamente testato.
+    """
     cfg         = Config.TEST_SYSTEMS.get(target_os, {})
     system_id   = cfg.get("system_id")
     system_name = cfg.get("system_name", "")
     system_ip   = cfg.get("system_ip", "")
 
-    if not system_id or not system_name or not system_ip:
-        # Auto-discovery: interroga UYUNI per sistemi nel gruppo test-{os}
-        # Triggered anche quando manca solo system_ip (necessario per Prometheus)
-        discovered = get_test_system_for_os(target_os)
-        if discovered:
-            system_id   = system_id   or discovered["system_id"]
-            system_name = system_name or discovered["system_name"]
-            system_ip   = system_ip   or discovered["system_ip"]
-        else:
-            err = (
-                f"No test system found for target_os={target_os!r} — "
-                f"nessun sistema nel gruppo UYUNI 'test-{target_os}*' "
-                f"e nessuna configurazione in .env"
-            )
-            logger.error(f"TestEngine: {err}")
-            return {"status": "error", "error": err, "queue_id": queue_id}
+    if system_id:
+        # Sistema esplicitamente configurato: completa name/ip se mancanti
+        if not system_name or not system_ip:
+            all_sys = get_all_test_systems_for_os(target_os)
+            match = next((s for s in all_sys if s["system_id"] == system_id), None)
+            if match:
+                system_name = system_name or match["system_name"]
+                system_ip   = system_ip   or match["system_ip"]
+        return [{"system_id": system_id, "system_name": system_name, "system_ip": system_ip}]
 
-    # Tipo di rollback in base al profilo rischio
+    # Auto-discovery completa: tutti i sistemi nel gruppo
+    return get_all_test_systems_for_os(target_os)
+
+
+def _execute_test_on_system(
+    queue_id: int,
+    errata_id: str,
+    target_os: str,
+    requires_reboot: bool,
+    pkg_names: list,
+    system_id: int,
+    system_name: str,
+    system_ip: str,
+) -> dict:
+    """
+    Esegue tutte le fasi del test su un singolo sistema.
+    Crea e finalizza il suo record in patch_tests.
+    Invia notifica per questo sistema.
+    Non aggiorna patch_test_queue (gestito da _execute_test).
+
+    Ritorna dict con: result, test_id, system_id, system_name,
+                      failure_phase, failure_reason, duration_s, rollback_done.
+    """
     rollback_type = "snapshot" if requires_reboot else "package"
 
-    # Pacchetti da applicare
-    packages  = _get_packages(errata_id)
-    pkg_names = [p["name"] for p in packages if p.get("name")]
-
-    if not pkg_names:
-        logger.warning(
-            f"TestEngine: no packages found for {errata_id!r} — proceeding without pkg list"
-        )
-
-    # Crea record test e aggancia alla coda
     test_id = _create_test_record(
         queue_id, errata_id, system_id, system_name, system_ip, requires_reboot,
     )
-    _set_queue_status(queue_id, "testing", test_id=test_id)
 
-    started_at      = datetime.now(timezone.utc)
-    snapshot_id     = None
-    apply_result    = {}
-    failure_reason  = None
-    failure_phase   = None
-    rollback_done   = False
-    final_result    = "error"
+    started_at     = datetime.now(timezone.utc)
+    snapshot_id    = None
+    apply_result   = {}
+    failure_reason = None
+    failure_phase  = None
+    rollback_done  = False
+    final_result   = "error"
 
     logger.info(
-        f"TestEngine: START {errata_id!r} | OS={target_os} | "
-        f"system={system_name!r} | reboot={requires_reboot} | "
-        f"packages={len(pkg_names)}"
+        f"TestEngine: [{system_name}] START {errata_id!r} | OS={target_os} | "
+        f"reboot={requires_reboot} | packages={len(pkg_names)}"
     )
 
     try:
@@ -816,35 +846,30 @@ def _execute_test(queue_item: dict) -> dict:
                 failure_phase  = "pre_check"
                 raise
 
-            # Assicura snapper installato e config root presente (via UYUNI channels)
-            # Best-effort: se non disponibile il rollback_type passa a 'package'.
+            # Assicura snapper installato (via UYUNI channels). Best-effort.
             snapper_ok = uyuni.ensure_snapper(target_os)
             if not snapper_ok and rollback_type == "snapshot":
                 logger.info(
-                    f"TestEngine: snapper not available on {system_name!r} "
+                    f"TestEngine: [{system_name}] snapper not available "
                     f"— switching to package rollback"
                 )
                 rollback_type = "package"
 
-            # ① SNAPSHOT
-            # Best-effort: se snapper non disponibile (es. Ubuntu 24.04) si
-            # passa automaticamente a package rollback, anche per patch kernel.
+            # ① SNAPSHOT — best-effort, fallback a package rollback se fallisce
             try:
                 snapshot_id = _phase_snapshot(test_id, uyuni, errata_id)
             except RuntimeError as e:
                 logger.warning(
-                    f"TestEngine: snapshot failed (snapper not available?), "
+                    f"TestEngine: [{system_name}] snapshot failed, "
                     f"switching to package rollback: {e}"
                 )
                 rollback_type = "package"
 
-            # Assicura node_exporter installato e attivo (via UYUNI channels)
-            # Best-effort: se fallisce, le metriche Prometheus vengono saltate
-            # ma il test continua normalmente.
+            # Assicura node_exporter attivo (best-effort, per Prometheus)
             if system_ip:
                 uyuni.ensure_node_exporter(target_os)
 
-            # Baseline metriche (best-effort, Prometheus opzionale)
+            # Baseline metriche Prometheus (best-effort)
             baseline_metrics = {}
             if system_ip and prom.is_available():
                 baseline_metrics = prom.get_snapshot(system_ip)
@@ -857,8 +882,7 @@ def _execute_test(queue_item: dict) -> dict:
                 failure_reason = str(e)
                 failure_phase  = "patch"
                 _rollback_and_verify(
-                    test_id, uyuni,
-                    rollback_type, snapshot_id, apply_result,
+                    test_id, uyuni, rollback_type, snapshot_id, apply_result,
                     target_os=target_os,
                 )
                 rollback_done = True
@@ -872,21 +896,19 @@ def _execute_test(queue_item: dict) -> dict:
                     failure_reason = str(e)
                     failure_phase  = "reboot"
                     _rollback_and_verify(
-                        test_id, uyuni,
-                        rollback_type, snapshot_id, apply_result,
+                        test_id, uyuni, rollback_type, snapshot_id, apply_result,
                         target_os=target_os,
                     )
                     rollback_done = True
                     raise
             else:
-                # Attesa stabilizzazione post-patch senza reboot
                 wait = Config.TEST_WAIT_AFTER_PATCH
                 logger.info(
-                    f"TestEngine: waiting {wait}s for system to stabilize"
+                    f"TestEngine: [{system_name}] waiting {wait}s for stabilization"
                 )
                 time.sleep(wait)
 
-            # ④ VALIDATE metriche
+            # ④ VALIDATE metriche Prometheus
             if system_ip and baseline_metrics and prom.is_available():
                 try:
                     _phase_validate(test_id, prom, system_ip, baseline_metrics)
@@ -894,8 +916,7 @@ def _execute_test(queue_item: dict) -> dict:
                     failure_reason = str(e)
                     failure_phase  = "validate"
                     _rollback_and_verify(
-                        test_id, uyuni,
-                        rollback_type, snapshot_id, apply_result,
+                        test_id, uyuni, rollback_type, snapshot_id, apply_result,
                         target_os=target_os,
                     )
                     rollback_done = True
@@ -908,14 +929,13 @@ def _execute_test(queue_item: dict) -> dict:
                 failure_reason = str(e)
                 failure_phase  = "services"
                 _rollback_and_verify(
-                    test_id, uyuni,
-                    rollback_type, snapshot_id, apply_result,
+                    test_id, uyuni, rollback_type, snapshot_id, apply_result,
                     target_os=target_os,
                 )
                 rollback_done = True
                 raise
 
-            # ✓ Tutte le fasi superate → in attesa di approvazione operatore
+            # ✓ Tutte le fasi superate
             final_result = "pending_approval"
 
     except RuntimeError:
@@ -924,14 +944,14 @@ def _execute_test(queue_item: dict) -> dict:
         failure_reason = f"Unexpected error: {e}"
         failure_phase  = "unknown"
         final_result   = "error"
-        logger.exception(f"TestEngine: unexpected error for {errata_id!r}")
+        logger.exception(
+            f"TestEngine: [{system_name}] unexpected error for {errata_id!r}"
+        )
 
-    # Finalizza record test
+    # Finalizza record patch_tests
     completed_at = datetime.now(timezone.utc)
     duration_s   = int((completed_at - started_at).total_seconds())
-
-    # patch_tests.result ammette solo: NULL, 'passed', 'failed', 'error', 'aborted'
-    # 'pending_approval' è lo status della queue, non del test record
+    # patch_tests.result non ammette 'pending_approval' → mappa a 'passed'
     test_result = "passed" if final_result == "pending_approval" else final_result
 
     _update_test_record(
@@ -943,12 +963,119 @@ def _execute_test(queue_item: dict) -> dict:
         completed_at       = completed_at,
         duration_seconds   = duration_s,
     )
+
+    notify_test_result(
+        test_id        = test_id,
+        queue_id       = queue_id,
+        errata_id      = errata_id,
+        result         = final_result,
+        failure_phase  = failure_phase,
+        failure_reason = failure_reason,
+        system_name    = system_name,
+        duration_s     = duration_s,
+    )
+
+    logger.info(
+        f"TestEngine: [{system_name}] END {errata_id!r} → {final_result.upper()} "
+        f"({duration_s}s | rollback={rollback_done} | phase={failure_phase})"
+    )
+
+    return {
+        "result":         final_result,
+        "test_id":        test_id,
+        "system_id":      system_id,
+        "system_name":    system_name,
+        "failure_phase":  failure_phase,
+        "failure_reason": failure_reason,
+        "duration_s":     duration_s,
+        "rollback_done":  rollback_done,
+    }
+
+
+def _execute_test(queue_item: dict) -> dict:
+    """
+    Esegue il test completo per un elemento della coda.
+    Se il gruppo UYUNI contiene più sistemi, testa su tutti in sequenza.
+    Il risultato è 'pending_approval' solo se TUTTI i sistemi passano;
+    se anche uno solo fallisce il risultato è 'failed' con dettaglio per sistema.
+    """
+    queue_id        = queue_item["id"]
+    errata_id       = queue_item["errata_id"]
+    target_os       = queue_item["target_os"]
+    requires_reboot = bool(queue_item.get("requires_reboot", False))
+    retry_count     = int(queue_item.get("retry_count", 0))
+
+    # Risolve tutti i sistemi di test per questo OS
+    systems = _resolve_test_systems(target_os)
+    if not systems:
+        err = (
+            f"No test system found for target_os={target_os!r} — "
+            f"nessun sistema nel gruppo UYUNI 'test-{target_os}*' "
+            f"e nessuna configurazione in .env"
+        )
+        logger.error(f"TestEngine: {err}")
+        return {"status": "error", "error": err, "queue_id": queue_id}
+
+    packages  = _get_packages(errata_id)
+    pkg_names = [p["name"] for p in packages if p.get("name")]
+
+    if not pkg_names:
+        logger.warning(
+            f"TestEngine: no packages found for {errata_id!r} — proceeding without pkg list"
+        )
+
+    logger.info(
+        f"TestEngine: START {errata_id!r} | OS={target_os} | "
+        f"systems={len(systems)} | reboot={requires_reboot} | packages={len(pkg_names)}"
+    )
+
+    # Segna la coda come in esecuzione
+    _set_queue_status(queue_id, "testing")
+
+    # Esegue il test su ogni sistema in sequenza
+    per_system_results = []
+    for sys_info in systems:
+        result = _execute_test_on_system(
+            queue_id, errata_id, target_os, requires_reboot, pkg_names,
+            sys_info["system_id"], sys_info["system_name"], sys_info["system_ip"],
+        )
+        per_system_results.append(result)
+
+    # Aggrega risultati: passed solo se TUTTI i sistemi superano
+    all_passed = all(r["result"] == "pending_approval" for r in per_system_results)
+
+    if all_passed:
+        final_result   = "pending_approval"
+        failure_reason = None
+        failure_phase  = None
+    else:
+        final_result   = "failed"
+        failed_parts   = [
+            f"{r['system_name']} [{r['failure_phase']}]: {r['failure_reason']}"
+            for r in per_system_results
+            if r["result"] in ("failed", "error")
+        ]
+        failure_reason = " | ".join(failed_parts)
+        # Prima fase fallita (usata per classificazione retry)
+        first_failed  = next(
+            (r for r in per_system_results if r["result"] in ("failed", "error")), None
+        )
+        failure_phase = first_failed["failure_phase"] if first_failed else "unknown"
+
+    # test_id FK → primo test fallito, o ultimo in caso di successo totale
+    first_failed_result = next(
+        (r for r in per_system_results if r["result"] in ("failed", "error")), None
+    )
+    relevant_test_id = (
+        first_failed_result["test_id"] if first_failed_result
+        else per_system_results[-1]["test_id"]
+    )
+
     # patch_test_queue.chk_queue_status non ammette 'error': mappa a 'failed'
     queue_status = "failed" if final_result == "error" else final_result
-    _set_queue_status(queue_id, queue_status)
+    _set_queue_status(queue_id, queue_status, test_id=relevant_test_id)
 
-    # Retry intelligente: classifica errore e riprogramma se appropriato.
-    # _maybe_retry sovrascrive lo status a 'retry_pending' se il retry è schedulato.
+    # Retry intelligente basato sul primo fallimento
     if final_result in ("failed", "error"):
         error_category = _classify_error(failure_phase, failure_reason)
         retried = _maybe_retry(queue_id, retry_count, error_category)
@@ -958,30 +1085,24 @@ def _execute_test(queue_item: dict) -> dict:
                 f"(category={error_category}, attempt {retry_count + 1})"
             )
 
-    # Notifica operatore (best-effort: failed/error → alert, pending_approval → info)
-    notify_test_result(
-        test_id       = test_id,
-        queue_id      = queue_id,
-        errata_id     = errata_id,
-        result        = final_result,
-        failure_phase = failure_phase,
-        failure_reason= failure_reason,
-        system_name   = system_name,
-        duration_s    = duration_s,
-    )
+    total_duration = sum(r["duration_s"] for r in per_system_results)
+    rollback_any   = any(r["rollback_done"] for r in per_system_results)
 
     logger.info(
         f"TestEngine: END {errata_id!r} → {final_result.upper()} "
-        f"({duration_s}s | rollback={rollback_done} | failure_phase={failure_phase})"
+        f"({total_duration}s total | {len(systems)} systems | "
+        f"rollback={rollback_any} | failure_phase={failure_phase})"
     )
 
     return {
         "status":         final_result,
-        "test_id":        test_id,
+        "test_id":        relevant_test_id,
         "queue_id":       queue_id,
         "errata_id":      errata_id,
-        "duration_s":     duration_s,
-        "rollback":       rollback_done,
+        "systems_tested": len(systems),
+        "per_system":     per_system_results,
+        "duration_s":     total_duration,
+        "rollback":       rollback_any,
         "failure_reason": failure_reason,
         "failure_phase":  failure_phase,
     }

@@ -4,7 +4,11 @@ SPM Orchestrator - UYUNI Patch Client
 Applica patch sui sistemi test tramite UYUNI XML-RPC.
 Tutte le azioni UYUNI sono asincrone: schedule → action_id → polling _wait_action().
 
-Metodi pubblici:
+Funzioni di discovery:
+  get_all_test_systems_for_os(os) → lista di tutti i sistemi nel gruppo test-{os}
+  get_test_system_for_os(os)      → primo sistema (backward compat)
+
+Metodi pubblici UyuniPatchClient:
   ping()                  → verifica sistema registrato in UYUNI (system.getDetails)
   check_disk_space()      → verifica spazio disco disponibile su / (min 500 MB)
   check_reboot_pending()  → controlla /var/run/reboot-required (Ubuntu) o needs-restarting (RHEL)
@@ -52,18 +56,32 @@ def is_ip(value: str) -> bool:
         return False
 
 
-def get_test_system_for_os(target_os: str) -> Optional[dict]:
-    """
-    Scopre automaticamente il sistema di test per il target_os dato
-    interrogando i gruppi UYUNI con prefisso 'test-'.
+def _resolve_system_info(session, s: dict, system_id: int) -> dict:
+    """Estrae system_name e system_ip da un record sistema UYUNI."""
+    system_name = (
+        s.get("name")
+        or s.get("profile_name")
+        or s.get("hostname")
+        or str(system_id)
+    )
+    if is_ip(system_name):
+        system_ip = system_name
+    else:
+        system_ip = session.get_system_network_ip(system_id) or ""
+    return {"system_id": system_id, "system_name": system_name, "system_ip": system_ip}
 
-    Ritorna {system_id, system_name, system_ip} del primo sistema
-    nel gruppo corrispondente, o None se non trovato.
 
-    Questa funzione viene chiamata dal test engine quando il sistema
-    non è esplicitamente configurato nel .env — garantisce che nuovi
-    sistemi aggiunti in UYUNI vengano automaticamente usati.
+def get_all_test_systems_for_os(target_os: str) -> list:
     """
+    Scopre TUTTI i sistemi di test per il target_os dato interrogando i gruppi
+    UYUNI con prefisso 'test-'.
+
+    Ritorna lista di {system_id, system_name, system_ip} per ogni sistema
+    nel gruppo corrispondente. Lista vuota se nessun gruppo/sistema trovato.
+
+    Usato dal test engine per eseguire il test su tutti i sistemi del gruppo.
+    """
+    results = []
     try:
         with UyuniSession() as session:
             groups = session.get_test_groups()
@@ -72,37 +90,28 @@ def get_test_system_for_os(target_os: str) -> Optional[dict]:
                 if os_from_group(group_name) != target_os:
                     continue
                 systems = session.get_systems_in_group(group_name)
-                if not systems:
-                    continue
-                # Usa il primo sistema nel gruppo
-                s = systems[0]
-                system_id = s.get("id")
-                # listSystems può usare 'name', 'profile_name' o 'hostname'
-                system_name = (
-                    s.get("name")
-                    or s.get("profile_name")
-                    or s.get("hostname")
-                    or str(system_id)
-                )
-                # Preferisce l'IP se il nome è già un indirizzo IP;
-                # altrimenti interroga UYUNI system.getNetwork per l'IP reale
-                if is_ip(system_name):
-                    system_ip = system_name
-                else:
-                    system_ip = session.get_system_network_ip(system_id) or ""
-                logger.info(
-                    f"UYUNI auto-discovery: {target_os} → "
-                    f"system_id={system_id} name={system_name!r} "
-                    f"ip={system_ip!r} (group={group_name!r})"
-                )
-                return {
-                    "system_id":   system_id,
-                    "system_name": system_name,
-                    "system_ip":   system_ip,
-                }
+                for s in systems:
+                    system_id = s.get("id")
+                    info = _resolve_system_info(session, s, system_id)
+                    logger.info(
+                        f"UYUNI auto-discovery: {target_os} → "
+                        f"system_id={system_id} name={info['system_name']!r} "
+                        f"ip={info['system_ip']!r} (group={group_name!r})"
+                    )
+                    results.append(info)
+                break  # primo gruppo corrispondente è sufficiente
     except Exception as e:
-        logger.warning(f"get_test_system_for_os({target_os!r}) failed: {e}")
-    return None
+        logger.warning(f"get_all_test_systems_for_os({target_os!r}) failed: {e}")
+    return results
+
+
+def get_test_system_for_os(target_os: str) -> Optional[dict]:
+    """
+    Scopre il primo sistema di test per target_os (backward compat).
+    Usa get_all_test_systems_for_os internamente.
+    """
+    systems = get_all_test_systems_for_os(target_os)
+    return systems[0] if systems else None
 
 
 def get_critical_services(target_os: str) -> list:
