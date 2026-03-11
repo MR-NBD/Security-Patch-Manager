@@ -15,7 +15,6 @@ import xmlrpc.client
 from app.config import Config
 from app.services.db import check_db_health, get_db
 from app.services.uyuni_client import make_uyuni_transport
-from app.utils.serializers import serialize_row
 
 logger = logging.getLogger(__name__)
 

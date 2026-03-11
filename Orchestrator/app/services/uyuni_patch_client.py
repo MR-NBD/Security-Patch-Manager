@@ -333,7 +333,6 @@ class UyuniPatchClient:
                     # UYUNI restituisce version + release separati
                     ver  = p.get("version", "")
                     rel  = p.get("release", "")
-                    arch = p.get("arch", "")
                     old_versions[name] = f"{ver}-{rel}" if rel else ver
             logger.debug(
                 f"UyuniPatchClient: captured {len(old_versions)} old versions "

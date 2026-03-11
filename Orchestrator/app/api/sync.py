@@ -6,7 +6,7 @@ Endpoints per monitorare e controllare il poller UYUNI.
 
 import logging
 
-import psycopg2
+from psycopg2 import ProgrammingError
 from flask import Blueprint, jsonify
 
 from app.services import poller
@@ -105,7 +105,7 @@ def errata_cache_stats():
             ),
         })
 
-    except psycopg2.ProgrammingError:
+    except ProgrammingError:
         return jsonify({"error": "errata_cache table not found"}), 500
     except Exception as e:
         logger.error(f"GET /errata/cache/stats failed: {e}")

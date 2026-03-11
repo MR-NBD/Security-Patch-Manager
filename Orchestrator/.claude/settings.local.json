@@ -10,7 +10,8 @@
       "Bash(find . -name \"*.py\" -exec grep -l \"^import\\\\|^from\" {} \\\\; | wc -l)",
       "Bash(python -m pytest tests/ -q --tb=short 2>&1 | tail -20)",
       "Bash(python3 -m pytest tests/ -q --tb=short 2>&1 | tail -20)",
-      "Bash(python3 -m pytest tests/ -q --tb=short 2>&1 | tail -10)"
+      "Bash(python3 -m pytest tests/ -q --tb=short 2>&1 | tail -10)",
+      "Bash(git -C /mnt/c/Users/alber/Documents/GitHub/Security-Patch-Manager diff --stat HEAD)"
     ]
   }
 }

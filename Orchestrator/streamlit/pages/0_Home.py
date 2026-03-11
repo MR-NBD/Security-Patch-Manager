@@ -98,19 +98,30 @@ with left:
     if err:
         st.error(err)
     elif stats:
+        _queued     = stats.get("queued", 0)
+        _retry      = stats.get("retry_pending", 0)
+        _testing    = stats.get("testing", 0)
+        _approval   = stats.get("pending_approval", 0)
+        _failed     = stats.get("failed", 0)
+        # Patch che richiedono ancora azione: da testare + in approvazione + fallite
+        _pendenti   = _queued + _retry + _approval + _failed
+
         s1, s2, s3, s4 = st.columns(4)
-        s1.metric("Totale", stats.get("total", 0))
-        s2.metric("In coda", stats.get("queued", 0))
-        s3.metric("In test", stats.get("testing", 0))
-        s4.metric("Approvaz.", stats.get("pending_approval", 0))
+        s1.metric("Patch pendenti", _pendenti,
+                  help="Da testare + in approvazione + fallite (richiedono azione)")
+        s2.metric("In coda", _queued,
+                  help=f"Pronte al test: {_queued}"
+                       + (f" + {_retry} in retry" if _retry else ""))
+        s3.metric("In test", _testing)
+        s4.metric("Da approvare", _approval)
 
         ubuntu = stats.get("ubuntu", 0)
-        rhel = stats.get("rhel", 0)
+        rhel   = stats.get("rhel", 0)
         passed = stats.get("passed", 0)
-        failed = stats.get("failed", 0)
         st.caption(
             f"Ubuntu: **{ubuntu}**  |  RHEL: **{rhel}**  |  "
-            f"Passati: **{passed}**  |  Falliti: **{failed}**"
+            f"Superati: **{passed}**"
+            + (f"  |  Falliti: **{_failed}**" if _failed else "")
         )
 
 with right:
