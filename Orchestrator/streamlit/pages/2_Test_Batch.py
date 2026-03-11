@@ -7,6 +7,7 @@ il progresso patch per patch in tempo reale.
 """
 
 import sys, os
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import time
@@ -17,13 +18,13 @@ import auth_guard
 
 auth_guard.require_auth()
 
-st.title("🧪 Test Batch")
+st.title("Test Batch")
 
 _STATUS_ICON = {
     "pending_approval": "✅",
-    "failed":           "❌",
-    "error":            "🔥",
-    "skipped":          "⏭",
+    "failed": "❌",
+    "error": "❌",
+    "skipped": "⏭",
 }
 
 
@@ -31,9 +32,10 @@ _STATUS_ICON = {
 # Monitor batch in corso (polling asincrono)
 # ─────────────────────────────────────────────────────────────────
 
+
 def render_monitor(batch_id: str):
     """Mostra progresso batch in tempo reale con auto-refresh ogni 5s."""
-    st.subheader(f"🔄 Batch in corso — ID: `{batch_id}`")
+    st.subheader(f"Processo in corso — ID: `{batch_id}`")
 
     status_data, err = api.batch_status(batch_id)
     if err:
@@ -43,19 +45,19 @@ def render_monitor(batch_id: str):
             st.rerun()
         return
 
-    b             = status_data or {}
-    batch_status  = b.get("status", "running")
-    total         = b.get("total", 0)
-    completed     = b.get("completed", 0)
-    passed        = b.get("passed", 0)
-    failed        = b.get("failed", 0)
-    results       = b.get("results", [])
+    b = status_data or {}
+    batch_status = b.get("status", "running")
+    total = b.get("total", 0)
+    completed = b.get("completed", 0)
+    passed = b.get("passed", 0)
+    failed = b.get("failed", 0)
+    results = b.get("results", [])
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Totale",      total)
-    c2.metric("Completati",  f"{completed}/{total}")
-    c3.metric("Superati",    passed)
-    c4.metric("Falliti",     failed)
+    c1.metric("Totale", total)
+    c2.metric("Completati", f"{completed}/{total}")
+    c3.metric("Superati", passed)
+    c4.metric("Falliti", failed)
 
     st.caption(
         f"Gruppo: **{b.get('group')}** | Operatore: **{b.get('operator')}** | "
@@ -69,21 +71,25 @@ def render_monitor(batch_id: str):
         rows = []
         for r in results:
             s = r.get("status", "?")
-            rows.append({
-                "Stato":   f"{_STATUS_ICON.get(s,'⬜')} {s}",
-                "Errata":  r.get("errata_id", "?"),
-                "Durata":  f"{r.get('duration_s','?')}s",
-                "Fase":    r.get("failure_phase") or "—",
-                "Motivo":  (r.get("failure_reason") or "")[:80],
-            })
+            rows.append(
+                {
+                    "Stato": f"{_STATUS_ICON.get(s,'⬜')} {s}",
+                    "Errata": r.get("errata_id", "?"),
+                    "Durata": f"{r.get('duration_s','?')}s",
+                    "Fase": r.get("failure_phase") or "—",
+                    "Motivo": (r.get("failure_reason") or "")[:80],
+                }
+            )
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
     if batch_status == "completed":
-        st.success(f"✅ Batch completato — {passed}/{total} patch superate.")
+        st.success(f"Processo completato — {passed}/{total} patch superate.")
         if passed > 0:
             st.info(f"**{passed} patch** in attesa di approvazione.", icon="⏳")
             st.page_link("pages/3_Approvazioni.py", label="→ Vai ad Approvazioni")
-        st.info("Nota di riepilogo aggiunta su tutti i sistemi del gruppo UYUNI.", icon="📝")
+        st.info(
+            "Nota di riepilogo aggiunta su tutti i sistemi del gruppo UYUNI.", icon="📝"
+        )
         if st.button("✚ Nuovo batch"):
             del st.session_state["active_batch_id"]
             st.rerun()
@@ -91,11 +97,14 @@ def render_monitor(batch_id: str):
     elif batch_status == "cancelled":
         remaining = total - completed
         st.warning(
-            f"⏹ Batch cancellato dall'operatore. "
+            f"Batch cancellato dall'operatore. "
             f"{completed} test eseguiti, {remaining} saltati."
         )
         if passed > 0:
-            st.info(f"**{passed} patch** già superate sono in attesa di approvazione.", icon="⏳")
+            st.info(
+                f"**{passed} patch** già superate sono in attesa di approvazione.",
+                icon="⏳",
+            )
             st.page_link("pages/3_Approvazioni.py", label="→ Vai ad Approvazioni")
         if st.button("✚ Nuovo batch"):
             del st.session_state["active_batch_id"]
@@ -111,14 +120,16 @@ def render_monitor(batch_id: str):
         # Batch in corso: auto-refresh + pulsante annulla
         col_info, col_cancel = st.columns([4, 1])
         with col_info:
-            st.info("🔄 Test in corso — aggiornamento automatico ogni 5 secondi...")
+            st.info("Test in corso, aggiornamento automatico ogni 5 secondi...")
         with col_cancel:
-            if st.button("⏹ Annulla batch", type="secondary"):
+            if st.button("Annulla batch", type="secondary"):
                 _, cerr = api.batch_cancel(batch_id)
                 if cerr:
                     st.error(f"Errore cancellazione: {cerr}")
                 else:
-                    st.warning("Cancellazione richiesta — il test corrente verrà completato.")
+                    st.warning(
+                        "Cancellazione richiesta, il test corrente verrà completato."
+                    )
         time.sleep(5)
         st.rerun()
 
@@ -139,7 +150,7 @@ if ts_err:
     st.stop()
 
 if ts.get("engine_running"):
-    st.warning("🔄 Test engine già in esecuzione. Attendi il completamento.")
+    st.warning("Test engine già in esecuzione. Attendi il completamento.")
 
 # ── Patch in coda ─────────────────────────────────────────────────
 st.subheader("Patch in coda (status: queued)")
@@ -158,9 +169,9 @@ if not items:
 _SEV_ICON = {"Critical": "🔴", "High": "🟠", "Medium": "🟡", "Low": "🔵"}
 
 # Riepilogo reboot prima della tabella
-_n_reboot    = sum(1 for it in items if it.get("requires_reboot") is True)
+_n_reboot = sum(1 for it in items if it.get("requires_reboot") is True)
 _n_no_reboot = sum(1 for it in items if it.get("requires_reboot") is False)
-_n_unknown   = len(items) - _n_reboot - _n_no_reboot
+_n_unknown = len(items) - _n_reboot - _n_no_reboot
 
 if _n_reboot > 0:
     st.warning(
@@ -181,18 +192,20 @@ st.caption("Ordine di test: priorità → **no-reboot prima** → score → data
 rows = []
 for it in items:
     sev = it.get("severity") or "?"
-    rb  = it.get("requires_reboot")
+    rb = it.get("requires_reboot")
     rb_label = "⚠ Si" if rb is True else ("✅ No" if rb is False else "— ?")
-    rows.append({
-        "Seleziona": False,
-        "QID":       it.get("queue_id"),
-        "Errata":    it.get("errata_id", "?"),
-        "OS":        it.get("target_os", "?"),
-        "Severity":  f"{_SEV_ICON.get(sev,'⚪')} {sev}",
-        "Reboot":    rb_label,
-        "Score":     it.get("success_score"),
-        "Synopsis":  (it.get("synopsis") or "")[:55],
-    })
+    rows.append(
+        {
+            "Seleziona": False,
+            "QID": it.get("queue_id"),
+            "Errata": it.get("errata_id", "?"),
+            "OS": it.get("target_os", "?"),
+            "Severity": f"{_SEV_ICON.get(sev,'⚪')} {sev}",
+            "Reboot": rb_label,
+            "Score": it.get("success_score"),
+            "Synopsis": (it.get("synopsis") or "")[:55],
+        }
+    )
 
 edited = st.data_editor(
     pd.DataFrame(rows),
@@ -200,8 +213,8 @@ edited = st.data_editor(
     hide_index=True,
     column_config={
         "Seleziona": st.column_config.CheckboxColumn("Seleziona", default=False),
-        "Reboot":    st.column_config.TextColumn("Reboot", width="small"),
-        "Score":     st.column_config.ProgressColumn(
+        "Reboot": st.column_config.TextColumn("Reboot", width="small"),
+        "Score": st.column_config.ProgressColumn(
             "Score", min_value=0, max_value=100, format="%d"
         ),
     },
@@ -240,10 +253,7 @@ st.info(
     icon="🔑",
 )
 
-can_run = (
-    bool(selected_qids) and bool(group_name)
-    and not ts.get("engine_running")
-)
+can_run = bool(selected_qids) and bool(group_name) and not ts.get("engine_running")
 
 if st.button(
     f"▶ Avvia batch ({len(selected_qids)} patch)",

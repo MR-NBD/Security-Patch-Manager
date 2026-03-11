@@ -45,11 +45,11 @@ if "code" in params and not st.session_state.get("authenticated"):
         orgs = (odata or {}).get("orgs", [])
         st.session_state.uyuni_orgs = orgs
         if orgs:
-            st.session_state.selected_org_id   = orgs[0]["org_id"]
-            st.session_state.uyuni_org_name    = orgs[0]["org_name"]
+            st.session_state.selected_org_id = orgs[0]["org_id"]
+            st.session_state.uyuni_org_name = orgs[0]["org_name"]
         else:
-            st.session_state.selected_org_id   = None
-            st.session_state.uyuni_org_name    = ""
+            st.session_state.selected_org_id = None
+            st.session_state.uyuni_org_name = ""
         st.rerun()
     else:
         error_desc = result.get(
@@ -105,13 +105,13 @@ with st.sidebar:
     st.divider()
 
     st.caption(f"👤 **{st.session_state.user_name}**")
-    st.caption(f"📧 {st.session_state.user_upn}")
+    st.caption(f"{st.session_state.user_upn}")
 
     # Selector organizzazione UYUNI (visibile solo se ci sono più org)
     orgs = st.session_state.get("uyuni_orgs", [])
     if len(orgs) > 1:
-        org_names  = [o["org_name"] for o in orgs]
-        org_ids    = [o["org_id"]   for o in orgs]
+        org_names = [o["org_name"] for o in orgs]
+        org_ids = [o["org_id"] for o in orgs]
         current_id = st.session_state.get("selected_org_id", org_ids[0])
         current_idx = org_ids.index(current_id) if current_id in org_ids else 0
         chosen = st.selectbox(
@@ -123,7 +123,7 @@ with st.sidebar:
         chosen_id = org_ids[org_names.index(chosen)]
         if chosen_id != st.session_state.get("selected_org_id"):
             st.session_state.selected_org_id = chosen_id
-            st.session_state.uyuni_org_name  = chosen
+            st.session_state.uyuni_org_name = chosen
             st.rerun()
         st.caption(f"🏢 {chosen}")
     elif orgs:
@@ -143,10 +143,10 @@ with st.sidebar:
 
 pg = st.navigation(
     [
-        st.Page("pages/0_Home.py", title="Overview", icon="🏠", default=True),
-        st.Page("pages/1_Gruppi_UYUNI.py", title="Gruppi UYUNI", icon="🖥"),
-        st.Page("pages/2_Test_Batch.py", title="Test Batch", icon="🧪"),
-        st.Page("pages/3_Approvazioni.py", title="Approvazioni", icon="✅"),
+        st.Page("pages/0_Home.py", title="Overview", default=True),
+        st.Page("pages/1_Gruppi_UYUNI.py", title="Gruppi UYUNI"),
+        st.Page("pages/2_Test_Batch.py", title="Test Batch"),
+        st.Page("pages/3_Approvazioni.py", title="Approvazioni"),
     ]
 )
 pg.run()

@@ -21,7 +21,7 @@ import auth_guard
 
 auth_guard.require_auth()
 
-st.title("✅ Approvazioni Patch")
+st.title("Approvazioni Patch")
 
 tab_pending, tab_history = st.tabs(["In attesa", "Storico"])
 
@@ -41,10 +41,10 @@ with tab_pending:
         st.error(f"Errore API: {err}")
         st.stop()
 
-    items      = data.get("items", []) if isinstance(data, dict) else (data or [])
-    total      = data.get("total", len(items)) if isinstance(data, dict) else len(items)
+    items = data.get("items", []) if isinstance(data, dict) else (data or [])
+    total = data.get("total", len(items)) if isinstance(data, dict) else len(items)
     _tot_pages = max(1, -(-total // _pending_per_page))
-    _cur_page  = st.session_state["pending_page"]
+    _cur_page = st.session_state["pending_page"]
 
     if total == 0:
         st.success("Nessuna patch in attesa di approvazione.")
@@ -95,8 +95,8 @@ with tab_pending:
             with c_risk:
                 st.markdown("**Risk profile**")
                 st.markdown(f"Score: **{score}** / 100")
-                st.markdown(f"Reboot: {'⚠ Sì' if req_reboot else '✅ No'}")
-                st.markdown(f"Kernel: {'⚠ Sì' if affects_k else '✅ No'}")
+                st.markdown(f"Reboot: {'⚠ Sì' if req_reboot else 'No'}")
+                st.markdown(f"Kernel: {'⚠ Sì' if affects_k else 'No'}")
                 if test_id:
                     st.markdown(f"Test ID: `{test_id}`")
 
@@ -133,7 +133,7 @@ with tab_pending:
                         use_container_width=True,
                     ):
                         if not reason.strip():
-                            st.error("Motivo obbligatorio per il rifiuto")
+                            st.error("Motivo per il rifiuto")
                         else:
                             res, e2 = api.reject(queue_id, op, reason)
                             if e2:
@@ -149,7 +149,7 @@ with tab_pending:
                     key=f"snooze_h_{queue_id}",
                 )
                 if st.button(
-                    "💤 Snooze",
+                    "Rimandare",
                     key=f"snz_{queue_id}",
                     disabled=disabled,
                     use_container_width=True,
@@ -227,7 +227,7 @@ with tab_history:
                 "Tutte": "Tutte le azioni",
                 "approved": "✅ Approvate",
                 "rejected": "🚫 Rifiutate",
-                "snoozed":  "💤 Rimandate",
+                "snoozed": "💤 Rimandate",
             }.get(x, x),
             key="hist_action_filter",
         )
@@ -256,9 +256,9 @@ with tab_history:
     if err:
         st.error(f"Errore API: {err}")
     else:
-        hist_data     = hist if isinstance(hist, dict) else {}
+        hist_data = hist if isinstance(hist, dict) else {}
         history_items = hist_data.get("items", [])
-        total_hist    = hist_data.get("total", len(history_items))
+        total_hist = hist_data.get("total", len(history_items))
 
         # Filtra localmente per azione (il backend non ha filtro action)
         if action_filter != "Tutte":
@@ -277,18 +277,20 @@ with tab_history:
                 f"Pagina **{current_page + 1}** di **{total_pages}**"
             )
 
-            icons_act = {"approved": "✅", "rejected": "🚫", "snoozed": "💤"}
+            icons_act = {"Approvata": "✅", "Rifiutata": "🚫", "Rimandata": "💤"}
             rows = []
             for h in history_items:
                 action = h.get("action", "?")
-                rows.append({
-                    "Data":       (str(h.get("action_at") or "")[:16]).replace("T", " "),
-                    "Azione":     f"{icons_act.get(action, '?')} {action}",
-                    "Errata":     h.get("errata_id", "?"),
-                    "OS":         h.get("target_os", "?"),
-                    "Operatore":  h.get("action_by", "?"),
-                    "Motivo":     (h.get("reason") or "")[:70],
-                })
+                rows.append(
+                    {
+                        "Data": (str(h.get("action_at") or "")[:16]).replace("T", " "),
+                        "Azione": f"{icons_act.get(action, '?')} {action}",
+                        "Errata": h.get("errata_id", "?"),
+                        "OS": h.get("target_os", "?"),
+                        "Operatore": h.get("action_by", "?"),
+                        "Motivo": (h.get("reason") or "")[:70],
+                    }
+                )
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
             # ── Navigazione pagine ────────────────────────────────────
