@@ -103,12 +103,6 @@ if latest_only:
     st.caption(f"Filtro attivo: {len(patches)} patch mostrate.")
 
 # ── Tabella patch con selezione ───────────────────────────────────
-_TYPE_ICON = {
-    "Security Advisory": "🔴",
-    "Bug Fix Advisory": "🟡",
-    "Product Enhancement Advisory": "🔵",
-}
-
 
 def _reboot_label(p: dict) -> str:
     rb = p.get("requires_reboot")
@@ -143,14 +137,12 @@ def _severity_label(p: dict) -> str:
 
 rows = []
 for p in patches:
-    atype = p.get("advisory_type", "")
     rows.append(
         {
             "Seleziona": False,
             "Advisory": p.get("advisory_name", "?"),
             "Gravità": _severity_label(p),
             "Stato": _latest_label(p),
-            "Tipo": f"{_TYPE_ICON.get(atype,'⚪')} {atype}",
             "Reboot": _reboot_label(p),
             "Synopsis": (p.get("synopsis") or "")[:65],
             "Data": (p.get("date") or "")[:10],
@@ -169,7 +161,7 @@ edited = st.data_editor(
         "Stato": st.column_config.TextColumn("Stato", width="medium"),
         "Reboot": st.column_config.TextColumn("Reboot", width="small"),
     },
-    disabled=["Advisory", "Gravità", "Stato", "Tipo", "Reboot", "Synopsis", "Data", "Sistemi"],
+    disabled=["Advisory", "Gravità", "Stato", "Reboot", "Synopsis", "Data", "Sistemi"],
     key="patch_selection",
 )
 

@@ -194,8 +194,11 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "259498039fcab34e",
+  "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
+    "Orchestrator/app/api/groups.py.tmp.10861.1773258999020",
+    "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.10861.1773258976760",
+    "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.10861.1773258964171",
     "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.10861.1773256915487",
     "Orchestrator/app/api/groups.py.tmp.10861.1773256891226",
     "Orchestrator/app/api/groups.py.tmp.10861.1773256807000",
@@ -206,9 +209,6 @@
     "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
     "Orchestrator/docs/spm-architecture.drawio",
     "Orchestrator/docs/spm-architecture.drawio.tmp.9257.1773244403924",
-    "Orchestrator/docs",
-    "Orchestrator/app/services/__pycache__/uyuni_patch_client.cpython-310.pyc.124638488717104",
-    "Orchestrator/app/services/__pycache__/test_engine.cpython-310-pytest-7.4.3.pyc.9960",
     "Orchestrator/pytest-cache-files-iczdgc6m/README.md",
     "Uyuni/Teoria/Amministrazione-e-Troubleshooting.md",
     "Uyuni/Teoria/Supported-Clients-OS.md",

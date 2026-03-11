@@ -360,7 +360,10 @@ def group_patches(group_name: str):
             systems = session.get_systems_in_group(group_name)
 
             # Merge patch per tutti i sistemi
+            # systems_affected usa set per evitare duplicati (es. stesso sid da UYUNI più volte)
             patches_by_name: dict = {}
+            patches_systems: dict = {}  # advisory_name → set of sid
+            group_sids = {sys.get("id") for sys in systems if sys.get("id")}
             for sys in systems:
                 sid = sys.get("id")
                 if not sid:
@@ -379,7 +382,12 @@ def group_patches(group_name: str):
                             "severity":       None,
                             "systems_affected": [],
                         }
-                    patches_by_name[name]["systems_affected"].append(sid)
+                        patches_systems[name] = set()
+                    patches_systems[name].add(sid)
+
+            # Converte i set in liste ordinate e filtra solo sid del gruppo
+            for name, sids in patches_systems.items():
+                patches_by_name[name]["systems_affected"] = sorted(sids & group_sids)
 
             if patches_by_name:
                 _enrich_reboot_info(patches_by_name)
