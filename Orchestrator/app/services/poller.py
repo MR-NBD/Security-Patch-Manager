@@ -99,17 +99,20 @@ def _build_cache_row(
     base: dict,
     cves: list,
     target_os: str,
+    uyuni_severity: str = None,
 ) -> dict:
     """
     Costruisce la riga errata_cache dai dati UYUNI.
 
     base: dict da getRelevantErrata (advisory_name, advisory_type, synopsis, date)
+    uyuni_severity: severity NVD-enriched letta da UYUNI (errata.getDetails),
+                    impostata da Errata-Parser. Se None usa il fallback sul tipo.
     description = "" (fetchabile on-demand se necessario)
     """
     advisory_type = base.get("advisory_type", "")
     synopsis = base.get("advisory_synopsis") or base.get("synopsis", "")
     issue_date = _parse_uyuni_date(base.get("date"))
-    severity = severity_from_advisory_type(advisory_type)
+    severity = uyuni_severity or severity_from_advisory_type(advisory_type)
 
     return {
         "errata_id":   advisory_name,
@@ -229,7 +232,9 @@ def sync_errata_cache() -> dict:
       ① Una sessione UYUNI (1 login/logout totale)
       ② Fetch gruppi test-* → sistemi per gruppo (parallelo)
       ③ Fetch errata per sistema (parallelo) → dedup in errata_map
-      ④ Fetch CVEs (parallelo, solo Security Advisory)
+      ④ Fetch CVEs + severity reale (parallelo, solo Security Advisory)
+         La severity NVD-enriched è già in UYUNI grazie a Errata-Parser.
+         Viene letta con errata.getDetails; fallback su advisory_type se assente.
       ⑤ Build righe cache
       ⑥ Batch upsert in un'unica transazione DB
     """
@@ -316,7 +321,10 @@ def sync_errata_cache() -> dict:
                 f"UYUNI: {len(errata_map)} unique relevant errata found"
             )
 
-            # ④ Fetch CVEs (parallelo, solo Security Advisory)
+            # ④ Fetch CVEs e severity reale da UYUNI (parallelo, solo Security Advisory).
+            # La severity NVD-enriched è già in UYUNI grazie a Errata-Parser
+            # (errata.create per USN/DSA, errata.setDetails per RHEL).
+            # La leggiamo con errata.getDetails per non usare il mapping statico "Medium".
             security_names = [
                 name for name, base in errata_map.items()
                 if base.get("advisory_type", "") == "Security Advisory"
@@ -325,15 +333,36 @@ def sync_errata_cache() -> dict:
             def _fetch_cves(advisory_name):
                 return advisory_name, session.get_errata_cves(advisory_name)
 
-            cves_map: dict = {}  # advisory_name → ['CVE-...', ...]
+            def _fetch_severity(advisory_name):
+                return advisory_name, session.get_errata_details_severity(advisory_name)
+
+            cves_map: dict = {}      # advisory_name → ['CVE-...', ...]
+            severity_map: dict = {}  # advisory_name → 'Critical'|'High'|'Medium'|'Low'|None
+
             with ThreadPoolExecutor(max_workers=workers * 2) as ex:
-                futs = {ex.submit(_fetch_cves, n): n for n in security_names}
-                for fut in as_completed(futs, timeout=Config.UYUNI_TIMEOUT * 3):
+                cve_futs = {ex.submit(_fetch_cves, n): n for n in security_names}
+                sev_futs = {ex.submit(_fetch_severity, n): n for n in security_names}
+
+                for fut in as_completed(cve_futs, timeout=Config.UYUNI_TIMEOUT * 3):
                     try:
                         name, cves = fut.result()
                         cves_map[name] = cves
                     except Exception as e:
                         logger.warning(f"get_errata_cves failed: {e}")
+
+                for fut in as_completed(sev_futs, timeout=Config.UYUNI_TIMEOUT * 3):
+                    try:
+                        name, sev = fut.result()
+                        if sev:
+                            severity_map[name] = sev
+                    except Exception as e:
+                        logger.warning(f"get_errata_details_severity failed: {e}")
+
+            enriched = len(severity_map)
+            logger.info(
+                f"UYUNI: severity enriched from UYUNI for "
+                f"{enriched}/{len(security_names)} Security Advisories"
+            )
 
         # Sessione chiusa (logout avvenuto)
 
@@ -341,7 +370,8 @@ def sync_errata_cache() -> dict:
         rows = []
         for advisory_name, base in errata_map.items():
             cves = cves_map.get(advisory_name, [])
-            row = _build_cache_row(advisory_name, base, cves, base["target_os"])
+            uyuni_sev = severity_map.get(advisory_name)
+            row = _build_cache_row(advisory_name, base, cves, base["target_os"], uyuni_sev)
             rows.append(row)
 
         # ⑥ Batch upsert

@@ -67,7 +67,7 @@ Sistemi di test:
 
 ## 3. Stato implementazione
 
-### Versione corrente: 1.2.0
+### Versione corrente: 1.2.1
 
 ### COMPLETATO
 
@@ -415,17 +415,33 @@ sudo systemctl restart spm-orchestrator
 sudo systemctl restart spm-dashboard
 ```
 
-### [CODICE — futuro] NVD Enrichment severity
+### [COMPLETATO] NVD Enrichment severity — integrazione con Errata-Parser
 
-Problema: tutte le Security Advisory hanno `severity=Medium` (mapping da advisory_type).
-Una CVE può essere Critical, High, Medium o Low in base al CVSS score reale.
-Soluzione prevista esternamente (servizio dedicato / pipeline CI-CD).
+La severity NVD-enriched arriva in Orchestrator **tramite UYUNI** (fonte unica di verità):
 
-Note tecniche se si volesse integrare nel backend:
-- NVD API v2: `https://services.nvd.nist.gov/rest/json/cves/2.0?cveId=CVE-XXXX-YYYY`
-- Rate limit senza API key: 5 req/30s — con key: 50 req/30s
-- Solo Security Advisory hanno CVE → ca. 30-40% delle errata
-- Hook suggerito: job APScheduler giornaliero, 50 errata/run
+```
+NVD NIST → Errata-Parser (10.172.2.30)
+               ↓ errata.create / errata.setDetails
+           UYUNI (10.172.2.17)
+               ↓ errata.getDetails (durante sync)
+           Orchestrator errata_cache.severity = Critical | High | Medium | Low
+```
+
+**Come funziona:**
+- Errata-Parser crea/aggiorna errata in UYUNI con severity NVD-enriched
+  - USN/DSA: via `errata.create()` al primo push
+  - RHEL: via `errata.setDetails()` post-NVD enrichment
+- Orchestrator poller, durante il sync, chiama `errata.getDetails(advisory_name)`
+  per ogni Security Advisory → legge la severity reale invece del mapping statico
+- Mapping UYUNI label → interno: Critical→Critical, Important→High, Moderate→Medium, Low→Low
+- Fallback: se UYUNI restituisce "Unspecified" o errore → `severity_from_advisory_type()`
+
+**File modificati (v1.2.1):**
+- `app/services/uyuni_client.py`: aggiunto `_UYUNI_SEVERITY_MAP` + `get_errata_details_severity()`
+- `app/services/poller.py`: step ④ esteso con fetch severity parallelo (stesso executor CVE)
+
+**Performance:** le chiamate `errata.getDetails` vengono parallelizzate insieme ai CVE
+nello stesso ThreadPoolExecutor — overhead minimo rispetto al sync esistente.
 
 ### [CODICE — futuro] Validazione funzionale
 Oltre a `systemctl is-active`, validare che i servizi siano effettivamente operativi

@@ -194,8 +194,14 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "fcae071421e98e82",
+  "active": "f76e3691fbfccb78",
   "lastOpenFiles": [
+    "Orchestrator/app/config.py.tmp.4875.1773230801458",
+    "Orchestrator/PROJECT-STATUS.md.tmp.4875.1773230776291",
+    "Orchestrator/app/services/poller.py.tmp.4875.1773230729834",
+    "Orchestrator/app/services/poller.py.tmp.4875.1773230675963",
+    "Orchestrator/app/services/uyuni_client.py.tmp.4875.1773230631742",
+    "Orchestrator/app/services/uyuni_client.py.tmp.4875.1773230605837",
     "Errata-Parser/__pycache__/app.cpython-310.pyc.133745155222048",
     "Uyuni/Teoria/Amministrazione-e-Troubleshooting.md",
     "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
@@ -206,12 +212,6 @@
     "Errata-Parser/__pycache__/app.cpython-310.pyc.128145605339680",
     "Errata-Parser/tests/__pycache__/test_app.cpython-310-pytest-9.0.2.pyc.4149",
     "Errata-Parser/README.md.tmp.2859.1773225536620",
-    "Errata-Parser/README.md.tmp.2859.1773225531017",
-    "Errata-Parser/sql/migrations/002_add_rhel_support.sql",
-    "Errata-Parser/sql/migrations/002_add_rhel_support.sql.tmp.2859.1773225508577",
-    "Errata-Parser/tests/test_app.py.tmp.2859.1773225497698",
-    "Errata-Parser/tests/test_app.py.tmp.2859.1773225475601",
-    "Errata-Parser/app.py.tmp.2859.1773225470653",
     "Uyuni/Teoria/HA-Architecture-UYUNI.md",
     "Uyuni/Teoria/BUG-MGRPXY.md",
     "Uyuni/Infrastructure-Design/Azure Security-First Architecture (Conforme PSN).md",

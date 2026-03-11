@@ -68,6 +68,16 @@ _ADVISORY_TYPE_SEVERITY = {
     "Product Enhancement Advisory": "Low",
 }
 
+# Mappa severity label UYUNI → formato interno Orchestrator.
+# Errata-Parser scrive in UYUNI con questi label (via errata.create / setDetails).
+# "Unspecified" e valori sconosciuti → None (il chiamante usa il fallback sul tipo).
+_UYUNI_SEVERITY_MAP = {
+    "Critical":    "Critical",
+    "Important":   "High",
+    "Moderate":    "Medium",
+    "Low":         "Low",
+}
+
 
 def severity_from_advisory_type(advisory_type: str) -> str:
     return _ADVISORY_TYPE_SEVERITY.get(advisory_type, "Unknown")
@@ -214,6 +224,28 @@ class UyuniSession:
                 f"UYUNI get_errata_cves({advisory_name!r}) failed: {e}"
             )
             return []
+
+    def get_errata_details_severity(self, advisory_name: str) -> Optional[str]:
+        """
+        Legge la severity reale dell'errata da UYUNI via errata.getDetails().
+
+        Errata-Parser scrive la severity NVD-enriched in UYUNI (errata.create /
+        errata.setDetails). Questo metodo la rileva per sostituire il mapping
+        statico advisory_type → severity usato come fallback.
+
+        Ritorna il valore interno (Critical/High/Medium/Low) oppure None se
+        UYUNI non ha una severity significativa (Unspecified, assente, errore):
+        in quel caso il chiamante deve usare severity_from_advisory_type().
+        """
+        try:
+            details = self._proxy.errata.getDetails(self._key, advisory_name)
+            label = (details.get("severity") or "").strip()
+            return _UYUNI_SEVERITY_MAP.get(label)
+        except Exception as e:
+            logger.debug(
+                f"UYUNI get_errata_details_severity({advisory_name!r}) failed: {e}"
+            )
+            return None
 
     def add_note(self, system_id: int, subject: str, body: str) -> None:
         """
