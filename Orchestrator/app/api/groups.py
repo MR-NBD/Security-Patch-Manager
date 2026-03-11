@@ -21,6 +21,7 @@ GET /api/v1/groups/<group_name>/patches
 """
 
 import logging
+import re
 from flask import Blueprint, jsonify, request
 
 from app.services.uyuni_client import UyuniSession, os_from_group
@@ -35,6 +36,17 @@ groups_bp = Blueprint("groups", __name__, url_prefix="/api/v1")
 def _uyuni_session_from_request() -> UyuniSession:
     """Crea UyuniSession con le credenziali admin da Config."""
     return UyuniSession()
+
+
+def _normalize_advisory_name(name: str) -> str:
+    """
+    Normalizza il nome advisory restituito da UYUNI.
+    UYUNI a volte omette il prefisso 'USN-' per gli advisory Ubuntu:
+    '7955-1' → 'USN-7955-1'
+    """
+    if re.match(r'^\d+-\d+$', name):
+        return "USN-" + name
+    return name
 
 
 # ─────────────────────────────────────────────
@@ -111,7 +123,9 @@ def list_groups():
                         continue
                     errata = session.get_relevant_errata(sid)
                     for e in errata:
-                        name = e.get("advisory_name") or e.get("errata_id", "")
+                        name = _normalize_advisory_name(
+                            e.get("advisory_name") or e.get("errata_id", "")
+                        )
                         seen_errata.add(name)
 
                 result.append({
@@ -285,6 +299,32 @@ def _enrich_latest_info(patches_by_name: dict) -> None:
 
 
 # ─────────────────────────────────────────────
+# DB helper: severity enrichment
+# ─────────────────────────────────────────────
+
+def _enrich_severity_info(patches_by_name: dict) -> None:
+    """
+    Arricchisce in-place le patch con il campo 'severity' da errata_cache.
+    Il valore è quello NVD-enriched scritto dal poller (Critical/High/Medium/Low).
+    Se la patch non è in cache, il campo rimane None (non ancora sincronizzata).
+    """
+    try:
+        advisory_names = list(patches_by_name.keys())
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT errata_id, severity FROM errata_cache WHERE errata_id = ANY(%s)",
+                (advisory_names,),
+            )
+            for row in cur.fetchall():
+                name = row["errata_id"]
+                if name in patches_by_name:
+                    patches_by_name[name]["severity"] = row["severity"]
+    except Exception as e:
+        logger.warning(f"_enrich_severity_info: DB query failed: {e}")
+
+
+# ─────────────────────────────────────────────
 # GET /api/v1/groups/<group_name>/patches
 # ─────────────────────────────────────────────
 
@@ -327,7 +367,7 @@ def group_patches(group_name: str):
                     continue
                 errata = session.get_relevant_errata(sid)
                 for e in errata:
-                    name = e.get("advisory_name") or ""
+                    name = _normalize_advisory_name(e.get("advisory_name") or "")
                     if not name:
                         continue
                     if name not in patches_by_name:
@@ -336,6 +376,7 @@ def group_patches(group_name: str):
                             "advisory_type":  e.get("advisory_type", ""),
                             "synopsis":       e.get("advisory_synopsis") or e.get("synopsis", ""),
                             "date":           str(e.get("date", "") or ""),
+                            "severity":       None,
                             "systems_affected": [],
                         }
                     patches_by_name[name]["systems_affected"].append(sid)
@@ -343,6 +384,7 @@ def group_patches(group_name: str):
             if patches_by_name:
                 _enrich_reboot_info(patches_by_name)
                 _enrich_latest_info(patches_by_name)
+                _enrich_severity_info(patches_by_name)
 
             # Ordinamento: patch più recenti (is_latest=True) prima,
             # poi no-reboot prima di reboot, poi data discendente.

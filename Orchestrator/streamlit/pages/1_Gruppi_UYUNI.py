@@ -128,6 +128,19 @@ def _latest_label(p: dict) -> str:
     return ""
 
 
+_SEVERITY_ICON = {
+    "Critical": "🔴 Critical",
+    "High":     "🟠 High",
+    "Medium":   "🟡 Medium",
+    "Low":      "🟢 Low",
+}
+
+
+def _severity_label(p: dict) -> str:
+    sev = p.get("severity") or ""
+    return _SEVERITY_ICON.get(sev, f"⚪ {sev}" if sev else "— ?")
+
+
 rows = []
 for p in patches:
     atype = p.get("advisory_type", "")
@@ -135,6 +148,7 @@ for p in patches:
         {
             "Seleziona": False,
             "Advisory": p.get("advisory_name", "?"),
+            "Gravità": _severity_label(p),
             "Stato": _latest_label(p),
             "Tipo": f"{_TYPE_ICON.get(atype,'⚪')} {atype}",
             "Reboot": _reboot_label(p),
@@ -151,10 +165,11 @@ edited = st.data_editor(
     hide_index=True,
     column_config={
         "Seleziona": st.column_config.CheckboxColumn("Seleziona", default=False),
+        "Gravità": st.column_config.TextColumn("Gravità", width="small"),
         "Stato": st.column_config.TextColumn("Stato", width="medium"),
         "Reboot": st.column_config.TextColumn("Reboot", width="small"),
     },
-    disabled=["Advisory", "Stato", "Tipo", "Reboot", "Synopsis", "Data", "Sistemi"],
+    disabled=["Advisory", "Gravità", "Stato", "Tipo", "Reboot", "Synopsis", "Data", "Sistemi"],
     key="patch_selection",
 )
 
