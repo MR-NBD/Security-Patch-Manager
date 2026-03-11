@@ -82,8 +82,10 @@ def get_db():
     try:
         # Reconnect if connection was closed by server (idle timeout)
         if conn.closed:
+            returned = True           # mark returned before giving back to pool
             _pool.putconn(conn, close=True)
-            conn = _pool.getconn()
+            conn = _pool.getconn()    # if this raises, returned=True → finally won't double-return
+            returned = False          # new conn acquired successfully
         yield conn
         conn.commit()
     except (psycopg2.OperationalError, psycopg2.InterfaceError):

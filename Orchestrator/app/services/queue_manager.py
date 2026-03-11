@@ -12,7 +12,7 @@ Funzioni pubbliche:
   extract_advisory_base()            → USN-XXXX-N → USN-XXXX (None per non-USN)
   add_to_queue()                     → inserisce errata, sopprime vecchie, ritorna row con "superseded"
   get_queue() / get_queue_item()     → lettura coda con filtri e join
-  update_queue_item()                → aggiorna priority_override / notes
+  update_queue_item()                → aggiorna notes
   remove_from_queue()                → solo se status='queued'
   get_queue_stats()                  → aggregati per status e OS
 """

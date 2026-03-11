@@ -192,7 +192,7 @@ def _render_pipeline(phases: list) -> None:
     all_done = all(
         phase_map.get(s, {}).get("status") in ("completed", "skipped")
         for s in _PIPELINE_STEPS
-        if s in phase_map or s not in ("reboot", "rollback")
+        if s in phase_map or s != "reboot"
     )
     if rb:
         cols[-1].markdown("❌ **Fallita**")

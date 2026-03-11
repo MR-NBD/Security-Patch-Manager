@@ -7,7 +7,7 @@ GET  /api/v1/queue              - lista coda (con filtri)
 POST /api/v1/queue              - aggiungi errata
 GET  /api/v1/queue/stats        - statistiche aggregate
 GET  /api/v1/queue/<id>         - dettaglio elemento
-PATCH /api/v1/queue/<id>        - aggiorna priorità/note
+PATCH /api/v1/queue/<id>        - aggiorna note
 DELETE /api/v1/queue/<id>       - rimuovi dalla coda
 """
 
