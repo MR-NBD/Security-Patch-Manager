@@ -507,6 +507,29 @@ class UyuniPatchClient:
             f"done on {self._system_name!r}"
         )
 
+    def delete_snapshot(self, snapshot_id: str) -> None:
+        """
+        Elimina uno snapshot snapper tramite scheduleScriptRun.
+        Chiamato dopo approvazione patch (snapshot non più necessario).
+        Raises: RuntimeError se la cancellazione fallisce.
+        """
+        script = (
+            "#!/bin/bash\n"
+            f"snapper delete {snapshot_id}\n"
+        )
+        success, output = self._run_script(
+            script, script_timeout=30, wait_timeout=60
+        )
+        if not success:
+            raise RuntimeError(
+                f"Snapper delete #{snapshot_id} failed "
+                f"on {self._system_name!r}: {output!r}"
+            )
+        logger.info(
+            f"UyuniPatchClient: snapshot #{snapshot_id} deleted "
+            f"on {self._system_name!r}"
+        )
+
     def ensure_node_exporter(self, target_os: str) -> bool:
         """
         Verifica che node_exporter sia installato e attivo sul sistema.

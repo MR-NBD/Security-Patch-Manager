@@ -346,7 +346,6 @@ def _suppress_older_queued_errata(
 def add_to_queue(
     errata_id: str,
     target_os: str,
-    priority_override: int = 0,
     created_by: Optional[str] = None,
     notes: Optional[str] = None,
 ) -> dict:
@@ -429,15 +428,13 @@ def add_to_queue(
             """
             INSERT INTO patch_test_queue (
                 errata_id, target_os, success_score,
-                priority_override, created_by, notes
-            ) VALUES (%s, %s, %s, %s, %s, %s)
+                created_by, notes
+            ) VALUES (%s, %s, %s, %s, %s)
             RETURNING
                 id, errata_id, target_os, status,
-                success_score, priority_override,
-                queued_at, created_by, notes
+                success_score, queued_at, created_by, notes
             """,
-            (errata_id, target_os, score,
-             priority_override, created_by, notes),
+            (errata_id, target_os, score, created_by, notes),
         )
         row = _serialize_row(dict(cur.fetchone()))
 
@@ -467,7 +464,7 @@ def get_queue(
 ) -> dict:
     """
     Restituisce la coda con filtri opzionali.
-    Ordinamento: priority_override DESC, success_score DESC, queued_at ASC.
+    Ordinamento: no-reboot prima → success_score DESC → queued_at ASC.
     """
     conditions = []
     base_params: list = []
@@ -521,7 +518,6 @@ def get_queue(
         LEFT JOIN patch_tests t   ON q.test_id  = t.id
         {where}
         ORDER BY
-            q.priority_override              DESC,
             COALESCE(rp.requires_reboot, FALSE) ASC,
             q.success_score                  DESC,
             q.queued_at                      ASC
@@ -601,16 +597,12 @@ def get_queue_item(queue_id: int) -> Optional[dict]:
 
 def update_queue_item(
     queue_id: int,
-    priority_override: Optional[int] = None,
     notes: Optional[str] = None,
 ) -> Optional[dict]:
-    """Aggiorna priority_override o notes. Ritorna il record aggiornato."""
+    """Aggiorna notes di un elemento in coda. Ritorna il record aggiornato."""
     sets: list = []
     params: list = []
 
-    if priority_override is not None:
-        sets.append("priority_override = %s")
-        params.append(priority_override)
     if notes is not None:
         sets.append("notes = %s")
         params.append(notes)

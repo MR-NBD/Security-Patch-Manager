@@ -14,6 +14,7 @@ quando snooze_until è scaduto (via process_snoozed(), chiamato dallo scheduler)
 """
 
 import logging
+import threading
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -182,7 +183,7 @@ def _require_pending(queue_id: int) -> dict:
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, errata_id, status FROM patch_test_queue WHERE id = %s",
+            "SELECT id, errata_id, status, test_id FROM patch_test_queue WHERE id = %s",
             (queue_id,),
         )
         row = cur.fetchone()
@@ -195,6 +196,49 @@ def _require_pending(queue_id: int) -> dict:
             f"expected 'pending_approval'"
         )
     return dict(row)
+
+
+def _delete_snapshot_after_approval(queue_id: int, test_id: int) -> None:
+    """
+    Elimina lo snapshot snapper creato durante il test, ora che la patch è approvata.
+    Eseguito in un thread separato: non blocca la risposta HTTP.
+    Best-effort: logga warning ma non solleva eccezioni.
+    """
+    try:
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT test_system_id, test_system_name, snapshot_id "
+                "FROM patch_tests WHERE id = %s",
+                (test_id,),
+            )
+            row = cur.fetchone()
+
+        if not row or not row["snapshot_id"]:
+            logger.debug(
+                f"Approval: no snapshot to delete for test_id={test_id} "
+                f"(queue_id={queue_id})"
+            )
+            return
+
+        system_id   = row["test_system_id"]
+        system_name = row["test_system_name"] or str(system_id)
+        snapshot_id = row["snapshot_id"]
+
+        from app.services.uyuni_patch_client import UyuniPatchClient
+        with UyuniPatchClient(system_id, system_name) as uyuni:
+            uyuni.delete_snapshot(snapshot_id)
+
+        logger.info(
+            f"Approval: snapshot #{snapshot_id} deleted from {system_name!r} "
+            f"(queue_id={queue_id}, test_id={test_id})"
+        )
+
+    except Exception as e:
+        logger.warning(
+            f"Approval: snapshot deletion failed "
+            f"(queue_id={queue_id}, test_id={test_id}): {e}"
+        )
 
 
 def approve(
@@ -226,6 +270,17 @@ def approve(
         f"Approval: {errata_id!r} APPROVED by {action_by!r} "
         f"(queue_id={queue_id}, approval_id={approval_id})"
     )
+
+    # Elimina snapshot snapper in background (best-effort, non blocca la risposta)
+    test_id = item.get("test_id")
+    if test_id:
+        threading.Thread(
+            target=_delete_snapshot_after_approval,
+            args=(queue_id, test_id),
+            daemon=True,
+            name=f"snap-del-{queue_id}",
+        ).start()
+
     return {"approval_id": approval_id, "queue_id": queue_id, "action": "approved"}
 
 

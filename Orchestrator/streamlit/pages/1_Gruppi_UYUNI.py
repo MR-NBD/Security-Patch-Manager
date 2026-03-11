@@ -180,11 +180,7 @@ st.subheader("Aggiungi in coda")
 os_map = {"ubuntu": "ubuntu", "rhel": "rhel"}
 target_os = os_map.get(g.get("os", ""), "ubuntu")
 
-col_by, col_prio = st.columns(2)
-with col_by:
-    created_by = st.session_state.get("user_upn", "")
-with col_prio:
-    priority = st.number_input("Priorità", min_value=0, max_value=10, value=0)
+created_by = st.session_state.get("user_upn", "")
 
 if st.button(
     f"Aggiungi {len(selected_patches)} patch in coda",
@@ -199,7 +195,6 @@ if st.button(
         res, err = api.queue_add(
             errata_id=errata_id,
             target_os=target_os,
-            priority_override=priority,
             created_by=created_by.strip() or None,
         )
         progress.progress((i + 1) / len(selected_patches))

@@ -175,12 +175,11 @@ def queue_item(queue_id: int):
     return _get(f"/api/v1/queue/{queue_id}")
 
 
-def queue_add(errata_id: str, target_os: str, priority_override: int = 0,
+def queue_add(errata_id: str, target_os: str,
               created_by: str = None, notes: str = None):
     body = {
         "errata_id": errata_id,
         "target_os": target_os,
-        "priority_override": priority_override,
     }
     if created_by:
         body["created_by"] = created_by
@@ -193,10 +192,8 @@ def queue_remove(queue_id: int):
     return _delete(f"/api/v1/queue/{queue_id}")
 
 
-def queue_update(queue_id: int, priority_override: int = None, notes: str = None):
+def queue_update(queue_id: int, notes: str = None):
     body = {}
-    if priority_override is not None:
-        body["priority_override"] = priority_override
     if notes is not None:
         body["notes"] = notes
     return _patch(f"/api/v1/queue/{queue_id}", body)

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Orchestrator/PROJECT-STATUS.md",
+                "file": "Orchestrator/README.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "PROJECT-STATUS"
+              "title": "README"
             }
           }
         ]
@@ -194,21 +194,22 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "f76e3691fbfccb78",
+  "active": "259498039fcab34e",
   "lastOpenFiles": [
-    "Orchestrator/app/api/groups.py.tmp.10861.1773258999020",
-    "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.10861.1773258976760",
-    "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.10861.1773258964171",
-    "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.10861.1773256915487",
-    "Orchestrator/app/api/groups.py.tmp.10861.1773256891226",
-    "Orchestrator/app/api/groups.py.tmp.10861.1773256807000",
-    "Orchestrator/app/api/groups.py.tmp.10861.1773256789729",
-    "Orchestrator/app/api/groups.py.tmp.10861.1773256778218",
-    "Orchestrator/app/api/groups.py.tmp.10861.1773256759617",
+    "Orchestrator/streamlit/pages/2_Test_Batch.py.tmp.10861.1773260808561",
+    "Orchestrator/app/services/queue_manager.py.tmp.10861.1773260803183",
+    "Orchestrator/app/services/queue_manager.py.tmp.10861.1773260797098",
+    "Orchestrator/app/services/queue_manager.py.tmp.10861.1773260792513",
+    "Orchestrator/app/services/queue_manager.py.tmp.10861.1773260787071",
+    "Orchestrator/app/services/queue_manager.py.tmp.10861.1773260780302",
+    "Orchestrator/app/api/queue.py.tmp.10861.1773260740097",
+    "Orchestrator/streamlit/api_client.py.tmp.10861.1773260687367",
+    "Orchestrator/streamlit/api_client.py.tmp.10861.1773260674501",
+    "Orchestrator/streamlit/pages/1_Gruppi_UYUNI.py.tmp.10861.1773260659099",
+    "Orchestrator/streamlit/pages/2_Test_Batch.py.tmp.10861.1773260474716",
+    "Orchestrator/PROJECT-STATUS.md",
     "Orchestrator/README.md",
     "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
-    "Orchestrator/docs/spm-architecture.drawio",
-    "Orchestrator/docs/spm-architecture.drawio.tmp.9257.1773244403924",
     "Orchestrator/pytest-cache-files-iczdgc6m/README.md",
     "Uyuni/Teoria/Amministrazione-e-Troubleshooting.md",
     "Uyuni/Teoria/Supported-Clients-OS.md",
@@ -228,7 +229,6 @@
     "GeneralDocumentation_TESI/Patch Management Metrics.md",
     "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Errata-Parser/pytest-cache-files-lds417bs/README.md",
-    "Orchestrator/PROJECT-STATUS.md",
     "Errata-Parser/README.md",
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
     "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",

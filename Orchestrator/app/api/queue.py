@@ -73,7 +73,6 @@ def add_to_queue():
     Body JSON:
       errata_id         string   oppure errata_ids: [str, ...]
       target_os         string   required: ubuntu / rhel
-      priority_override int      optional, default 0
       created_by        string   optional
       notes             string   optional
 
@@ -101,11 +100,6 @@ def add_to_queue():
             "error": "errata_ids must be non-empty strings"
         }), 400
 
-    try:
-        priority_override = int(data.get("priority_override", 0))
-    except (ValueError, TypeError):
-        return jsonify({"error": "priority_override must be an integer"}), 400
-
     created_by = data.get("created_by")
     notes = data.get("notes")
 
@@ -117,7 +111,6 @@ def add_to_queue():
             row = qm.add_to_queue(
                 errata_id=errata_id,
                 target_os=target_os,
-                priority_override=priority_override,
                 created_by=created_by,
                 notes=notes,
             )
@@ -171,30 +164,18 @@ def update_queue_item(queue_id):
     """
     PATCH /api/v1/queue/<id>
 
-    Body JSON (almeno uno richiesto):
-      priority_override  int
-      notes              string
+    Body JSON:
+      notes  string  (required)
     """
     data = request.get_json(silent=True) or {}
-
-    priority_override = data.get("priority_override")
     notes = data.get("notes")
 
-    if priority_override is None and notes is None:
-        return jsonify({
-            "error": "At least one of priority_override or notes is required"
-        }), 400
-
-    if priority_override is not None:
-        try:
-            priority_override = int(priority_override)
-        except (ValueError, TypeError):
-            return jsonify({"error": "priority_override must be an integer"}), 400
+    if notes is None:
+        return jsonify({"error": "notes is required"}), 400
 
     try:
         item = qm.update_queue_item(
             queue_id=queue_id,
-            priority_override=priority_override,
             notes=notes,
         )
         if item is None:

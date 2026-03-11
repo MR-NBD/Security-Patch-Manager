@@ -796,6 +796,7 @@ def _execute_test_on_system(
     system_id: int,
     system_name: str,
     system_ip: str,
+    batch_id: str = None,
 ) -> dict:
     """
     Esegue tutte le fasi del test su un singolo sistema.
@@ -811,6 +812,12 @@ def _execute_test_on_system(
     test_id = _create_test_record(
         queue_id, errata_id, system_id, system_name, system_ip, requires_reboot,
     )
+
+    # Aggiorna il batch con il test_id appena creato (per il live view Streamlit)
+    if batch_id:
+        with _batches_lock:
+            if batch_id in _batches:
+                _batches[batch_id]["current_test_id"] = test_id
 
     started_at     = datetime.now(timezone.utc)
     snapshot_id    = None
@@ -992,7 +999,7 @@ def _execute_test_on_system(
     }
 
 
-def _execute_test(queue_item: dict) -> dict:
+def _execute_test(queue_item: dict, batch_id: str = None) -> dict:
     """
     Esegue il test completo per un elemento della coda.
     Se il gruppo UYUNI contiene più sistemi, testa su tutti in sequenza.
@@ -1038,6 +1045,7 @@ def _execute_test(queue_item: dict) -> dict:
         result = _execute_test_on_system(
             queue_id, errata_id, target_os, requires_reboot, pkg_names,
             sys_info["system_id"], sys_info["system_name"], sys_info["system_ip"],
+            batch_id=batch_id,
         )
         per_system_results.append(result)
 
@@ -1367,8 +1375,20 @@ def _run_batch_background(
                     "reason":   "Non trovato o non in stato queued",
                 }
             else:
-                result = _execute_test(row)
+                # Imposta errata corrente nel batch prima di avviare il test
+                with _batches_lock:
+                    if batch_id in _batches:
+                        _batches[batch_id]["current_errata_id"] = row["errata_id"]
+                        _batches[batch_id]["current_test_id"]   = None
+
+                result = _execute_test(row, batch_id=batch_id)
                 _last_result = result
+
+                # Pulisce il test corrente al completamento
+                with _batches_lock:
+                    if batch_id in _batches:
+                        _batches[batch_id]["current_errata_id"] = None
+                        _batches[batch_id]["current_test_id"]   = None
 
             with _batches_lock:
                 b = _batches[batch_id]
@@ -1450,17 +1470,19 @@ def start_batch(
 
     with _batches_lock:
         _batches[batch_id] = {
-            "batch_id":    batch_id,
-            "status":      "running",
-            "group":       group_name,
-            "operator":    operator,
-            "total":       len(queue_ids),
-            "completed":   0,
-            "passed":      0,
-            "failed":      0,
-            "results":     [],
-            "started_at":  datetime.now(timezone.utc).isoformat(),
-            "completed_at": None,
+            "batch_id":          batch_id,
+            "status":            "running",
+            "group":             group_name,
+            "operator":          operator,
+            "total":             len(queue_ids),
+            "completed":         0,
+            "passed":            0,
+            "failed":            0,
+            "results":           [],
+            "started_at":        datetime.now(timezone.utc).isoformat(),
+            "completed_at":      None,
+            "current_test_id":   None,
+            "current_errata_id": None,
         }
 
     # Persiste su DB: sopravvive al restart Flask
