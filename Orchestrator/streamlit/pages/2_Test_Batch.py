@@ -10,7 +10,9 @@ import sys, os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
+import re
 import time
+from collections import Counter
 from datetime import datetime, timezone
 import streamlit as st
 import pandas as pd
@@ -28,9 +30,30 @@ st.title("Test Batch")
 _PHASE_ICON = {
     "completed":   "✅",
     "failed":      "❌",
-    "skipped":     "⏭",
+    "skipped":     "—",
     "in_progress": "⏳",
 }
+
+# ── Famiglie USN ──────────────────────────────────────────────────
+# Palette colori pastello per evidenziare righe della stessa famiglia
+_FAMILY_COLORS = [
+    "#FFF9C4",  # giallo
+    "#C8E6FA",  # azzurro
+    "#C8F5E4",  # verde
+    "#FAD7E6",  # rosa
+    "#E8D5FA",  # viola
+    "#FFE0B2",  # arancio
+    "#B3E5FC",  # ciano
+    "#F0F4C3",  # lime
+    "#FFDDC1",  # pesca
+    "#D7F5D3",  # menta
+]
+
+
+def _advisory_family(name: str):
+    """Estrae la famiglia USN. 'USN-7412-2' → 'USN-7412'. None se non USN."""
+    m = re.match(r'^(USN-\d+)-\d+$', name)
+    return m.group(1) if m else None
 
 _PHASE_LABEL = {
     "pre_check":    "⓪ Pre-check",
@@ -86,7 +109,7 @@ def _phase_detail(phase: dict) -> str:
             parts.append(f"Disco: {disk} MB liberi")
         parts.append("Servizi OK" if not svcs else f"Servizi KO: {', '.join(svcs)}")
         if rpend:
-            parts.append("⚠ Reboot pendente")
+            parts.append("Reboot pendente")
         return " | ".join(parts) if parts else err
 
     if name == "snapshot":
@@ -102,7 +125,7 @@ def _phase_detail(phase: dict) -> str:
 
     if name == "validate":
         if output.get("skipped"):
-            return "⏭ Prometheus non disponibile — validazione saltata"
+            return "Prometheus non disponibile — validazione saltata"
         cd  = output.get("cpu_delta")
         md  = output.get("memory_delta")
         cok = output.get("cpu_ok")
@@ -121,7 +144,7 @@ def _phase_detail(phase: dict) -> str:
         failed  = output.get("failed")  or []
         if not failed:
             return f"Tutti OK ({len(checked)} servizi controllati)"
-        return f"❌ DOWN: {', '.join(failed)}"
+        return f"DOWN: {', '.join(failed)}"
 
     if name == "rollback":
         rtype = output.get("rollback_type", "?")
@@ -134,7 +157,7 @@ def _phase_detail(phase: dict) -> str:
         if ok:
             return "Servizi verificati OK dopo rollback"
         failed = output.get("failed_services") or []
-        return f"❌ Servizi ancora DOWN: {', '.join(failed)}" if failed else err
+        return f"Servizi ancora DOWN: {', '.join(failed)}" if failed else err
 
     return err or "—"
 
@@ -150,20 +173,20 @@ def _render_pipeline(phases: list) -> None:
         p = phase_map.get(step)
         if not p:
             label = _PHASE_LABEL.get(step, step).split(" ", 1)[-1]
-            cols[i].markdown(f"⬜ *{label}*")
+            cols[i].markdown(f"· *{label}*")
         else:
             status = p.get("status", "")
-            icon   = _PHASE_ICON.get(status, "⬜")
+            icon   = _PHASE_ICON.get(status, "·")
             label  = _PHASE_LABEL.get(step, step).split(" ", 1)[-1]
             cols[i].markdown(f"{icon} **{label}**")
 
     # Rollback (opzionale)
     rb = phase_map.get("rollback")
     if rb:
-        icon = _PHASE_ICON.get(rb["status"], "⬜")
+        icon = _PHASE_ICON.get(rb["status"], "·")
         cols[-2].markdown(f"{icon} **Rollback**")
     else:
-        cols[-2].markdown("⬜ *Rollback*")
+        cols[-2].markdown("· *Rollback*")
 
     # Esito finale
     all_done = all(
@@ -174,9 +197,9 @@ def _render_pipeline(phases: list) -> None:
     if rb:
         cols[-1].markdown("❌ **Fallita**")
     elif all_done and phase_map:
-        cols[-1].markdown("✅ **pending_approval**")
+        cols[-1].markdown("✅ **Approvazione**")
     else:
-        cols[-1].markdown("⬜ *Esito*")
+        cols[-1].markdown("· *Esito*")
 
 
 def _render_prometheus_section(test: dict) -> None:
@@ -205,8 +228,8 @@ def _render_prometheus_section(test: dict) -> None:
     def _fmt_delta(v, ok):
         if v is None:
             return "—"
-        icon = "✅" if ok else ("❌" if ok is False else "")
-        return f"{v:+.1f}% {icon}"
+        icon = " ✅" if ok else (" ❌" if ok is False else "")
+        return f"{v:+.1f}%{icon}"
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("CPU baseline",  _fmt(cpu_base))
@@ -219,7 +242,7 @@ def _render_prometheus_section(test: dict) -> None:
               delta_color="inverse" if mem_ok is False else "normal")
 
     if evalu.get("skipped"):
-        st.caption("⏭ Validazione Prometheus saltata (dati non disponibili al momento del test).")
+        st.caption("Validazione Prometheus saltata (dati non disponibili al momento del test).")
 
 
 def _render_phases_table(phases: list) -> None:
@@ -258,7 +281,7 @@ def _render_live_test(batch_id: str, current_test_id: int, current_errata_id: st
     """
     Sezione 'Patch in esecuzione': mostra in tempo reale fasi, metriche, pipeline.
     """
-    st.subheader(f"⚙ Patch in esecuzione — `{current_errata_id or '...'}`")
+    st.subheader(f"Patch in esecuzione — `{current_errata_id or '...'}`")
 
     test_data, terr = api.test_detail(current_test_id)
     if terr or not test_data:
@@ -281,7 +304,7 @@ def _render_live_test(batch_id: str, current_test_id: int, current_errata_id: st
 
     st.divider()
 
-    tab_fasi, tab_prom = st.tabs(["📋 Fasi", "📊 Prometheus"])
+    tab_fasi, tab_prom = st.tabs(["Fasi", "Prometheus"])
     with tab_fasi:
         _render_phases_table(phases)
     with tab_prom:
@@ -293,13 +316,13 @@ def _render_completed_results(results: list) -> None:
     if not results:
         return
 
-    st.subheader(f"📜 Test completati nel batch ({len(results)})")
+    st.subheader(f"Test completati nel batch ({len(results)})")
 
     _RES_ICON = {
         "pending_approval": "✅",
         "failed":           "❌",
-        "error":            "🔴",
-        "skipped":          "⏭",
+        "error":            "❌",
+        "skipped":          "—",
     }
 
     for r in reversed(results):  # più recente prima
@@ -328,7 +351,7 @@ def _render_completed_results(results: list) -> None:
                     c2.metric("Durata",  _fmt_duration(t.get("duration_seconds")))
                     c3.metric("Esito",   f"{icon} {status}")
 
-                    tab_f, tab_p = st.tabs(["📋 Fasi", "📊 Prometheus"])
+                    tab_f, tab_p = st.tabs(["Fasi", "Prometheus"])
                     with tab_f:
                         _render_phases_table(phases)
                     with tab_p:
@@ -393,12 +416,12 @@ def render_monitor(batch_id: str):
 
     # ── Stato finale ───────────────────────────────────────────────
     if batch_status == "completed":
-        st.success(f"✅ Batch completato — {passed}/{total} patch superate.")
+        st.success(f"Batch completato — {passed}/{total} patch superate.")
         if passed > 0:
-            st.info(f"**{passed} patch** in attesa di approvazione.", icon="⏳")
+            st.info(f"**{passed} patch** in attesa di approvazione.")
             st.page_link("pages/3_Approvazioni.py", label="→ Vai ad Approvazioni")
-        st.info("Nota di riepilogo aggiunta su tutti i sistemi del gruppo UYUNI.", icon="📝")
-        if st.button("✚ Nuovo batch"):
+        st.info("Nota di riepilogo aggiunta su tutti i sistemi del gruppo UYUNI.")
+        if st.button("+ Nuovo batch"):
             del st.session_state["active_batch_id"]
             st.rerun()
 
@@ -408,9 +431,9 @@ def render_monitor(batch_id: str):
             f"Batch cancellato. {completed} test eseguiti, {remaining} saltati."
         )
         if passed > 0:
-            st.info(f"**{passed} patch** già superate sono in attesa di approvazione.", icon="⏳")
+            st.info(f"**{passed} patch** già superate sono in attesa di approvazione.")
             st.page_link("pages/3_Approvazioni.py", label="→ Vai ad Approvazioni")
-        if st.button("✚ Nuovo batch"):
+        if st.button("+ Nuovo batch"):
             del st.session_state["active_batch_id"]
             st.rerun()
 
@@ -470,9 +493,9 @@ if not items:
 
 _SEV_ICON = {"Critical": "🔴", "High": "🟠", "Medium": "🟡", "Low": "🔵"}
 
-_n_reboot   = sum(1 for it in items if it.get("requires_reboot") is True)
+_n_reboot    = sum(1 for it in items if it.get("requires_reboot") is True)
 _n_no_reboot = sum(1 for it in items if it.get("requires_reboot") is False)
-_n_unknown  = len(items) - _n_reboot - _n_no_reboot
+_n_unknown   = len(items) - _n_reboot - _n_no_reboot
 
 if _n_reboot > 0:
     st.warning(
@@ -490,44 +513,116 @@ else:
 
 st.caption("Ordine di test: **no-reboot prima** → score → data accodamento")
 
-rows = []
+# ── Rilevamento famiglie USN correlate ───────────────────────────
+_fam_counter  = Counter()
+_errata_family: dict = {}
 for it in items:
+    eid = it.get("errata_id", "")
+    fam = _advisory_family(eid)
+    if fam:
+        _errata_family[eid] = fam
+        _fam_counter[fam] += 1
+
+# Solo famiglie con più di 1 patch in coda
+_multi_families = sorted(f for f, cnt in _fam_counter.items() if cnt > 1)
+_fam_color = {
+    fam: _FAMILY_COLORS[i % len(_FAMILY_COLORS)]
+    for i, fam in enumerate(_multi_families)
+}
+
+# ── Legenda + bottoni selezione rapida per famiglia ──────────────
+if _multi_families:
+    st.caption(
+        "Righe dello stesso colore appartengono alla stessa famiglia USN. "
+        "Usa i bottoni per selezionarle tutte insieme."
+    )
+    fam_btn_cols = st.columns(min(len(_multi_families), 4))
+    for i, fam in enumerate(_multi_families):
+        cnt = _fam_counter[fam]
+        with fam_btn_cols[i % len(fam_btn_cols)]:
+            if st.button(
+                f"{fam} ({cnt})",
+                key=f"famsel_{fam}",
+                help=f"Aggiunge tutte le patch della famiglia {fam} alla selezione",
+            ):
+                fam_errata = [
+                    it["errata_id"] for it in items
+                    if _errata_family.get(it.get("errata_id", "")) == fam
+                ]
+                current = st.session_state.get("queue_multiselect", [])
+                st.session_state["queue_multiselect"] = list(
+                    dict.fromkeys(current + fam_errata)
+                )
+                st.rerun()
+
+# ── Tabella con righe colorate per famiglia ──────────────────────
+rows = []
+_row_bg: list = []
+for it in items:
+    eid = it.get("errata_id", "")
+    fam = _errata_family.get(eid)
     sev = it.get("severity") or "?"
     rb  = it.get("requires_reboot")
     rb_label = "⚠ Si" if rb is True else ("✅ No" if rb is False else "— ?")
     rows.append({
-        "Seleziona": False,
         "QID":      it.get("queue_id"),
-        "Errata":   it.get("errata_id", "?"),
-        "OS":       it.get("target_os", "?"),
+        "Errata":   eid,
+        "Famiglia": fam if fam and fam in _fam_color else "",
         "Severity": f"{_SEV_ICON.get(sev, '⚪')} {sev}",
         "Reboot":   rb_label,
         "Score":    it.get("success_score"),
         "Synopsis": (it.get("synopsis") or "")[:55],
     })
+    _row_bg.append(_fam_color.get(fam) if fam and fam in _fam_color else None)
 
-edited = st.data_editor(
-    pd.DataFrame(rows),
+_df = pd.DataFrame(rows)
+
+
+def _apply_row_colors(row):
+    bg = _row_bg[row.name]
+    return [f"background-color: {bg}" if bg else ""] * len(row)
+
+
+st.dataframe(
+    _df.style.apply(_apply_row_colors, axis=1),
     use_container_width=True,
     hide_index=True,
     column_config={
-        "Seleziona": st.column_config.CheckboxColumn("Seleziona", default=False),
-        "Reboot":    st.column_config.TextColumn("Reboot", width="small"),
-        "Score":     st.column_config.ProgressColumn(
+        "Famiglia": st.column_config.TextColumn("Famiglia", width="medium"),
+        "Reboot":   st.column_config.TextColumn("Reboot", width="small"),
+        "Score":    st.column_config.ProgressColumn(
             "Score", min_value=0, max_value=100, format="%d"
         ),
     },
-    disabled=["QID", "Errata", "OS", "Severity", "Reboot", "Score", "Synopsis"],
-    key="queue_selection",
 )
 
-selected_rows = edited[edited["Seleziona"] == True]
-selected_qids = selected_rows["QID"].tolist()
+# ── Selezione patch tramite multiselect ─────────────────────────
+errata_options = [it.get("errata_id", "?") for it in items]
+selected_errata = st.multiselect(
+    "Seleziona patch da testare",
+    options=errata_options,
+    default=[e for e in st.session_state.get("queue_multiselect", [])
+             if e in errata_options],
+    key="queue_multiselect",
+    placeholder="Cerca advisory per nome o seleziona dalla lista...",
+)
+
+_errata_to_qid = {it.get("errata_id"): it.get("queue_id") for it in items}
+selected_qids  = [_errata_to_qid[e] for e in selected_errata if e in _errata_to_qid]
 
 if selected_qids:
-    st.success(f"**{len(selected_qids)}** patch selezionate.")
+    # Mostra quante sono correlate tra quelle selezionate
+    sel_families = Counter(
+        _errata_family[e] for e in selected_errata if e in _errata_family
+    )
+    multi_sel = {f for f, c in sel_families.items() if c > 1}
+    msg = f"**{len(selected_qids)}** patch selezionate"
+    if multi_sel:
+        msg += f" — di cui {sum(sel_families[f] for f in multi_sel)} correlate " \
+               f"in {len(multi_sel)} famiglie"
+    st.success(msg)
 else:
-    st.caption("Seleziona le patch da testare.")
+    st.caption("Seleziona le patch da testare oppure usa i bottoni famiglia.")
 
 st.divider()
 
