@@ -1,6 +1,6 @@
-# Errata-Parser v3.4
+# Errata-Parser v3.5
 
-Microservizio Flask che sincronizza errata di sicurezza (Ubuntu USN, Debian DSA) verso UYUNI Server, con arricchimento severity tramite NVD/CVSS.
+Microservizio Flask che sincronizza errata di sicurezza (Ubuntu USN, Debian DSA, RHEL RHSA) verso UYUNI Server, con arricchimento severity tramite NVD/CVSS.
 
 ## Architettura
 
@@ -17,6 +17,7 @@ Internet (ubuntu.com, debian.org, nvd.nist.gov)
 │  │  USN    → 06:00, 12:00, 18:00  │     │
 │  │  DSA    → 03:00                 │     │
 │  │  NVD    → 04:00                 │     │
+│  │  RHEL   → 05:00                 │     │
 │  │  Pkg    → 01:00                 │     │
 │  │  Push   → 00:30,06:30,12:30,.. │     │
 │  └─────────────────────────────────┘     │
@@ -31,6 +32,19 @@ Internet (ubuntu.com, debian.org, nvd.nist.gov)
 **Nessuna Logic App Azure. Nessun container ACI. Nessun Azure PostgreSQL. Tutto sulla VM.**
 
 ## Changelog
+
+### v3.5 (2026-03-11)
+- **NVD enrichment per errata RHEL nativi UYUNI**: gli RHSA importati da Red Hat CDN vengono arricchiti con CVE IDs e severity CVSS tramite la nuova pipeline RHEL
+- **Nuovo endpoint `POST /api/sync/rhel-nvd`**: pipeline RHEL completa — importa CVE IDs da UYUNI, arricchisce con NVD, aggiorna severity in UYUNI via `errata.setDetails`
+- **`map_channel_to_rhel()`**: mappa label canale UYUNI → versione RHEL (`rhel-9`, `rhel-8`, ecc.), skippa automaticamente canali CLM/lifecycle/client-tools
+- **`_parse_rhel_severity()`**: estrae severity interna dal prefisso `advisory_synopsis` RHEL (`Critical`→`critical`, `Important`→`high`, `Moderate`→`medium`, `Low`→`low`)
+- **`_sync_rhel_cves()`**: importa RHSA dai canali UYUNI, estrae CVE IDs via `errata.listCves`, inserisce nel DB locale per NVD enrichment. NON crea errata duplicati — gli RHSA esistono già (Red Hat CDN)
+- **`_update_rhel_severity()`**: aggiorna severity RHEL in UYUNI via `errata.setDetails` post-NVD, priorità critical→high→medium→low, marca `synced` dopo aggiornamento
+- **`_propagate_nvd_severity()`**: quando NVD migliora la severity di un errata RHEL, resetta `sync_status='pending'` per triggerare il re-push verso UYUNI
+- **`_get_active_distributions()`**: estesa per rilevare canali RHEL (`rhel-9`, `rhel-8`) insieme a Ubuntu e Debian
+- **`route_sync_auto()`**: integra pipeline RHEL nella pipeline completa (step 4: sync CVEs RHEL, step 8: aggiorna severity RHEL in UYUNI)
+- **Scheduler**: job `rhel_pipeline` alle 05:00 (dopo NVD delle 04:00) — sync CVEs + aggiorna severity
+- **Migration 002**: constraint `chk_errata_source` esteso con `'rhel'`; `chk_log_type` esteso con `'rhel'`, `'rhel_push'`
 
 ### v3.4 (2026-03-11)
 - **Fix `_sanitize_error()`**: livello log cambiato da `DEBUG` a `ERROR` — i dettagli degli errori interni erano invisibili in produzione (log level INFO). Ora gli errori di DB/UYUNI nei health endpoint sono correttamente visibili nei log
@@ -165,7 +179,8 @@ Se `SPM_API_KEY` non è impostata nel `.env`, tutti gli endpoint autenticati rit
 | `/api/sync/usn` | POST | **SI** | Sync Ubuntu USN (manuale) |
 | `/api/sync/dsa` | POST | **SI** | Sync Debian DSA (manuale, ~15-30 min) |
 | `/api/sync/nvd` | POST | **SI** | Enrichment NVD/CVSS |
-| `/api/sync/auto` | POST | **SI** | Pipeline completa (USN+DSA+NVD+Pkg+Push) |
+| `/api/sync/rhel-nvd` | POST | **SI** | Pipeline RHEL: import CVEs da UYUNI + NVD enrichment + aggiorna severity |
+| `/api/sync/auto` | POST | **SI** | Pipeline completa (USN+DSA+RHEL+NVD+Pkg+Push) |
 | `/api/sync/status` | GET | **SI** | Log ultimi 20 sync |
 | `/api/uyuni/sync-packages` | POST | **SI** | Aggiorna cache pacchetti UYUNI |
 | `/api/uyuni/push` | POST | **SI** | Push errata pendenti verso UYUNI |

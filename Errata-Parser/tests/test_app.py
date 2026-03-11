@@ -28,10 +28,12 @@ from app import (
     _split_epoch,
     _compare_version_string,
     map_channel_to_distribution,
+    map_channel_to_rhel,
     _build_package_ids,
     _sanitize_error,
     cvss_to_severity,
     _clamp,
+    _parse_rhel_severity,
     _RE_CVE,
     _APP_VERSION,
 )
@@ -446,3 +448,74 @@ class TestAdditionalEndpoints:
         resp = self.client.get('/api/nonexistent',
                                headers={'X-API-Key': 'test-key-12345'})
         assert resp.status_code == 404
+
+
+# ============================================================
+# map_channel_to_rhel
+# ============================================================
+class TestMapChannelToRhel:
+
+    def test_rhel9_baseos(self):
+        assert map_channel_to_rhel('rhel9-baseos-cdn') == 'rhel-9'
+
+    def test_rhel9_appstream(self):
+        assert map_channel_to_rhel('rhel9-appstream-cdn') == 'rhel-9'
+
+    def test_rhel8(self):
+        assert map_channel_to_rhel('rhel8-baseos-cdn') == 'rhel-8'
+
+    def test_rhel9_pool(self):
+        assert map_channel_to_rhel('rhel9-pool-uyuni-x86_64') == 'rhel-9'
+
+    def test_skip_uyuni_client(self):
+        assert map_channel_to_rhel('rhel9-uyuni-client-x86_64') is None
+
+    def test_skip_lifecycle(self):
+        assert map_channel_to_rhel('rhel9-lifecycle-test-rhel9-baseos-cdn') is None
+
+    def test_skip_clm(self):
+        assert map_channel_to_rhel('rhel9-clm-test-baseos') is None
+
+    def test_ubuntu_not_rhel(self):
+        assert map_channel_to_rhel('ubuntu-22.04-amd64') is None
+
+    def test_debian_not_rhel(self):
+        assert map_channel_to_rhel('debian-bookworm-amd64') is None
+
+    def test_case_insensitive(self):
+        assert map_channel_to_rhel('RHEL9-BASEOS-CDN') == 'rhel-9'
+
+
+# ============================================================
+# _parse_rhel_severity
+# ============================================================
+class TestParseRhelSeverity:
+
+    def test_critical(self):
+        assert _parse_rhel_severity('Critical: kernel security update') == 'critical'
+
+    def test_important(self):
+        assert _parse_rhel_severity('Important: openssl security fix') == 'high'
+
+    def test_moderate(self):
+        assert _parse_rhel_severity('Moderate: samba security and bug fix') == 'medium'
+
+    def test_low(self):
+        assert _parse_rhel_severity('Low: tzdata security update') == 'low'
+
+    def test_unknown_prefix(self):
+        assert _parse_rhel_severity('Bug fix: something') == 'medium'
+
+    def test_empty(self):
+        assert _parse_rhel_severity('') == 'medium'
+
+    def test_none(self):
+        assert _parse_rhel_severity(None) == 'medium'
+
+    def test_no_colon(self):
+        assert _parse_rhel_severity('Security update for kernel') == 'medium'
+
+    def test_case_insensitive(self):
+        assert _parse_rhel_severity('CRITICAL: kernel') == 'critical'
+        assert _parse_rhel_severity('IMPORTANT: openssl') == 'high'
+        assert _parse_rhel_severity('MODERATE: samba') == 'medium'

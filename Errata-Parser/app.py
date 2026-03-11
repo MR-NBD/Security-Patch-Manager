@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 """
-UYUNI Errata Manager - v3.4
+UYUNI Errata Manager - v3.5
 
 Sincronizza errata Ubuntu USN e/o Debian DSA verso UYUNI Server.
 Le distribuzioni vengono rilevate automaticamente dai canali UYUNI attivi.
 NVD arricchisce la severity CVSS reale dopo ogni sync.
+Gli errata RHEL nativi UYUNI (importati da Red Hat CDN) vengono arricchiti
+con CVE IDs e severity NVD tramite la pipeline /api/sync/rhel-nvd.
 
 Endpoints:
   POST /api/sync/auto           — pipeline completa auto-detect
   POST /api/sync/usn            — solo Ubuntu USN
   POST /api/sync/dsa            — solo Debian DSA
   POST /api/sync/nvd            — solo NVD enrichment
+  POST /api/sync/rhel-nvd       — pipeline RHEL: import CVEs da UYUNI + NVD enrichment + aggiorna severity
   POST /api/uyuni/sync-packages — aggiorna cache pacchetti
   POST /api/uyuni/push          — push errata pendenti a UYUNI
   GET  /api/uyuni/channels      — canali con distribuzione mappata
@@ -20,6 +23,19 @@ Endpoints:
 
 Auth: header X-API-Key richiesto su tutti gli endpoint tranne /api/health*.
       Se SPM_API_KEY non è impostata tutti gli endpoint autenticati ritornano 503.
+
+Changelog v3.5:
+  - NVD enrichment per errata RHEL nativi UYUNI (importati da Red Hat CDN)
+  - Nuovo endpoint POST /api/sync/rhel-nvd: pipeline RHEL CVE import + NVD + setDetails
+  - map_channel_to_rhel(): rileva canali RHEL da label UYUNI, skippa CLM/lifecycle/client-tools
+  - _parse_rhel_severity(): estrae severity da prefisso advisory_synopsis (Critical/Important/Moderate/Low)
+  - _sync_rhel_cves(): importa RHSA da UYUNI, estrae CVE IDs, inserisce nel DB per NVD enrichment
+  - _update_rhel_severity(): aggiorna severity RHEL in UYUNI via errata.setDetails post-NVD
+  - _propagate_nvd_severity(): resetta sync_status='pending' per errata RHEL quando NVD migliora severity
+  - _get_active_distributions(): estesa per rilevare canali RHEL (rhel-9, rhel-8, ecc.)
+  - route_sync_auto(): integra pipeline RHEL (sync CVEs + aggiorna severity) nella pipeline completa
+  - Scheduler: job rhel_pipeline alle 05:00 (dopo NVD delle 04:00)
+  - Migration 002: constraint chk_errata_source e chk_log_type estesi per 'rhel', 'rhel_push'
 
 Changelog v3.4:
   - Fix _sanitize_error(): logger.debug → logger.error — errori non più persi in produzione
@@ -115,7 +131,7 @@ if _CORS_ORIGIN:
 # ============================================================
 # CONSTANTS
 # ============================================================
-_APP_VERSION    = '3.4'
+_APP_VERSION    = '3.5'
 _REQUEST_HEADERS = {'User-Agent': f'UYUNI-Errata-Manager/{_APP_VERSION}'}
 
 # severity interna → (label UYUNI, keywords per errata.create)
@@ -157,7 +173,7 @@ _DEBIAN_RELEASE_MAP = {
 }
 
 # Advisory lock keys PostgreSQL
-_LOCK_KEYS = {'usn': 1001, 'dsa': 1002, 'nvd': 1003, 'packages': 1004, 'push': 1005}
+_LOCK_KEYS = {'usn': 1001, 'dsa': 1002, 'nvd': 1003, 'packages': 1004, 'push': 1005, 'rhel': 1006, 'rhel_push': 1007}
 
 # Regex per validazione CVE ID (es. CVE-2024-12345)
 _RE_CVE = re.compile(r'^CVE-\d{4}-\d{4,}$')
@@ -172,6 +188,20 @@ _MAX_PUSH_LIMIT = 200
 
 # Endpoint che non richiedono autenticazione
 _AUTH_EXEMPT = {'health', 'health_detailed'}
+
+# Regex per estrarre versione RHEL dal label canale (es. 'rhel9-baseos-cdn' → 9)
+_RE_RHEL_VERSION = re.compile(r'rhel(\d+)', re.IGNORECASE)
+
+# Canali RHEL da skippare (CLM copies, client tools — errata duplicati o non rilevanti)
+_RHEL_CHANNEL_SKIP = frozenset({'clm', 'lifecycle', 'uyuni-client'})
+
+# Mapping prefisso synopsis RHEL → severity interna
+_RHEL_SYNOPSIS_SEVERITY = {
+    'critical':  'critical',
+    'important': 'high',
+    'moderate':  'medium',
+    'low':       'low',
+}
 
 
 # ============================================================
@@ -292,6 +322,33 @@ def map_channel_to_distribution(label):
         if 'trixie' in label_lower or 'debian-13' in label_lower:
             return 'debian-trixie'
     return None
+
+
+def map_channel_to_rhel(label):
+    """
+    Mappa label canale UYUNI → versione RHEL (es. 'rhel-9'), None se non RHEL.
+    Skippa canali CLM/lifecycle/client-tools (duplicati o non contenenti errata security).
+    """
+    label_lower = label.lower()
+    if 'rhel' not in label_lower:
+        return None
+    if any(skip in label_lower for skip in _RHEL_CHANNEL_SKIP):
+        return None
+    m = _RE_RHEL_VERSION.search(label_lower)
+    return f'rhel-{m.group(1)}' if m else None
+
+
+def _parse_rhel_severity(synopsis):
+    """
+    Estrae severity interna dal prefisso advisory_synopsis RHEL.
+    Es. 'Moderate: samba security update' → 'medium'
+        'Important: kernel security update' → 'high'
+    Fallback: 'medium' se non riconoscibile.
+    """
+    if not synopsis:
+        return 'medium'
+    prefix = synopsis.split(':')[0].strip().lower()
+    return _RHEL_SYNOPSIS_SEVERITY.get(prefix, 'medium')
 
 
 _RE_EPOCH = re.compile(r'^(\d+):(.+)$')
@@ -437,7 +494,14 @@ def _get_active_distributions():
     try:
         with _uyuni() as (client, session):
             channels = client.channel.listAllChannels(session)
-            dists = {d for ch in channels if (d := map_channel_to_distribution(ch['label']))}
+            dists = set()
+            for _ch in channels:
+                _d = map_channel_to_distribution(_ch['label'])
+                if _d:
+                    dists.add(_d)
+                _r = map_channel_to_rhel(_ch['label'])
+                if _r:
+                    dists.add(_r)
             _dist_cache = {'dists': dists, 'ts': time.time()}
             return dists
     except Exception as e:
@@ -531,7 +595,12 @@ def _propagate_nvd_severity(conn):
                 GROUP BY ec.errata_id
             )
             UPDATE errata e
-            SET    severity = nb.best_severity
+            SET
+                severity    = nb.best_severity,
+                sync_status = CASE
+                                  WHEN e.source = 'rhel' THEN 'pending'
+                                  ELSE e.sync_status
+                              END
             FROM   nvd_best nb
             WHERE  e.id = nb.errata_id
               AND  nb.best_rank > COALESCE(
@@ -827,6 +896,149 @@ def _sync_dsa(conn, active_dists=None):
         'total_errata':   total_errata,
         'total_packages': total_packages,
         'releases':       target_releases,
+    }
+
+
+# ============================================================
+# SYNC: RHEL CVEs da UYUNI
+# ============================================================
+def _sync_rhel_cves(conn):
+    """
+    Importa Security Advisory RHEL (RHSA-*) dai canali UYUNI e inserisce
+    i CVE associati nel DB locale per NVD enrichment.
+    NON crea nuovi errata in UYUNI: gli RHSA esistono già (importati da Red Hat CDN).
+    La severity iniziale viene estratta dal prefisso advisory_synopsis (es. 'Moderate: ...').
+    L'enrichment NVD (_sync_nvd + _propagate_nvd_severity) può in seguito migliorarla.
+    """
+    if not _try_lock(conn, 'rhel'):
+        logger.warning('RHEL CVE sync already running — skipped')
+        return {'skipped': 'already_running'}
+
+    log_id       = _log_start(conn, 'rhel')
+    total_errata = total_cves = 0
+    errors       = []
+
+    try:
+        with _uyuni() as (client, session):
+            all_channels  = client.channel.listAllChannels(session)
+            rhel_channels = [
+                (ch['label'], map_channel_to_rhel(ch['label']))
+                for ch in all_channels
+                if map_channel_to_rhel(ch['label'])
+            ]
+
+            if not rhel_channels:
+                _log_done(conn, log_id, 0)
+                _unlock(conn, 'rhel')
+                logger.info('RHEL CVE sync: no RHEL channels found in UYUNI')
+                return {'source': 'rhel', 'total_errata': 0, 'total_cves': 0,
+                        'message': 'No RHEL channels found'}
+
+            logger.info(f'RHEL CVE sync: {len(rhel_channels)} canali — '
+                        f'{[lbl for lbl, _ in rhel_channels]}')
+
+            seen = set()  # dedup advisory_name across channels (stesso RHSA in più canali)
+
+            for label, rhel_version in rhel_channels:
+                try:
+                    all_errata = client.channel.software.listErrata(session, label)
+                except Exception as ex:
+                    logger.error(f'RHEL listErrata error for {label}: {ex}')
+                    errors.append(f'{label}: {str(ex)[:80]}')
+                    continue
+
+                security = [
+                    e for e in all_errata
+                    if e['advisory_type'] == 'Security Advisory'
+                    and e.get('advisory_status', 'final') in ('final', 'stable')
+                ]
+                logger.info(f'RHEL CVE sync: {label} → {len(security)} RHSA')
+
+                for e in security:
+                    adv_name = e['advisory_name']
+                    if adv_name in seen:
+                        continue
+                    seen.add(adv_name)
+
+                    severity   = _parse_rhel_severity(e.get('advisory_synopsis', ''))
+                    vendor_url = f'https://access.redhat.com/errata/{adv_name}'
+
+                    try:
+                        cves = [
+                            cve for cve in client.errata.listCves(session, adv_name)
+                            if _RE_CVE.match(cve)
+                        ]
+                    except Exception as ex:
+                        cves = []
+                        logger.warning(f'RHEL listCves error {adv_name}: {ex}')
+
+                    try:
+                        with conn.cursor() as cur:
+                            cur.execute("""
+                                INSERT INTO errata
+                                    (advisory_id, title, description, severity,
+                                     source, distribution, issued_date)
+                                VALUES (%s, %s, %s, %s, 'rhel', %s, %s)
+                                ON CONFLICT (advisory_id) DO NOTHING
+                                RETURNING id
+                            """, (
+                                adv_name,
+                                (e.get('advisory_synopsis') or adv_name)[:500],
+                                vendor_url,
+                                severity,
+                                rhel_version,
+                                e.get('issue_date'),
+                            ))
+                            row = cur.fetchone()
+                            if not row:
+                                continue  # già presente
+
+                            errata_id = row['id']
+
+                            for cve_id in cves:
+                                cur.execute(
+                                    "INSERT INTO cves (cve_id) VALUES (%s) "
+                                    "ON CONFLICT (cve_id) DO UPDATE SET cve_id=EXCLUDED.cve_id RETURNING id",
+                                    (cve_id,),
+                                )
+                                cve_row = cur.fetchone()
+                                cur.execute(
+                                    "INSERT INTO errata_cves (errata_id, cve_id) VALUES (%s, %s) "
+                                    "ON CONFLICT DO NOTHING",
+                                    (errata_id, cve_row['id']),
+                                )
+
+                            total_errata += 1
+                            total_cves   += len(cves)
+
+                    except Exception as ex:
+                        conn.rollback()
+                        errors.append(f'{adv_name}: {str(ex)[:80]}')
+                        logger.error(f'RHEL insert error {adv_name}: {ex}')
+                        continue
+
+                    if total_errata % 50 == 0:
+                        conn.commit()
+                        logger.info(f'RHEL CVE sync progress: {total_errata} errata, {total_cves} CVEs')
+
+                conn.commit()
+
+        _log_done(conn, log_id, total_errata, errors if errors else None)
+
+    except Exception as ex:
+        _log_error(conn, log_id, ex)
+        _unlock(conn, 'rhel')
+        raise
+
+    _unlock(conn, 'rhel')
+    logger.info(f'RHEL CVE sync done: {total_errata} new errata, {total_cves} CVEs, '
+                f'{len(rhel_channels)} channels')
+    return {
+        'source':             'rhel',
+        'total_errata':       total_errata,
+        'total_cves':         total_cves,
+        'channels_processed': len(rhel_channels),
+        'errors':             len(errors),
     }
 
 
@@ -1265,6 +1477,79 @@ def _push_errata(conn, limit=10):
 
 
 # ============================================================
+# RHEL: aggiorna severity in UYUNI post-NVD
+# ============================================================
+def _update_rhel_severity(conn, limit=200):
+    """
+    Aggiorna la severity degli errata RHEL in UYUNI con il dato NVD arricchito.
+    Usa errata.setDetails() — testato funzionante anche su errata vendor/CDN.
+    Prioritizza critical → high → medium → low.
+    Gli errata vengono marcati 'synced' dopo aggiornamento.
+    _propagate_nvd_severity() li rimette 'pending' se NVD migliora ulteriormente.
+    """
+    if not _try_lock(conn, 'rhel_push'):
+        logger.warning('RHEL severity update already running — skipped')
+        return {'skipped': 'already_running'}
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT advisory_id, severity FROM errata
+            WHERE source = 'rhel' AND sync_status = 'pending'
+              AND severity IS NOT NULL
+            ORDER BY
+                CASE severity
+                    WHEN 'critical' THEN 1
+                    WHEN 'high'     THEN 2
+                    WHEN 'medium'   THEN 3
+                    ELSE 4
+                END,
+                issued_date DESC NULLS LAST
+            LIMIT %s
+        """, (limit,))
+        pending = list(cur.fetchall())
+
+    if not pending:
+        _unlock(conn, 'rhel_push')
+        logger.info('RHEL severity update: nothing pending')
+        return {'updated': 0, 'pending': 0}
+
+    updated = 0
+    errors  = []
+
+    try:
+        with _uyuni() as (client, session):
+            for e in pending:
+                adv_name  = e['advisory_id']
+                severity  = (e['severity'] or 'medium').lower()
+                sev_label, _ = SEVERITY_TO_UYUNI.get(severity, SEVERITY_TO_UYUNI['medium'])
+
+                try:
+                    client.errata.setDetails(session, adv_name, {'severity': sev_label})
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "UPDATE errata SET sync_status='synced' WHERE advisory_id=%s",
+                            (adv_name,),
+                        )
+                    conn.commit()
+                    updated += 1
+                except Exception as ex:
+                    msg = str(ex)
+                    errors.append(f'{adv_name}: {msg[:80]}')
+                    logger.error(f'RHEL setDetails failed {adv_name}: {msg[:150]}')
+
+    finally:
+        _unlock(conn, 'rhel_push')
+
+    logger.info(f'RHEL severity update done: {updated}/{len(pending)} updated, '
+                f'{len(errors)} errors')
+    return {
+        'updated':           updated,
+        'pending_processed': len(pending),
+        'errors':            errors[:5] if errors else None,
+    }
+
+
+# ============================================================
 # FLASK ROUTES
 # ============================================================
 
@@ -1458,12 +1743,14 @@ def route_sync_nvd():
 def route_sync_auto():
     """
     Pipeline completa:
-    1. Rileva distribuzioni dai canali UYUNI
-    2. Sync USN se ci sono canali Ubuntu
-    3. Sync DSA se ci sono canali Debian (solo release attivi)
-    4. NVD enrichment → propaga severity reale
-    5. Aggiorna cache pacchetti
-    6. Push errata pendenti
+    1. Rileva distribuzioni dai canali UYUNI (Ubuntu, Debian, RHEL)
+    2. Sync USN se canali Ubuntu
+    3. Sync DSA se canali Debian (solo release attivi)
+    4. Sync RHEL CVEs da UYUNI se canali RHEL
+    5. NVD enrichment → propaga severity reale (Ubuntu + Debian + RHEL)
+    6. Aggiorna cache pacchetti
+    7. Push errata pendenti (Ubuntu + Debian)
+    8. Aggiorna severity RHEL in UYUNI via setDetails
     """
     nvd_batch  = _clamp(request.args.get('nvd_batch',  100, type=int), 100, 1, _MAX_BATCH_SIZE)
     push_limit = _clamp(request.args.get('push_limit',  50, type=int),  50, 1, _MAX_PUSH_LIMIT)
@@ -1477,7 +1764,7 @@ def route_sync_auto():
     if not active_dists:
         return jsonify({
             'status':  'warning',
-            'message': 'No Ubuntu/Debian channels found in UYUNI',
+            'message': 'No supported channels found in UYUNI',
             **results,
         })
 
@@ -1489,6 +1776,10 @@ def route_sync_auto():
             if any(d.startswith('debian') for d in active_dists):
                 results['dsa'] = _sync_dsa(conn, active_dists=active_dists)
 
+            if any(d.startswith('rhel') for d in active_dists):
+                results['rhel'] = _sync_rhel_cves(conn)
+
+            # NVD dopo tutte le sorgenti: arricchisce CVE Ubuntu + Debian + RHEL
             results['nvd'] = _sync_nvd(conn, batch_size=nvd_batch)
 
         with _db() as conn:
@@ -1497,8 +1788,41 @@ def route_sync_auto():
         with _db() as conn:
             results['push'] = _push_errata(conn, limit=push_limit)
 
+        # Dopo NVD: aggiorna severity RHEL in UYUNI
+        if any(d.startswith('rhel') for d in active_dists):
+            with _db() as conn:
+                results['rhel_severity'] = _update_rhel_severity(conn)
+
     except Exception as e:
         logger.error(f'Auto sync pipeline error: {e}')
+        results['error'] = 'Pipeline interrupted — see logs'
+        return jsonify({'status': 'partial', **results}), 500
+
+    return jsonify({'status': 'success', **results})
+
+
+@app.route('/api/sync/rhel-nvd', methods=['POST'])
+def route_sync_rhel_nvd():
+    """
+    Pipeline NVD enrichment per errata RHEL nativi UYUNI:
+    1. Importa RHSA da UYUNI + estrae CVE IDs → DB locale
+    2. Arricchisce CVE con CVSS NVD
+    3. Aggiorna severity errata RHEL in UYUNI via setDetails
+    """
+    nvd_batch = _clamp(request.args.get('nvd_batch', 100, type=int), 100, 1, _MAX_BATCH_SIZE)
+    results   = {}
+    try:
+        with _db() as conn:
+            results['rhel'] = _sync_rhel_cves(conn)
+
+        with _db() as conn:
+            results['nvd'] = _sync_nvd(conn, batch_size=nvd_batch)
+
+        with _db() as conn:
+            results['rhel_severity'] = _update_rhel_severity(conn)
+
+    except Exception as e:
+        logger.error(f'RHEL NVD pipeline error: {e}')
         results['error'] = 'Pipeline interrupted — see logs'
         return jsonify({'status': 'partial', **results}), 500
 
@@ -1590,8 +1914,19 @@ if _SCHEDULER_ENABLED:
         CronTrigger(hour='0,6,12,18', minute=30), id='push', replace_existing=True,
     )
 
+    def _rhel_pipeline(conn):
+        """Pipeline RHEL scheduler: sync CVEs + aggiorna severity post-NVD."""
+        r_sync = _sync_rhel_cves(conn)
+        r_sev  = _update_rhel_severity(conn)
+        return {'sync': r_sync, 'severity': r_sev}
+
+    _scheduler.add_job(
+        lambda: _job('rhel_pipeline', _rhel_pipeline),
+        CronTrigger(hour=5, minute=0), id='rhel_pipeline', replace_existing=True,
+    )
+
     _scheduler.start()
-    logger.info('[Scheduler] APScheduler avviato — usn(6,12,18h) dsa(3h) nvd(4h) packages(1h) push(0:30,6:30,12:30,18:30)')
+    logger.info('[Scheduler] APScheduler avviato — usn(6,12,18h) dsa(3h) nvd(4h) rhel(5h) packages(1h) push(0:30,6:30,12:30,18:30)')
 
 
 @app.route('/api/scheduler/jobs', methods=['GET'])
