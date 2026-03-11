@@ -1,4 +1,4 @@
-# Errata-Parser v3.3
+# Errata-Parser v3.4
 
 Microservizio Flask che sincronizza errata di sicurezza (Ubuntu USN, Debian DSA) verso UYUNI Server, con arricchimento severity tramite NVD/CVSS.
 
@@ -31,6 +31,14 @@ Internet (ubuntu.com, debian.org, nvd.nist.gov)
 **Nessuna Logic App Azure. Nessun container ACI. Nessun Azure PostgreSQL. Tutto sulla VM.**
 
 ## Changelog
+
+### v3.4 (2026-03-11)
+- **Fix `_sanitize_error()`**: livello log cambiato da `DEBUG` a `ERROR` — i dettagli degli errori interni erano invisibili in produzione (log level INFO). Ora gli errori di DB/UYUNI nei health endpoint sono correttamente visibili nei log
+- **Fix `_sync_packages()`**: aggiunta registrazione in `sync_logs` (`_log_start`/`_log_done`/`_log_error`) — coerente con tutti gli altri tipi di sync; i package sync ora appaiono in `/api/sync/status`
+- **Fix `POST /api/sync/dsa`**: rileva le distribuzioni UYUNI attive prima di chiamare `_sync_dsa`, identico a `/api/sync/auto`. Evita il processing di release Debian non presenti in UYUNI (es. bullseye/trixie se sono attivi solo canali bookworm)
+- **Dipendenze aggiornate**: `requests` 2.32.3 (CVE-2024-35195), `psycopg2-binary` 2.9.10, `packaging` 24.2, `flask` 3.1.0, `gunicorn` 23.0.0
+- **`install-vm.sh`**: `SCHEDULER_ENABLED` ora `false` di default nel template `.env` — lo scheduler va attivato manualmente dopo la verifica che DB e UYUNI siano raggiungibili
+- **Test**: aggiunti `TestClamp`, `TestAppVersion`, `TestAdditionalEndpoints` (health/detailed, scheduler/jobs, copertura auth su tutti gli endpoint) — totale test: 69
 
 ### v3.3 (2026-03-10)
 - **Sicurezza**: `_check_api_key()` ritorna `503` se `SPM_API_KEY` non impostata — non bypassa più silenziosamente l'autenticazione
@@ -136,7 +144,7 @@ pytest tests/ -v
 | `SPM_API_KEY` | **SI** | — | Header `X-API-Key` — obbligatoria, senza di essa tutti gli endpoint autenticati ritornano `503` |
 | `UYUNI_TIMEOUT` | No | `30` | Timeout in secondi per le chiamate XML-RPC |
 | `NVD_API_KEY` | Raccomandato | — | Rate limit NVD API (senza: 1 req/6s, con: 1 req/0.6s) |
-| `SCHEDULER_ENABLED` | No | `false` | `true` attiva APScheduler |
+| `SCHEDULER_ENABLED` | No | `false` | `true` attiva APScheduler — da impostare manualmente dopo la verifica del servizio |
 | `LOG_FILE` | No | `/opt/errata-parser/logs/errata-parser.log` | Path log |
 
 > **Nota `UYUNI_PASSWORD`**: UYUNI usa SAML 2.0 (Azure AD) per il login via browser, ma le

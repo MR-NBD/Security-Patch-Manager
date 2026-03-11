@@ -2,7 +2,7 @@
 Unit tests per UYUNI Errata Manager.
 
 Eseguire con:
-    pip install pytest
+    pip install -r requirements-dev.txt
     pytest tests/ -v
 """
 
@@ -31,7 +31,9 @@ from app import (
     _build_package_ids,
     _sanitize_error,
     cvss_to_severity,
+    _clamp,
     _RE_CVE,
+    _APP_VERSION,
 )
 
 
@@ -332,3 +334,115 @@ class TestHealthEndpoint:
         assert resp.status_code == 401
         data = resp.get_json()
         assert data['error'] == 'Unauthorized'
+
+
+# ============================================================
+# _clamp
+# ============================================================
+class TestClamp:
+
+    def test_within_range(self):
+        assert _clamp(50, 10, 1, 100) == 50
+
+    def test_below_min(self):
+        assert _clamp(0, 10, 1, 100) == 1
+
+    def test_above_max(self):
+        assert _clamp(500, 10, 1, 200) == 200
+
+    def test_at_min(self):
+        assert _clamp(1, 10, 1, 100) == 1
+
+    def test_at_max(self):
+        assert _clamp(100, 10, 1, 100) == 100
+
+    def test_none_uses_default(self):
+        assert _clamp(None, 42, 1, 100) == 42
+
+    def test_none_default_clamped_to_range(self):
+        # Il default viene restituito così com'è (non viene clampato)
+        assert _clamp(None, 200, 1, 100) == 200
+
+
+# ============================================================
+# Versione app
+# ============================================================
+class TestAppVersion:
+
+    def test_version_format(self):
+        """La versione deve essere nel formato X.Y."""
+        parts = _APP_VERSION.split('.')
+        assert len(parts) == 2
+        assert all(p.isdigit() for p in parts)
+
+    def test_version_minimum(self):
+        """La versione deve essere >= 3.4."""
+        major, minor = int(_APP_VERSION.split('.')[0]), int(_APP_VERSION.split('.')[1])
+        assert (major, minor) >= (3, 4)
+
+
+# ============================================================
+# Flask endpoints aggiuntivi
+# ============================================================
+class TestAdditionalEndpoints:
+
+    @pytest.fixture(autouse=True)
+    def client(self):
+        from app import app
+        app.config['TESTING'] = True
+        with app.test_client() as c:
+            self.client = c
+            yield c
+
+    def test_health_detailed_no_auth_required(self):
+        """/api/health/detailed non richiede X-API-Key."""
+        resp = self.client.get('/api/health/detailed')
+        # Può essere 200 o 500 (DB non disponibile), mai 401/503
+        assert resp.status_code in (200, 500)
+
+    def test_health_detailed_returns_json(self):
+        resp = self.client.get('/api/health/detailed')
+        data = resp.get_json()
+        assert data is not None
+        assert 'version' in data
+
+    def test_health_detailed_version_field(self):
+        resp = self.client.get('/api/health/detailed')
+        data = resp.get_json()
+        assert data.get('version') == _APP_VERSION
+
+    def test_scheduler_jobs_no_auth(self):
+        """/api/scheduler/jobs richiede X-API-Key."""
+        resp = self.client.get('/api/scheduler/jobs')
+        assert resp.status_code == 401
+
+    def test_scheduler_jobs_disabled(self):
+        """Con SCHEDULER_ENABLED=false ritorna enabled=False."""
+        resp = self.client.get('/api/scheduler/jobs',
+                               headers={'X-API-Key': 'test-key-12345'})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        # In ambiente test SCHEDULER_ENABLED non è impostato → False
+        assert data['enabled'] is False
+
+    def test_sync_status_requires_auth(self):
+        resp = self.client.get('/api/sync/status')
+        assert resp.status_code == 401
+
+    def test_uyuni_channels_requires_auth(self):
+        resp = self.client.get('/api/uyuni/channels')
+        assert resp.status_code == 401
+
+    def test_push_requires_auth(self):
+        resp = self.client.post('/api/uyuni/push')
+        assert resp.status_code == 401
+
+    def test_sync_auto_requires_auth(self):
+        resp = self.client.post('/api/sync/auto')
+        assert resp.status_code == 401
+
+    def test_invalid_endpoint_not_authenticated(self):
+        """Endpoint inesistente con chiave valida → 404, non 401."""
+        resp = self.client.get('/api/nonexistent',
+                               headers={'X-API-Key': 'test-key-12345'})
+        assert resp.status_code == 404

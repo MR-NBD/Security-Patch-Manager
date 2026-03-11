@@ -87,7 +87,9 @@ SPM_API_KEY=CHANGE_ME
 NVD_API_KEY=
 
 # Scheduler integrato (sostituisce Logic Apps)
-SCHEDULER_ENABLED=true
+# Impostare su 'true' DOPO aver verificato che DATABASE_URL sia corretta
+# e il servizio sia operativo (curl http://localhost:5000/api/health)
+SCHEDULER_ENABLED=false
 
 # Logging
 LOG_FILE=/opt/errata-parser/logs/errata-parser.log
@@ -105,7 +107,7 @@ chmod 600 "$INSTALL_DIR/.env"
 info "Installazione servizio systemd $SERVICE_NAME..."
 cat > "/etc/systemd/system/$SERVICE_NAME.service" << EOF
 [Unit]
-Description=Errata-Parser v3.2 — Sync USN/DSA/NVD → UYUNI
+Description=Errata-Parser v3.4 — Sync USN/DSA/NVD → UYUNI
 After=network-online.target
 Wants=network-online.target
 
@@ -167,5 +169,8 @@ echo "  4. Logs live:              journalctl -u $SERVICE_NAME -f"
 echo ""
 echo "  Verifica funzionamento:"
 echo "  5. Health:    curl -s http://localhost:$PORT/api/health | python3 -m json.tool"
-echo "  6. Scheduler: curl -s http://localhost:$PORT/api/scheduler/jobs | python3 -m json.tool"
+echo ""
+echo "  Attivare lo scheduler DOPO la verifica del servizio:"
+echo "  6. Imposta SCHEDULER_ENABLED=true in $INSTALL_DIR/.env"
+echo "  7. systemctl restart $SERVICE_NAME"
 echo ""

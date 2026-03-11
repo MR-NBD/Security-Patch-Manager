@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-UYUNI Errata Manager - v3.3
+UYUNI Errata Manager - v3.4
 
 Sincronizza errata Ubuntu USN e/o Debian DSA verso UYUNI Server.
 Le distribuzioni vengono rilevate automaticamente dai canali UYUNI attivi.
@@ -20,6 +20,13 @@ Endpoints:
 
 Auth: header X-API-Key richiesto su tutti gli endpoint tranne /api/health*.
       Se SPM_API_KEY non è impostata tutti gli endpoint autenticati ritornano 503.
+
+Changelog v3.4:
+  - Fix _sanitize_error(): logger.debug → logger.error — errori non più persi in produzione
+  - Fix _sync_packages(): aggiunta registrazione in sync_logs (coerente con usn/dsa/nvd)
+  - Fix route_sync_dsa(): rileva distribuzioni UYUNI attive prima di chiamare _sync_dsa,
+    evita processing di release Debian non presenti in UYUNI (coerente con /api/sync/auto)
+  - Bump dipendenze: requests 2.32.3, psycopg2-binary 2.9.10, packaging 24.2
 
 Changelog v3.3:
   - _check_api_key(): 503 se SPM_API_KEY non impostata (no silent bypass); audit log
@@ -108,7 +115,7 @@ if _CORS_ORIGIN:
 # ============================================================
 # CONSTANTS
 # ============================================================
-_APP_VERSION    = '3.3'
+_APP_VERSION    = '3.4'
 _REQUEST_HEADERS = {'User-Agent': f'UYUNI-Errata-Manager/{_APP_VERSION}'}
 
 # severity interna → (label UYUNI, keywords per errata.create)
@@ -415,9 +422,9 @@ def _clamp(value, default, min_val, max_val):
 def _sanitize_error(exc):
     """
     Ritorna sempre una stringa generica per API response.
-    I dettagli dell'errore rimangono solo nel log applicativo.
+    I dettagli dell'errore vengono loggati al livello ERROR (visibili in produzione).
     """
-    logger.debug(f'Sanitized error detail: {exc}')
+    logger.error(f'Internal error detail: {exc}')
     return 'Internal error — see application logs'
 
 
@@ -984,8 +991,10 @@ def _sync_packages(conn, channel_label=None):
         logger.warning('Package sync already running — skipped')
         return {'skipped': 'already_running'}
 
+    log_id          = _log_start(conn, 'packages')
     total_synced    = 0
     channel_results = {}
+    channel_errors  = []
 
     try:
         with _uyuni() as (client, session):
@@ -1030,11 +1039,17 @@ def _sync_packages(conn, channel_label=None):
                 except Exception as e:
                     conn.rollback()
                     channel_results[label] = f'error: {str(e)[:80]}'
+                    channel_errors.append(f'{label}: {str(e)[:80]}')
                     logger.error(f'Package sync error for channel {label}: {e}')
 
-    finally:
-        _unlock(conn, 'packages')
+        _log_done(conn, log_id, total_synced, channel_errors if channel_errors else None)
 
+    except Exception as ex:
+        _log_error(conn, log_id, ex)
+        _unlock(conn, 'packages')
+        raise
+
+    _unlock(conn, 'packages')
     logger.info(f'Package cache done: {total_synced} packages across {len(channel_results)} channels')
     return {'total_packages_synced': total_synced, 'channels': channel_results}
 
@@ -1412,9 +1427,14 @@ def route_sync_usn():
 
 @app.route('/api/sync/dsa', methods=['POST'])
 def route_sync_dsa():
+    # Rileva distribuzioni attive dai canali UYUNI prima di chiamare _sync_dsa,
+    # coerente con route_sync_auto: evita processare release Debian non presenti in UYUNI.
+    # Se active_dists è vuoto (UYUNI irraggiungibile), _sync_dsa usa il fallback
+    # su tutti i release (active_dists=None → list(_DEBIAN_RELEASE_MAP.values())).
+    active_dists = _get_active_distributions() or None
     try:
         with _db() as conn:
-            result = _sync_dsa(conn)
+            result = _sync_dsa(conn, active_dists=active_dists)
         return jsonify({'status': 'success', **result})
     except Exception as e:
         logger.error(f'DSA sync failed: {e}')
