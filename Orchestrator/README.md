@@ -75,9 +75,24 @@ Orchestrator/
 │       ├── 2_Test_Batch.py          # Batch test asincrono + polling live
 │       └── 3_Approvazioni.py        # Workflow approvazioni + storico
 ├── sql/migrations/
-│   ├── 001_orchestrator_schema.sql  # Schema PostgreSQL completo
-│   ├── 002_fix_errata_cache.sql     # Fix errata_cache
-│   └── 003_simplify_notifications.sql # Fix constraint notifiche
+│   ├── 001_orchestrator_schema.sql       # Schema PostgreSQL completo
+│   ├── 002_fix_errata_cache.sql          # Fix errata_cache
+│   ├── 003_simplify_notifications.sql    # Fix constraint notifiche (canale dashboard)
+│   ├── 004_batch_persistence.sql         # Tabella patch_test_batches (batch persistenti)
+│   ├── 005_critical_services_config.sql  # Config servizi critici a runtime (opzionale)
+│   └── 006_retry_grouping.sql            # retry_count/retry_after/superseded_by
+├── tests/
+│   ├── conftest.py                  # Fixtures condivise (client Flask + mock DB)
+│   ├── test_serializers.py          # Puri: serialize_row()
+│   ├── test_poller_pure.py          # Puri: _parse_uyuni_date(), _build_cache_row()
+│   ├── test_queue_manager_pure.py   # Puri: extract_advisory_base(), _matches_any()
+│   ├── test_uyuni_client_pure.py    # Mock XML-RPC: UyuniSession methods
+│   ├── test_health.py               # API: /health, /health/detail, /notifications
+│   ├── test_notification_manager.py # Service: notify_test_result()
+│   ├── test_api_sync.py             # API: /sync/*, /errata/cache/stats
+│   ├── test_api_queue.py            # API: /queue CRUD
+│   ├── test_api_tests.py            # API: /tests/*, /tests/batch/*
+│   └── test_api_approvals.py        # API: /approvals/*
 ├── systemd/
 │   └── spm-orchestrator.service
 ├── scripts/
@@ -106,6 +121,10 @@ psql -h localhost -U spm_orch -d spm_orchestrator \
     -f Security-Patch-Manager/Orchestrator/sql/migrations/002_fix_errata_cache.sql
 psql -h localhost -U spm_orch -d spm_orchestrator \
     -f Security-Patch-Manager/Orchestrator/sql/migrations/003_simplify_notifications.sql
+psql -h localhost -U spm_orch -d spm_orchestrator \
+    -f Security-Patch-Manager/Orchestrator/sql/migrations/004_batch_persistence.sql
+psql -h localhost -U spm_orch -d spm_orchestrator \
+    -f Security-Patch-Manager/Orchestrator/sql/migrations/006_retry_grouping.sql
 
 # Avvia
 sudo systemctl enable --now spm-orchestrator spm-dashboard
@@ -189,16 +208,27 @@ AZURE_REDIRECT_URI=https://10.172.2.22:8501
 | GET | `/api/v1/health/detail` | Stato DB + UYUNI + Prometheus |
 | GET | `/api/v1/notifications` | Alert non letti (banner dashboard) |
 | POST | `/api/v1/notifications/mark-read` | Marca come letti |
+| GET | `/api/v1/sync/status` | Stato poller + statistiche ultimo run |
 | POST | `/api/v1/sync/trigger` | Sync manuale errata_cache |
+| GET | `/api/v1/errata/cache/stats` | Statistiche errata_cache (totale, per severity/OS) |
 | GET | `/api/v1/queue` | Lista coda test |
-| POST | `/api/v1/queue` | Aggiunge patch in coda |
+| POST | `/api/v1/queue` | Aggiunge patch in coda (singola o batch) |
+| GET | `/api/v1/queue/stats` | Aggregati coda per stato |
+| GET | `/api/v1/queue/<id>` | Dettaglio elemento coda |
+| PATCH | `/api/v1/queue/<id>` | Aggiorna priority_override / notes |
+| DELETE | `/api/v1/queue/<id>` | Rimuove dalla coda |
+| GET | `/api/v1/tests/status` | Stato engine + statistiche 24h |
 | POST | `/api/v1/tests/run` | Esegui prossimo test (bloccante) |
 | POST | `/api/v1/tests/batch` | Avvia batch asincrono |
 | GET | `/api/v1/tests/batch/<id>/status` | Polling stato batch |
+| POST | `/api/v1/tests/batch/<id>/cancel` | Cancella batch in esecuzione |
+| GET | `/api/v1/tests/<id>` | Dettaglio test con fasi |
 | GET | `/api/v1/approvals/pending` | Patch in attesa approvazione |
+| GET | `/api/v1/approvals/pending/<id>` | Dettaglio patch da approvare |
 | POST | `/api/v1/approvals/<id>/approve` | Approva |
 | POST | `/api/v1/approvals/<id>/reject` | Rifiuta |
 | POST | `/api/v1/approvals/<id>/snooze` | Rimanda |
+| GET | `/api/v1/approvals/history` | Storico audit trail azioni |
 | GET | `/api/v1/orgs` | Organizzazioni UYUNI |
 | GET | `/api/v1/groups` | Gruppi test-* con sistemi e patch count |
 | GET | `/api/v1/prometheus/targets` | HTTP Service Discovery (Prometheus) |

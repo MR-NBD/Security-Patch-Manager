@@ -71,6 +71,7 @@ Prometheus:            10.172.2.22:9090 (sul VM orchestrator, http_sd_configs �
 | `tests.py` | `/api/v1/tests` | Test engine status e risultati |
 | `approvals.py` | `/api/v1/approvals` | Workflow approvazione patch |
 | `groups.py` | `/api/v1/groups` | Gruppi UYUNI test-* e patch applicabili |
+| `prometheus_sd.py` | `/api/v1/prometheus` | Prometheus HTTP Service Discovery |
 
 ### Services (`app/services/`)
 
@@ -82,7 +83,7 @@ Prometheus:            10.172.2.22:9090 (sul VM orchestrator, http_sd_configs �
 | `poller.py` | Sync UYUNI → `errata_cache` (ogni 30 min via APScheduler) |
 | `queue_manager.py` | Inserimento in `patch_test_queue` |
 | `test_engine.py` | Test automatici patch (fasi, rollback, notifiche) |
-| `notification_manager.py` | Scrittura `orchestrator_notifications` + email/webhook |
+| `notification_manager.py` | Scrittura `orchestrator_notifications` (canale unico: dashboard) |
 | `approval_manager.py` | Workflow approve/reject/snooze + re-queue snoozed |
 | `prometheus_client.py` | Metriche baseline/post-patch (graceful skip se non disponibile) |
 
@@ -173,7 +174,8 @@ pre_check                   ← uyuni.ping()
 CONSTRAINT chk_queue_status CHECK (status IN (
     'queued', 'testing', 'passed', 'failed', 'needs_reboot', 'rebooting',
     'pending_approval', 'approved', 'rejected', 'snoozed',
-    'promoting', 'prod_pending', 'prod_applied', 'completed', 'rolled_back'
+    'promoting', 'prod_pending', 'prod_applied', 'completed', 'rolled_back',
+    'retry_pending', 'superseded'
 ))
 
 -- patch_tests.result: 'pending_approval' NON è un valore valido
@@ -395,6 +397,7 @@ curl -X POST http://localhost:5001/api/v1/queue \
 - Prometheus attivo su localhost:9090 (installato sul VM)
 - Migrations 001–006 applicate (006 da applicare sul VM se non già fatto)
 - Rimosso: deployment_manager, salt_client, api/deployments (produzione out of scope)
+- **Test suite completa** (`tests/`): 278 test, 0 fail — puri (serializers, poller, queue_manager, uyuni_client) + mock Flask (health, notification_manager, sync, queue, tests, approvals)
 
 ### Da fare sul VM
 - **Migration 006** (ALTA PRIORITÀ se non applicata): `psql ... -f sql/migrations/006_retry_grouping.sql`
