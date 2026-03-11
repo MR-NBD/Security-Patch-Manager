@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
+                "file": "Orchestrator/PROJECT-STATUS.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Analisi-Risorse-Sizing-Uyuni"
+              "title": "PROJECT-STATUS"
             }
           }
         ]
@@ -194,8 +194,13 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "f76e3691fbfccb78",
+  "active": "259498039fcab34e",
   "lastOpenFiles": [
+    "Orchestrator/README.md",
+    "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
+    "Orchestrator/docs/spm-architecture.drawio",
+    "Orchestrator/docs/spm-architecture.drawio.tmp.9257.1773244403924",
+    "Orchestrator/docs",
     "Orchestrator/app/services/__pycache__/uyuni_patch_client.cpython-310.pyc.124638488717104",
     "Orchestrator/app/services/__pycache__/test_engine.cpython-310-pytest-7.4.3.pyc.9960",
     "Orchestrator/app/services/uyuni_patch_client.py.tmp.9257.1773240843952",
@@ -203,13 +208,8 @@
     "Orchestrator/app/services/test_engine.py.tmp.9257.1773240792224",
     "Orchestrator/app/services/test_engine.py.tmp.9257.1773240707932",
     "Orchestrator/app/services/test_engine.py.tmp.9257.1773240689821",
-    "Orchestrator/CLAUDE.md.tmp.4875.1773238788328",
-    "Orchestrator/README.md.tmp.4875.1773238771100",
-    "Orchestrator/CLAUDE.md.tmp.4875.1773238712116",
-    "Orchestrator/CLAUDE.md.tmp.4875.1773238706541",
     "Orchestrator/pytest-cache-files-iczdgc6m/README.md",
     "Uyuni/Teoria/Amministrazione-e-Troubleshooting.md",
-    "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
     "Uyuni/Teoria/Supported-Clients-OS.md",
     "Uyuni/Teoria/PKI-TLS-HLD.md",
     "Uyuni/Teoria/UYUNI.md",
@@ -231,7 +231,6 @@
     "Errata-Parser/README.md",
     "Uyuni/Initial-Setup-Errata/DEPLOYMENT-GUIDE.md",
     "Uyuni/Initial-Setup-Errata/UYUNI Errata Manager - Setup & Deployment.md",
-    "Orchestrator/README.md",
     "Senza nome.canvas",
     "Senza nome 2.canvas",
     "Senza nome 1.canvas",
