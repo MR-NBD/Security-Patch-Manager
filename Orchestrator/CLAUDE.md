@@ -37,7 +37,7 @@ sudo systemctl restart spm-orchestrator
 │                                                          │
 │  Approval API ────────────────────────→ PostgreSQL       │
 │  Notification Manager ────────────────→ PostgreSQL       │
-│                           (+ SMTP/webhook se configurati)│
+│                           (canale: dashboard)            │
 │                                                          │
 │  Prometheus SD ───────────────────────→ UYUNI XML-RPC   │
 │  GET /api/v1/prometheus/targets         (dynamic targets)│
@@ -196,27 +196,10 @@ Chiamato automaticamente alla fine di ogni test da `test_engine._execute_test`.
 | Test superato, attende approvazione | `pending_approval` | `alert_on_pending_approval=true` |
 
 **Comportamento:**
-- Scrive **sempre** in `orchestrator_notifications` (con `delivered=False` se email/webhook off)
+- Scrive **sempre** in `orchestrator_notifications` (canale `dashboard`, `delivered=False`)
 - La dashboard legge `WHERE delivered = FALSE` per mostrare banner
-- Email SMTP: attivabile con `email_enabled=true` in `orchestrator_config['notification_config']`
-- Webhook HTTP POST JSON: attivabile con `webhook_enabled=true` + `webhook_url`
 - Best-effort: non solleva mai eccezioni, non blocca il flusso del test
-
-Configurazione via `orchestrator_config` (tabella DB), chiave `notification_config`:
-```json
-{
-  "email_enabled": false,
-  "smtp_server": "", "smtp_port": 587, "smtp_tls": true,
-  "smtp_user": "", "smtp_password": "",
-  "from_address": "spm@example.com",
-  "recipients": [],
-  "alert_on_test_failure": true,
-  "alert_on_pending_approval": true,
-  "webhook_enabled": false,
-  "webhook_url": "",
-  "webhook_auth_header": ""
-}
-```
+- Email SMTP e webhook HTTP rimossi (canale unico: dashboard)
 
 ---
 
@@ -382,33 +365,40 @@ curl -X POST http://localhost:5001/api/v1/queue \
 
 ## Stato attuale e cosa manca
 
-### Implementato e funzionante
+### Implementato e funzionante (v1.2.1)
 - Sync UYUNI → `errata_cache` (parallelo, ~15-20s per 634 errata)
+- **NVD severity enrichment via Errata-Parser**: `errata.getDetails()` letto in parallelo durante sync; mapping UYUNI label → interno (Critical/High/Medium/Low); fallback su `severity_from_advisory_type()` se assente
 - Auto-discovery completa: sistema, nome, IP da gruppi UYUNI `test-*` via `system.getNetwork`
 - Auto-discovery si attiva se mancano `system_id`, `system_name` **o** `system_ip`
 - Default `.env` per sistemi test = vuoti → auto-discovery sempre attiva
-- Test engine completo: snapshot → patch → reboot → validate (Prometheus) → services
-- Rollback: snapshot (snapper) o package (apt downgrade con versioni reali)
+- Test engine completo: pre_check → snapshot → patch → reboot → validate (Prometheus) → services → rollback → post_rollback
+- Retry intelligente: INFRA (2 retry/2h), TRANSIENT (3 retry/30min), PATCH/REGRESSION (no retry)
+- Pre-flight: check servizi baseline + spazio disco (500 MB) + reboot pendente
+- Rollback: snapshot (snapper) o package (apt/dnf con versioni reali)
 - Fallback package rollback quando snapper non disponibile (Ubuntu 24.04)
 - Service check con 6 retry × 20s (tolleranza riavvio SSH post-patch)
 - `_DEFAULT_SERVICES["ubuntu"]` = `["ssh.socket", "cron", "rsyslog"]` (socket activation)
 - Reboot delivery wait (60s default) + stabilization wait (30s default) configurabili da `.env`
-- Auto-provisioning node_exporter via UYUNI channels se mancante sul sistema test
+- Auto-provisioning node_exporter + snapper via UYUNI channels se mancanti sul sistema test
 - Ordinamento coda: priority DESC → no-reboot prima → score DESC → queued_at ASC
+- Auto-supersessione patch: stessa famiglia USN o package overlap → status='superseded'
+- Batch asincrono persistente su DB (`patch_test_batches`), cancellazione in-flight
 - Cleanup automatico batch >24h in memoria (`_prune_old_batches`)
 - Multi-org UYUNI: `GET /api/v1/orgs` + filtro `org_id` su `/api/v1/groups` + selector sidebar
 - Workflow approvazione (approve/reject/snooze + re-queue automatico snoozed)
-- Notification manager (DB sempre + email/webhook opzionali)
+- Notification manager (solo canale `dashboard` — `orchestrator_notifications`)
 - `GET /api/v1/prometheus/targets` — Prometheus HTTP SD dinamico da UYUNI
 - `is_ip()` (pubblica in `uyuni_patch_client.py`) usata da test engine e prometheus_sd
 - `serialize_row` (condivisa da `serializers.py`) usata da health, approvals, queue
 - `KERNEL_PATTERNS` / `REBOOT_PATTERNS` pubblici in `queue_manager.py`, importati da `groups.py`
+- `_NODE_EXPORTER_PORT` definito in `prometheus_client.py`, importato da `prometheus_sd.py`
+- Prometheus attivo su localhost:9090 (installato sul VM)
+- Migrations 001–006 applicate (006 da applicare sul VM se non già fatto)
 - Rimosso: deployment_manager, salt_client, api/deployments (produzione out of scope)
 
-### Da fare / prossime sessioni
-- **Installare Prometheus** sul VM orchestrator (vedi sotto)
-- Installare snapper su Ubuntu test VM per rollback snapshot affidabile
-- Eventuale integrazione email/webhook notifiche quando l'ambiente è pronto
+### Da fare sul VM
+- **Migration 006** (ALTA PRIORITÀ se non applicata): `psql ... -f sql/migrations/006_retry_grouping.sql`
+- **Snapper su Ubuntu test VM**: gestito auto da `ensure_snapper()` al primo test
 
 ### Setup Prometheus sul VM orchestrator (10.172.2.22)
 node_exporter è già attivo sui test VM (deployato da UYUNI). Serve solo il server:

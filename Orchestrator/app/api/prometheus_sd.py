@@ -24,12 +24,11 @@ from flask import Blueprint, jsonify
 
 from app.services.uyuni_client import UyuniSession, os_from_group
 from app.services.uyuni_patch_client import is_ip
+from app.services.prometheus_client import _NODE_EXPORTER_PORT
 
 logger = logging.getLogger(__name__)
 
 prometheus_sd_bp = Blueprint("prometheus_sd", __name__)
-
-_NODE_EXPORTER_PORT = 9100
 
 
 @prometheus_sd_bp.route("/api/v1/prometheus/targets", methods=["GET"])

@@ -35,7 +35,7 @@ import logging
 import threading
 import time
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from typing import Optional
 
 from app.config import Config
@@ -1032,7 +1032,6 @@ def _add_batch_note(group_name: str, results: list, operator: str) -> None:
     Aggiunge nota di riepilogo batch su TUTTI i sistemi del gruppo UYUNI.
     Best-effort: non blocca il flusso anche se fallisce.
     """
-    from datetime import date
     from app.services.uyuni_client import UyuniSession
 
     try:
