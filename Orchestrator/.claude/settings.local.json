@@ -7,7 +7,10 @@
       "WebFetch(domain:security.opensuse.org)",
       "Bash(find /mnt/c/Users/alber/Documents/GitHub/Security-Patch-Manager/Orchestrator -type f | grep -E \"\\\\.\\(py|sql|json|yaml|yml|md|txt|sh\\)$\" | sort)",
       "Bash(python3 -m py_compile app/**/*.py streamlit/**/*.py 2>&1 | head -50)",
-      "Bash(find . -name \"*.py\" -exec grep -l \"^import\\\\|^from\" {} \\\\; | wc -l)"
+      "Bash(find . -name \"*.py\" -exec grep -l \"^import\\\\|^from\" {} \\\\; | wc -l)",
+      "Bash(python -m pytest tests/ -q --tb=short 2>&1 | tail -20)",
+      "Bash(python3 -m pytest tests/ -q --tb=short 2>&1 | tail -20)",
+      "Bash(python3 -m pytest tests/ -q --tb=short 2>&1 | tail -10)"
     ]
   }
 }

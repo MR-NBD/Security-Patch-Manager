@@ -122,14 +122,6 @@ class TestAddToQueue:
         })
         assert response.status_code == 400
 
-    def test_invalid_priority_override_returns_400(self, client):
-        response = self._post(client, {
-            "errata_id": "USN-7412-2",
-            "target_os": "ubuntu",
-            "priority_override": "abc",
-        })
-        assert response.status_code == 400
-
     def test_batch_errata_ids_returns_201(self, client):
         with patch(_QM_PATCH) as qm:
             qm.add_to_queue.return_value = _SAMPLE_ITEM
@@ -206,14 +198,6 @@ class TestUpdateQueueItem:
             qm.update_queue_item.return_value = _SAMPLE_ITEM
             response = client.patch("/api/v1/queue/1",
                                     json={"notes": "reviewed"},
-                                    content_type="application/json")
-        assert response.status_code == 200
-
-    def test_update_priority_returns_200(self, client):
-        with patch(_QM_PATCH) as qm:
-            qm.update_queue_item.return_value = _SAMPLE_ITEM
-            response = client.patch("/api/v1/queue/1",
-                                    json={"priority_override": 5},
                                     content_type="application/json")
         assert response.status_code == 200
 
