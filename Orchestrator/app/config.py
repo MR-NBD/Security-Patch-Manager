@@ -71,6 +71,12 @@ class Config:
     # ----------------------------------------------------------
     PROMETHEUS_URL = os.getenv("PROMETHEUS_URL", "http://localhost:9090")
     PROMETHEUS_TIMEOUT = int(os.getenv("PROMETHEUS_TIMEOUT_SECONDS", 30))
+    # Porta node_exporter sui sistemi test (standard: 9100).
+    # Cambiare solo se node_exporter è configurato su una porta non standard.
+    NODE_EXPORTER_PORT = int(os.getenv("NODE_EXPORTER_PORT", 9100))
+    # Finestra di lookback per le query PromQL rate().
+    # Valori validi: "1m", "5m", "10m", ecc.
+    PROMETHEUS_RATE_WINDOW = os.getenv("PROMETHEUS_RATE_WINDOW", "5m")
 
     # ----------------------------------------------------------
     # Test Systems
@@ -125,4 +131,4 @@ class Config:
     # App metadata
     # ----------------------------------------------------------
     APP_NAME = "spm-orchestrator"
-    APP_VERSION = "1.3.0"
+    APP_VERSION = "1.4.0"

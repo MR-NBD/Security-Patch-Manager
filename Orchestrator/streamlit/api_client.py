@@ -5,6 +5,9 @@ Wrapper per le chiamate REST all'Orchestrator Flask.
 Tutte le funzioni ritornano (data, error_str).
   data  = dict/list se successo, None se errore
   error = None se successo, stringa di errore se fallisce
+
+Tutte le richieste HTTP passano per _request(), che gestisce autenticazione,
+timeout e conversione degli errori in stringhe leggibili.
 """
 
 import os
@@ -32,14 +35,22 @@ def _auth_headers() -> dict:
     return {"X-SPM-Key": _API_KEY} if _API_KEY else {}
 
 
-def _get(path: str, params: dict = None, timeout: int = None):
+def _request(method: str, path: str, *, params=None, body=None, timeout=None):
+    """
+    Esegue una richiesta HTTP verso l'API Flask.
+    Ritorna (data, error_str) — convenzione usata da tutte le funzioni pubbliche.
+    """
+    kwargs = {
+        "headers": _auth_headers(),
+        "timeout": timeout or _TIMEOUT_SHORT,
+    }
+    if params is not None:
+        kwargs["params"] = params
+    if body is not None:
+        kwargs["json"] = body
+
     try:
-        r = requests.get(
-            f"{_BASE}{path}",
-            params=params,
-            headers=_auth_headers(),
-            timeout=timeout or _TIMEOUT_SHORT,
-        )
+        r = requests.request(method, f"{_BASE}{path}", **kwargs)
         r.raise_for_status()
         return r.json(), None
     except requests.exceptions.ConnectionError:
@@ -54,73 +65,23 @@ def _get(path: str, params: dict = None, timeout: int = None):
         return None, msg
     except Exception as e:
         return None, str(e)
+
+
+def _get(path: str, params: dict = None, timeout: int = None):
+    return _request("GET", path, params=params, timeout=timeout)
 
 
 def _post(path: str, body: dict = None, timeout: int = None):
-    try:
-        r = requests.post(
-            f"{_BASE}{path}",
-            json=body or {},
-            headers=_auth_headers(),
-            timeout=timeout or _TIMEOUT_SHORT,
-        )
-        r.raise_for_status()
-        return r.json(), None
-    except requests.exceptions.ConnectionError:
-        return None, f"Impossibile connettersi a {_BASE}"
-    except requests.exceptions.Timeout:
-        return None, "Timeout connessione"
-    except requests.exceptions.HTTPError as e:
-        try:
-            msg = e.response.json().get("error", str(e))
-        except Exception:
-            msg = str(e)
-        return None, msg
-    except Exception as e:
-        return None, str(e)
+    # body or {} preserva il comportamento originale: invia sempre un JSON body
+    return _request("POST", path, body=body or {}, timeout=timeout)
 
 
 def _delete(path: str):
-    try:
-        r = requests.delete(f"{_BASE}{path}", headers=_auth_headers(), timeout=_TIMEOUT_SHORT)
-        r.raise_for_status()
-        return r.json(), None
-    except requests.exceptions.ConnectionError:
-        return None, f"Impossibile connettersi a {_BASE}"
-    except requests.exceptions.Timeout:
-        return None, "Timeout"
-    except requests.exceptions.HTTPError as e:
-        try:
-            msg = e.response.json().get("error", str(e))
-        except Exception:
-            msg = str(e)
-        return None, msg
-    except Exception as e:
-        return None, str(e)
+    return _request("DELETE", path)
 
 
 def _patch(path: str, body: dict):
-    try:
-        r = requests.patch(
-            f"{_BASE}{path}",
-            json=body,
-            headers=_auth_headers(),
-            timeout=_TIMEOUT_SHORT,
-        )
-        r.raise_for_status()
-        return r.json(), None
-    except requests.exceptions.ConnectionError:
-        return None, f"Impossibile connettersi a {_BASE}"
-    except requests.exceptions.Timeout:
-        return None, "Timeout"
-    except requests.exceptions.HTTPError as e:
-        try:
-            msg = e.response.json().get("error", str(e))
-        except Exception:
-            msg = str(e)
-        return None, msg
-    except Exception as e:
-        return None, str(e)
+    return _request("PATCH", path, body=body)
 
 
 # ─────────────────────────────────────────────

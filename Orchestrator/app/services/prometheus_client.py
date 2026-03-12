@@ -12,10 +12,14 @@ tutti i metodi ritornano None/valori vuoti senza sollevare eccezioni.
 Il Test Engine considera la validazione metriche "skipped" in questo caso.
 
 Prerequisiti infrastruttura:
-  - node_exporter installato sui sistemi test (porta :9100) — gia' attivo via UYUNI
+  - node_exporter installato sui sistemi test — gia' attivo via UYUNI
   - Prometheus server installato sul VM orchestrator (apt-get install -y prometheus)
   - Configurare prometheus.yml con http_sd_configs → /api/v1/prometheus/targets
   - PROMETHEUS_URL: default gia' http://localhost:9090 in config.py (non serve .env)
+
+Variabili .env opzionali (hanno tutti un default ragionevole):
+  NODE_EXPORTER_PORT     porta node_exporter (default: 9100)
+  PROMETHEUS_RATE_WINDOW finestra lookback rate() (default: "5m")
 
 Metriche usate (node_exporter standard):
   - CPU:    node_cpu_seconds_total{mode="idle"}
@@ -37,11 +41,11 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 _DEFAULT_TIMEOUT = Config.PROMETHEUS_TIMEOUT
 
-# Porta standard node_exporter
-_NODE_EXPORTER_PORT = 9100
+# Porta node_exporter (configurabile via NODE_EXPORTER_PORT in .env, default 9100)
+_NODE_EXPORTER_PORT = Config.NODE_EXPORTER_PORT
 
-# Range di lookback per le metriche rate() — 5 minuti
-_RATE_WINDOW = "5m"
+# Finestra di lookback per le query rate() (configurabile via PROMETHEUS_RATE_WINDOW in .env, default "5m")
+_RATE_WINDOW = Config.PROMETHEUS_RATE_WINDOW
 
 
 # ─────────────────────────────────────────────

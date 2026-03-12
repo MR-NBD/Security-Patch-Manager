@@ -1,59 +1,37 @@
 """
 SPM Orchestrator - Test Engine
 
-Esegue test automatici sulle patch in coda (status='queued' o 'retry_pending' pronto).
-Un test alla volta — mutex globale _testing.
+Gestisce lo stato globale del motore di test, la coda dei batch asincroni
+e offre l'API pubblica usata dai blueprint Flask.
 
-Multi-sistema: se il gruppo UYUNI test-{os} contiene più sistemi, il test viene
-eseguito su TUTTI in sequenza. Il risultato finale è 'pending_approval' solo se
-tutti i sistemi passano; se anche uno fallisce → 'failed' con dettaglio per sistema.
-Con .env esplicito (TEST_SYSTEM_*_ID) → si usa solo quel sistema.
+Struttura del modulo:
+  Stato globale     — _testing, _batches, _cancel_flags (con i rispettivi lock)
+  Callback batch    — _on_test_created() per il live monitoring Streamlit
+  Worker background — _run_batch_background() (thread daemon per ogni batch)
+  API pubblica      — run_next_test, get_engine_status, start_batch,
+                      get_batch_status, cancel_batch, init_test_scheduler
 
-Flusso a fasi (per ogni sistema):
-  ⓪ pre_check  — pre-flight: servizi baseline, disco (min 500 MB), reboot pendente
-  ① snapshot   — crea snapshot pre-patch via snapper (UYUNI scheduleScriptRun)
-  ② patch      — applica errata via UYUNI scheduleApplyErrata
-  ③ reboot     — riavvio + attesa online (solo se requires_reboot=True)
-  ④ validate   — verifica delta CPU/memoria via Prometheus (skipped se non disponibile)
-  ⑤ services   — verifica servizi critici via UYUNI scheduleScriptRun (systemctl)
-  ↓ (fallimento in qualsiasi fase)
-  ⑥ rollback        — snapshot: snapper undochange | package: apt/dnf downgrade
-  ⑦ post_rollback   — verifica servizi dopo rollback (best-effort)
+Dipendenze interne:
+  test_db.py     — accesso database (funzioni pure, nessuno stato)
+  test_phases.py — esecuzione fasi (snapshot, patch, reboot, validate, services)
+                   e classificazione errori + retry
 
-Ogni fase è registrata in patch_test_phases.
-Ogni sistema ha il suo record in patch_tests (stesso queue_id).
-Il risultato aggregato aggiorna patch_test_queue.
-
-Rollback type:
-  requires_reboot = True  → snapshot (snapper undochange, senza reboot)
-  requires_reboot = False → package (reinstalla versioni precedenti via apt o dnf)
-  snapper non disponibile → fallback automatico a package rollback
-
-Retry intelligente (error classification):
-  INFRA      → pre-flight fallito, sistema offline    → max 2 retry, delay 2h
-  TRANSIENT  → timeout UYUNI, errori di rete, reboot  → max 3 retry, delay 30 min
-  PATCH      → applicazione patch fallita             → no retry
-  REGRESSION → servizi down o validate fallito        → no retry
+Flusso completo delle fasi documentato in test_phases.py.
+Dettaglio DB documentato in test_db.py.
 """
 
-import json
 import logging
 import threading
-import time
 import uuid
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, datetime, timezone
 from typing import Optional
 
-from app.config import Config
-from app.services.db import get_db
-from app.services.uyuni_patch_client import (
-    UyuniPatchClient, get_critical_services,
-    get_all_test_systems_for_os,
-)
-from app.services.prometheus_client import PrometheusClient
-from app.services.notification_manager import notify_test_result
+from app.services import test_db
+from app.services.test_phases import execute_test
+from app.services.uyuni_client import UyuniSession
 
 logger = logging.getLogger(__name__)
+
 
 # ── Stato globale ────────────────────────────────────────────────
 _testing: bool = False
@@ -67,1053 +45,197 @@ _cancel_flags: set = set()    # batch_id in questo set → cancellazione richies
 
 
 # ─────────────────────────────────────────────
-# DB Helpers
+# Batch state callback (per live monitoring)
 # ─────────────────────────────────────────────
 
-def _pick_next_queued() -> Optional[dict]:
+def _on_test_created(batch_id: str, test_id: int) -> None:
     """
-    Preleva il prossimo elemento in coda (status='queued' o 'retry_pending' pronto).
-    Ordinamento: priority_override DESC, no-reboot prima, success_score DESC, queued_at ASC.
-    FOR UPDATE OF q SKIP LOCKED: sicuro in caso di istanze concorrenti.
+    Callback invocato da test_phases.execute_test_on_system appena il test_id è noto.
+    Aggiorna current_test_id nel batch per il live view Streamlit.
     """
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute("""
-            SELECT
-                q.id, q.errata_id, q.target_os,
-                q.success_score, q.priority_override, q.queued_at,
-                COALESCE(rp.requires_reboot, FALSE) AS requires_reboot,
-                COALESCE(rp.affects_kernel,  FALSE) AS affects_kernel,
-                COALESCE(q.retry_count, 0)           AS retry_count
-            FROM patch_test_queue q
-            LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id
-            WHERE q.status = 'queued'
-               OR (q.status = 'retry_pending' AND q.retry_after <= NOW())
-            ORDER BY q.priority_override              DESC,
-                     COALESCE(rp.requires_reboot, FALSE) ASC,
-                     q.success_score                     DESC,
-                     q.queued_at                         ASC
-            LIMIT 1
-            FOR UPDATE OF q SKIP LOCKED
-        """)
-        row = cur.fetchone()
-        return dict(row) if row else None
-
-
-def _set_queue_status(
-    queue_id: int,
-    status: str,
-    test_id: int = None,
-) -> None:
-    """
-    Aggiorna status in patch_test_queue.
-    - 'testing': imposta started_at; se test_id fornito, aggiorna anche test_id FK.
-    - stati finali ('passed','failed','pending_approval','rolled_back'): imposta
-      completed_at; se test_id fornito, aggiorna anche test_id FK.
-    - altri stati: aggiorna solo status.
-    """
-    with get_db() as conn:
-        cur = conn.cursor()
-        if status == "testing":
-            if test_id is not None:
-                cur.execute(
-                    """UPDATE patch_test_queue
-                       SET status = %s, test_id = %s, started_at = NOW()
-                       WHERE id = %s""",
-                    (status, test_id, queue_id),
-                )
-            else:
-                cur.execute(
-                    """UPDATE patch_test_queue
-                       SET status = %s, started_at = NOW()
-                       WHERE id = %s""",
-                    (status, queue_id),
-                )
-        elif status in ("passed", "failed", "pending_approval", "rolled_back"):
-            if test_id is not None:
-                cur.execute(
-                    """UPDATE patch_test_queue
-                       SET status = %s, test_id = %s, completed_at = NOW()
-                       WHERE id = %s""",
-                    (status, test_id, queue_id),
-                )
-            else:
-                cur.execute(
-                    """UPDATE patch_test_queue
-                       SET status = %s, completed_at = NOW()
-                       WHERE id = %s""",
-                    (status, queue_id),
-                )
-        else:
-            cur.execute(
-                "UPDATE patch_test_queue SET status = %s WHERE id = %s",
-                (status, queue_id),
-            )
-
-
-def _create_test_record(
-    queue_id: int,
-    errata_id: str,
-    system_id: Optional[int],
-    system_name: str,
-    system_ip: str,
-    requires_reboot: bool,
-) -> int:
-    """Crea riga in patch_tests. Ritorna l'id generato."""
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO patch_tests (
-                queue_id, errata_id,
-                test_system_id, test_system_name, test_system_ip,
-                snapshot_type, started_at, required_reboot
-            ) VALUES (%s, %s, %s, %s, %s, %s, NOW(), %s)
-            RETURNING id
-            """,
-            (
-                queue_id, errata_id,
-                system_id, system_name, system_ip,
-                Config.SNAPSHOT_TYPE, requires_reboot,
-            ),
-        )
-        return cur.fetchone()["id"]
-
-
-def _update_test_record(test_id: int, **fields) -> None:
-    """Aggiorna campi arbitrari in patch_tests. dict/list → JSONB."""
-    if not fields:
-        return
-
-    jsonb_fields = {
-        "baseline_metrics", "post_patch_metrics",
-        "metrics_delta", "metrics_evaluation", "test_config",
-        "services_baseline", "services_post_patch",  # JSONB nel DB
-    }
-    array_fields = {
-        "failed_services",  # TEXT[] nel DB
-    }
-
-    set_parts = []
-    values = []
-
-    for k, v in fields.items():
-        if k in jsonb_fields:
-            set_parts.append(f"{k} = %s::jsonb")
-            values.append(json.dumps(v) if v is not None else None)
-        elif k in array_fields:
-            set_parts.append(f"{k} = %s")
-            values.append(v)  # psycopg2 converte list → text[]
-        else:
-            set_parts.append(f"{k} = %s")
-            values.append(v)
-
-    values.append(test_id)
-
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            f"UPDATE patch_tests SET {', '.join(set_parts)} WHERE id = %s",
-            values,
-        )
-
-
-def _create_phase(test_id: int, phase_name: str) -> int:
-    """Inserisce fase in patch_test_phases (status='in_progress'). Ritorna id."""
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO patch_test_phases (test_id, phase_name, status, started_at)
-            VALUES (%s, %s, 'in_progress', NOW())
-            RETURNING id
-            """,
-            (test_id, phase_name),
-        )
-        return cur.fetchone()["id"]
-
-
-def _complete_phase(
-    phase_id: int,
-    status: str,
-    error: str = None,
-    output: dict = None,
-) -> None:
-    """Chiude fase: imposta status, completed_at, duration, errore e output."""
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            UPDATE patch_test_phases SET
-                status           = %s,
-                completed_at     = NOW(),
-                duration_seconds = EXTRACT(EPOCH FROM (NOW() - started_at))::INTEGER,
-                error_message    = %s,
-                output           = %s::jsonb
-            WHERE id = %s
-            """,
-            (
-                status,
-                error,
-                json.dumps(output) if output is not None else None,
-                phase_id,
-            ),
-        )
+    with _batches_lock:
+        if batch_id in _batches:
+            _batches[batch_id]["current_test_id"] = test_id
 
 
 # ─────────────────────────────────────────────
-# Package helper
+# Batch helpers
 # ─────────────────────────────────────────────
 
-def _get_packages(errata_id: str) -> list:
-    """
-    Legge pacchetti da errata_cache.packages.
-    Se vuoto (non ancora fetchati), li recupera on-demand da UYUNI.
-    Ritorna [{name, version, size_kb}, ...]
-    """
+def _parse_completed_at(ts_str: str) -> float:
+    """Converte timestamp ISO string in Unix timestamp. Ritorna 0 su errore."""
     try:
-        with get_db() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT packages FROM errata_cache WHERE errata_id = %s",
-                (errata_id,),
-            )
-            row = cur.fetchone()
-            if row and row["packages"]:
-                pkgs = row["packages"]
-                if isinstance(pkgs, list) and pkgs:
-                    return pkgs
-    except Exception as e:
-        logger.warning(f"TestEngine: DB read packages failed: {e}")
-
-    logger.info(f"TestEngine: fetching packages for {errata_id!r} from UYUNI on-demand")
-    from app.services.uyuni_client import get_errata_packages
-    return get_errata_packages(errata_id)
+        return datetime.fromisoformat(ts_str.replace("Z", "+00:00")).timestamp()
+    except Exception:
+        return 0.0
 
 
-# ─────────────────────────────────────────────
-# Phase executors
-# ─────────────────────────────────────────────
-
-def _phase_snapshot(
-    test_id: int,
-    uyuni: UyuniPatchClient,
-    errata_id: str,
-) -> str:
+def _prune_old_batches() -> None:
     """
-    Fase SNAPSHOT: crea snapshot pre-patch via snapper (UYUNI scheduleScriptRun).
-    Ritorna snapshot_id (numero snapper come stringa).
-    Raises: RuntimeError se fallisce.
+    Rimuove batch completati da più di 24h da _batches per evitare crescita indefinita.
+    Deve essere chiamata con _batches_lock già acquisito.
     """
-    phase_id = _create_phase(test_id, "snapshot")
-    try:
-        desc = f"spm-pre-{errata_id}"
-        snapshot_id = uyuni.take_snapshot(desc)
-
-        _complete_phase(phase_id, "completed", output={"snapshot_id": snapshot_id})
-        _update_test_record(test_id, snapshot_id=snapshot_id)
-        logger.info(
-            f"TestEngine: snapshot #{snapshot_id} created on {uyuni._system_name!r}"
-        )
-        return snapshot_id
-
-    except Exception as e:
-        _complete_phase(phase_id, "failed", error=str(e))
-        raise RuntimeError(f"Snapshot failed: {e}") from e
-
-
-def _phase_patch(
-    test_id: int,
-    uyuni: UyuniPatchClient,
-    errata_id: str,
-    pkg_names: list,
-) -> dict:
-    """
-    Fase PATCH: applica errata via UYUNI scheduleApplyErrata.
-    Ritorna {pkg_name: {old: "", new: "patched"}} per compatibilità rollback.
-    Raises: RuntimeError se fallisce.
-    """
-    phase_id = _create_phase(test_id, "patch")
-    try:
-        result = uyuni.apply_errata(errata_id, pkg_names)
-        _complete_phase(
-            phase_id, "completed",
-            output={"packages_applied": result, "count": len(result)},
-        )
-        return result if isinstance(result, dict) else {}
-
-    except Exception as e:
-        _complete_phase(phase_id, "failed", error=str(e))
-        raise RuntimeError(f"Patch failed: {e}") from e
-
-
-def _phase_reboot(
-    test_id: int,
-    uyuni: UyuniPatchClient,
-) -> None:
-    """
-    Fase REBOOT: riavvio tramite UYUNI scheduleReboot + attesa online.
-    Raises: RuntimeError se il sistema non torna online.
-    """
-    phase_id = _create_phase(test_id, "reboot")
-    try:
-        uyuni.reboot()
-        online = uyuni.wait_online(timeout=Config.TEST_WAIT_AFTER_REBOOT)
-        if not online:
-            raise RuntimeError(
-                f"System {uyuni._system_name!r} did not come back online "
-                f"within {Config.TEST_WAIT_AFTER_REBOOT}s"
-            )
-        # Stabilizzazione post-reboot: lascia avviare i servizi prima di validate/services
-        stab = Config.TEST_REBOOT_STABILIZATION
-        logger.info(
-            f"TestEngine: system online — waiting {stab}s for post-reboot stabilization"
-        )
-        time.sleep(stab)
-        _complete_phase(phase_id, "completed", output={"reboot_successful": True})
-        _update_test_record(test_id, reboot_performed=True, reboot_successful=True)
-
-    except Exception as e:
-        _complete_phase(phase_id, "failed", error=str(e))
-        _update_test_record(test_id, reboot_performed=True, reboot_successful=False)
-        raise RuntimeError(f"Reboot failed: {e}") from e
-
-
-def _phase_validate(
-    test_id: int,
-    prom: PrometheusClient,
-    system_ip: str,
-    baseline: dict,
-) -> None:
-    """
-    Fase VALIDATE: confronta metriche post-patch vs baseline.
-    Skipped (senza errore) se Prometheus non disponibile.
-    Raises: RuntimeError se delta supera threshold.
-    """
-    phase_id = _create_phase(test_id, "validate")
-    try:
-        post = prom.get_snapshot(system_ip)
-        evaluation = prom.evaluate_delta(baseline, post)
-
-        _update_test_record(
-            test_id,
-            post_patch_metrics=post,
-            metrics_delta={
-                "cpu_delta":    evaluation.get("cpu_delta"),
-                "memory_delta": evaluation.get("memory_delta"),
-            },
-            metrics_evaluation=evaluation,
-        )
-
-        if evaluation.get("skipped"):
-            _complete_phase(phase_id, "skipped", output=evaluation)
-        elif evaluation.get("passed"):
-            _complete_phase(phase_id, "completed", output=evaluation)
-        else:
-            err = (
-                f"Delta exceeded threshold — "
-                f"CPU Δ={evaluation.get('cpu_delta')}% "
-                f"(limit={Config.TEST_CPU_DELTA}%), "
-                f"MEM Δ={evaluation.get('memory_delta')}% "
-                f"(limit={Config.TEST_MEMORY_DELTA}%)"
-            )
-            _complete_phase(phase_id, "failed", error=err, output=evaluation)
-            raise RuntimeError(err)
-
-    except RuntimeError:
-        raise
-    except Exception as e:
-        _complete_phase(phase_id, "failed", error=str(e))
-        raise RuntimeError(f"Validate failed: {e}") from e
-
-
-def _phase_services(
-    test_id: int,
-    uyuni: UyuniPatchClient,
-    target_os: str,
-) -> None:
-    """
-    Fase SERVICES: verifica servizi critici post-patch via systemctl script.
-    Retry 6x20s per tollerare servizi in riavvio (es. openssh-server dopo patch).
-    Raises: RuntimeError se uno o piu' servizi sono DOWN dopo tutti i tentativi.
-    """
-    _SERVICE_RETRIES    = 6
-    _SERVICE_RETRY_WAIT = 20  # secondi tra tentativi (totale max ~2 min)
-
-    phase_id = _create_phase(test_id, "services")
-    try:
-        services = get_critical_services(target_os)
-        failed = []
-
-        for attempt in range(1, _SERVICE_RETRIES + 1):
-            failed = uyuni.get_failed_services(services)
-            if not failed:
-                break
-            if attempt < _SERVICE_RETRIES:
-                logger.info(
-                    f"TestEngine: services check attempt {attempt}/{_SERVICE_RETRIES} — "
-                    f"DOWN: {failed} — retrying in {_SERVICE_RETRY_WAIT}s"
-                )
-                time.sleep(_SERVICE_RETRY_WAIT)
-
-        _update_test_record(
-            test_id,
-            services_baseline=services,
-            services_post_patch=services,
-            failed_services=failed,
-        )
-
-        if failed:
-            err = f"Critical services DOWN after patch: {', '.join(failed)}"
-            _complete_phase(
-                phase_id, "failed", error=err,
-                output={"checked": services, "failed": failed},
-            )
-            raise RuntimeError(err)
-
-        _complete_phase(
-            phase_id, "completed",
-            output={"checked": services, "all_ok": True},
-        )
-
-    except RuntimeError:
-        raise
-    except Exception as e:
-        _complete_phase(phase_id, "failed", error=str(e))
-        raise RuntimeError(f"Services check failed: {e}") from e
-
-
-def _phase_preflight(
-    test_id: int,
-    uyuni: UyuniPatchClient,
-    target_os: str,
-) -> None:
-    """
-    Fase PRE_CHECK: valida lo stato del sistema prima di applicare la patch.
-    Controlla: servizi critici baseline, spazio disco, reboot pendente.
-    Raises: RuntimeError con prefisso [INFRA] se una condizione blocca il test.
-    """
-    phase_id = _create_phase(test_id, "pre_check")
-    issues = []
-
-    try:
-        # 1. Servizi critici — devono essere tutti up prima di partire
-        services = get_critical_services(target_os)
-        failed_svcs = uyuni.get_failed_services(services)
-        if failed_svcs:
-            issues.append(
-                f"Critical services DOWN before patch: {', '.join(failed_svcs)}"
-            )
-
-        # 2. Spazio disco — minimo 500 MB su /
-        disk_ok, available_mb, disk_msg = uyuni.check_disk_space(min_mb=500)
-        if not disk_ok:
-            issues.append(disk_msg)
-
-        # 3. Reboot pendente da precedente aggiornamento
-        reboot_pending, reboot_msg = uyuni.check_reboot_pending(target_os)
-        if reboot_pending:
-            issues.append(reboot_msg)
-
-        output = {
-            "services_checked":  services,
-            "failed_services":   failed_svcs,
-            "disk_available_mb": available_mb,
-            "reboot_pending":    reboot_pending,
-        }
-
-        if issues:
-            err = "[INFRA] Pre-flight checks failed: " + "; ".join(issues)
-            _complete_phase(phase_id, "failed", error=err, output=output)
-            raise RuntimeError(err)
-
-        _complete_phase(phase_id, "completed", output=output)
-
-    except RuntimeError:
-        raise
-    except Exception as e:
-        _complete_phase(phase_id, "failed", error=str(e))
-        raise RuntimeError(f"[INFRA] Pre-flight check error: {e}") from e
-
-
-def _phase_rollback(
-    test_id: int,
-    uyuni: UyuniPatchClient,
-    rollback_type: str,
-    snapshot_id: Optional[str],
-    packages_before: dict,
-    target_os: str = "ubuntu",
-) -> None:
-    """
-    Fase ROLLBACK: ripristina sistema allo stato pre-patch via UYUNI.
-
-    rollback_type='snapshot' → snapper undochange (via scheduleScriptRun)
-    rollback_type='package'  → package manager downgrade (apt su Ubuntu, dnf su RHEL)
-
-    Non solleva eccezioni: il fallimento del rollback viene solo loggato.
-    """
-    phase_id = _create_phase(test_id, "rollback")
-    system_name = uyuni._system_name
-    try:
-        if rollback_type == "snapshot" and snapshot_id:
-            uyuni.rollback_snapshot(snapshot_id)
-            logger.info(
-                f"TestEngine: snapshot rollback (#{snapshot_id}) on {system_name!r}"
-            )
-
-        elif rollback_type == "package" and packages_before:
-            uyuni.rollback_packages(packages_before, target_os=target_os)
-            logger.info(
-                f"TestEngine: package rollback on {system_name!r} (os={target_os!r})"
-            )
-
-        else:
-            logger.warning(
-                f"TestEngine: rollback skipped "
-                f"(type={rollback_type!r}, snapshot_id={snapshot_id!r})"
-            )
-
-        _complete_phase(
-            phase_id, "completed",
-            output={"rollback_type": rollback_type, "snapshot_id": snapshot_id},
-        )
-        _update_test_record(
-            test_id,
-            rollback_performed=True,
-            rollback_type=rollback_type,
-            rollback_at=datetime.now(timezone.utc),
-        )
-
-    except Exception as e:
-        # Rollback fallito: registra ma non blocca il flusso
-        _complete_phase(phase_id, "failed", error=str(e))
-        logger.error(f"TestEngine: ROLLBACK FAILED on {system_name!r}: {e}")
-
-
-def _phase_verify_rollback(
-    test_id: int,
-    uyuni: UyuniPatchClient,
-    target_os: str,
-) -> None:
-    """
-    Fase POST_ROLLBACK: verifica che i servizi critici siano attivi dopo il rollback.
-    Best-effort: non solleva eccezioni, registra solo l'esito nella fase.
-    """
-    phase_id = _create_phase(test_id, "post_rollback")
-    try:
-        services = get_critical_services(target_os)
-        failed = uyuni.get_failed_services(services)
-        status = "completed" if not failed else "failed"
-        output = {
-            "services_checked":    services,
-            "failed_services":     failed,
-            "rollback_verified":   not failed,
-        }
-        error = f"Services DOWN after rollback: {', '.join(failed)}" if failed else None
-        _complete_phase(phase_id, status, error=error, output=output)
-        if failed:
-            logger.warning(
-                f"TestEngine: services DOWN after rollback on "
-                f"{uyuni._system_name!r}: {failed}"
-            )
-        else:
-            logger.info(
-                f"TestEngine: post-rollback services OK on {uyuni._system_name!r}"
-            )
-    except Exception as e:
-        _complete_phase(phase_id, "failed", error=str(e))
-        logger.warning(f"TestEngine: _phase_verify_rollback error: {e}")
-
-
-def _rollback_and_verify(
-    test_id: int,
-    uyuni: UyuniPatchClient,
-    rollback_type: str,
-    snapshot_id: Optional[str],
-    packages_before: dict,
-    target_os: str,
-) -> None:
-    """Esegue rollback e poi verifica post-rollback (best-effort)."""
-    _phase_rollback(
-        test_id, uyuni,
-        rollback_type, snapshot_id, packages_before,
-        target_os=target_os,
-    )
-    _phase_verify_rollback(test_id, uyuni, target_os)
-
-
-# ─────────────────────────────────────────────
-# Error classification + retry
-# ─────────────────────────────────────────────
-
-def _classify_error(
-    failure_phase: Optional[str],
-    failure_reason: Optional[str],
-) -> str:
-    """
-    Classifica la categoria dell'errore per decidere il comportamento di retry.
-
-    INFRA      → problema infrastrutturale (sistema offline, disco pieno, servizi
-                 già down prima della patch, reboot pendente).
-                 Retry dopo 2h, max 2 volte.
-    TRANSIENT  → errore transitorio UYUNI o di rete (timeout azione, polling fallito).
-                 Retry dopo 30min, max 3 volte.
-    PATCH      → la patch ha causato problemi (applicazione fallita).
-                 No retry: problema intrinseco della patch.
-    REGRESSION → la patch sembra aver rotto qualcosa (servizi down, validate fallito).
-                 No retry: richiede analisi manuale.
-    """
-    phase  = (failure_phase  or "").lower()
-    reason = (failure_reason or "").lower()
-
-    # Errori infrastrutturali esplicitamente marcati con [INFRA]
-    if "[infra]" in reason:
-        return "INFRA"
-
-    # Fase pre-check o sistema non raggiungibile
-    if phase == "pre_check" or "not reachable" in reason:
-        return "INFRA"
-
-    # Errori transitori: timeout, polling, connessione
-    _transient_keywords = [
-        "timeout", "timed out", "connection", "xmlrpc",
-        "socket", "eoferror", "http error",
+    cutoff = datetime.now(timezone.utc).timestamp() - 86400
+    to_delete = [
+        bid for bid, b in _batches.items()
+        if b.get("status") in ("completed", "error") and b.get("completed_at")
+        and _parse_completed_at(b["completed_at"]) < cutoff
     ]
-    if any(kw in reason for kw in _transient_keywords):
-        return "TRANSIENT"
-
-    # Reboot fallito: può essere transitorio (sistema lento a tornare online)
-    if phase == "reboot":
-        return "TRANSIENT"
-
-    # Patch fallita: problema intrinseco della patch
-    if phase == "patch":
-        return "PATCH"
-
-    # Servizi down o validate fallito → regressione introdotta dalla patch
-    if phase in ("services", "validate"):
-        return "REGRESSION"
-
-    # Default: PATCH (segnala per analisi manuale)
-    return "PATCH"
+    for bid in to_delete:
+        del _batches[bid]
+    if to_delete:
+        logger.debug(f"TestEngine: pruned {len(to_delete)} old batch(es) from memory")
 
 
-def _set_queue_retry(
-    queue_id: int,
-    retry_after: datetime,
-    retry_count: int,
+def _add_batch_note(group_name: str, results: list, operator: str) -> None:
+    """
+    Aggiunge nota di riepilogo batch su tutti i sistemi del gruppo UYUNI.
+    Best-effort: non blocca il flusso anche se fallisce.
+    """
+    try:
+        today  = date.today().isoformat()
+        passed = sum(1 for r in results if r.get("status") == "pending_approval")
+        failed = sum(1 for r in results if r.get("status") in ("failed", "error"))
+        total  = len(results)
+
+        lines = [
+            f"SPM Batch Test — {today} — {operator}",
+            f"Gruppo: {group_name}",
+            f"Totale: {total} | Superati: {passed} | Falliti: {failed}",
+            "",
+        ]
+        for r in results:
+            icon = "+" if r.get("status") == "pending_approval" else "-"
+            line = (
+                f"{icon} {r.get('errata_id', '?')} "
+                f"[{r.get('status', '?')}] ({r.get('duration_s', '?')}s)"
+            )
+            if r.get("failure_phase"):
+                line += f" - fase: {r['failure_phase']}"
+            lines.append(line)
+
+        subject = f"SPM Test {today} [{operator}]"
+        body    = "\n".join(lines)
+
+        with UyuniSession() as session:
+            for sys in session.get_systems_in_group(group_name):
+                sid = sys.get("id")
+                if sid:
+                    try:
+                        session.add_note(sid, subject, body)
+                        logger.info(
+                            f"TestEngine: note added to system {sid} "
+                            f"(group={group_name!r})"
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            f"TestEngine: add_note failed for system {sid}: {e}"
+                        )
+
+    except Exception as e:
+        logger.warning(f"TestEngine: _add_batch_note failed: {e}")
+
+
+# ─────────────────────────────────────────────
+# Batch background worker
+# ─────────────────────────────────────────────
+
+def _run_batch_background(
+    batch_id: str,
+    queue_ids: list,
+    group_name: str,
+    operator: str,
 ) -> None:
-    """Imposta status='retry_pending', aggiorna retry_after e retry_count."""
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """UPDATE patch_test_queue
-               SET status      = 'retry_pending',
-                   retry_after = %s,
-                   retry_count = %s
-               WHERE id = %s""",
-            (retry_after, retry_count, queue_id),
-        )
-
-
-def _maybe_retry(
-    queue_id: int,
-    current_retry_count: int,
-    category: str,
-) -> bool:
     """
-    Decide se programmare un retry in base alla categoria di errore.
-    Ritorna True se il retry è stato programmato, False altrimenti.
-
-    INFRA:     max 2 retry, delay 2h
-    TRANSIENT: max 3 retry, delay 30min
-    PATCH/REGRESSION: no retry
+    Thread worker: esegue i test del batch e aggiorna _batches + DB in tempo reale.
+    Controlla _cancel_flags tra un test e l'altro: se il batch è stato cancellato
+    interrompe senza avviare i test rimanenti (il test in corso completa normalmente).
     """
-    now = datetime.now(timezone.utc)
-
-    if category == "INFRA" and current_retry_count < 2:
-        retry_at = now + timedelta(hours=2)
-        _set_queue_retry(queue_id, retry_at, current_retry_count + 1)
-        logger.info(
-            f"TestEngine: queue {queue_id} → retry_pending "
-            f"(INFRA, attempt {current_retry_count + 1}/2, "
-            f"after {retry_at.isoformat()})"
-        )
-        return True
-
-    if category == "TRANSIENT" and current_retry_count < 3:
-        retry_at = now + timedelta(minutes=30)
-        _set_queue_retry(queue_id, retry_at, current_retry_count + 1)
-        logger.info(
-            f"TestEngine: queue {queue_id} → retry_pending "
-            f"(TRANSIENT, attempt {current_retry_count + 1}/3, "
-            f"after {retry_at.isoformat()})"
-        )
-        return True
-
-    return False
-
-
-# ─────────────────────────────────────────────
-# Core test execution
-# ─────────────────────────────────────────────
-
-def _resolve_test_systems(target_os: str) -> list:
-    """
-    Risolve tutti i sistemi di test per target_os.
-
-    Se .env configura un system_id esplicito → usa solo quel sistema (singolo).
-    Completa i dati mancanti (name/ip) tramite auto-discovery UYUNI se necessario.
-
-    Se .env non configura nulla → usa TUTTI i sistemi nel gruppo UYUNI test-{os},
-    così ogni nuovo sistema aggiunto al gruppo viene automaticamente testato.
-    """
-    cfg         = Config.TEST_SYSTEMS.get(target_os, {})
-    system_id   = cfg.get("system_id")
-    system_name = cfg.get("system_name", "")
-    system_ip   = cfg.get("system_ip", "")
-
-    if system_id:
-        # Sistema esplicitamente configurato: completa name/ip se mancanti
-        if not system_name or not system_ip:
-            all_sys = get_all_test_systems_for_os(target_os)
-            match = next((s for s in all_sys if s["system_id"] == system_id), None)
-            if match:
-                system_name = system_name or match["system_name"]
-                system_ip   = system_ip   or match["system_ip"]
-        return [{"system_id": system_id, "system_name": system_name, "system_ip": system_ip}]
-
-    # Auto-discovery completa: tutti i sistemi nel gruppo
-    return get_all_test_systems_for_os(target_os)
-
-
-def _execute_test_on_system(
-    queue_id: int,
-    errata_id: str,
-    target_os: str,
-    requires_reboot: bool,
-    pkg_names: list,
-    system_id: int,
-    system_name: str,
-    system_ip: str,
-    batch_id: str = None,
-) -> dict:
-    """
-    Esegue tutte le fasi del test su un singolo sistema.
-    Crea e finalizza il suo record in patch_tests.
-    Invia notifica per questo sistema.
-    Non aggiorna patch_test_queue (gestito da _execute_test).
-
-    Ritorna dict con: result, test_id, system_id, system_name,
-                      failure_phase, failure_reason, duration_s, rollback_done.
-    """
-    rollback_type = "snapshot" if requires_reboot else "package"
-
-    test_id = _create_test_record(
-        queue_id, errata_id, system_id, system_name, system_ip, requires_reboot,
-    )
-
-    # Aggiorna il batch con il test_id appena creato (per il live view Streamlit)
-    if batch_id:
-        with _batches_lock:
-            if batch_id in _batches:
-                _batches[batch_id]["current_test_id"] = test_id
-
-    started_at     = datetime.now(timezone.utc)
-    snapshot_id    = None
-    apply_result   = {}
-    failure_reason = None
-    failure_phase  = None
-    rollback_done  = False
-    final_result   = "error"
-
-    logger.info(
-        f"TestEngine: [{system_name}] START {errata_id!r} | OS={target_os} | "
-        f"reboot={requires_reboot} | packages={len(pkg_names)}"
-    )
+    global _testing, _last_result
 
     try:
-        with UyuniPatchClient(system_id, system_name) as uyuni:
-            prom = PrometheusClient()
-
-            # Verifica sistema raggiungibile prima di partire
-            if not uyuni.ping():
-                failure_reason = (
-                    f"System {system_name!r} (id={system_id}) "
-                    f"not reachable via UYUNI"
-                )
-                failure_phase = "pre_check"
-                raise RuntimeError(failure_reason)
-
-            # ⓪ PRE-FLIGHT: servizi baseline, disco, reboot pendente
-            try:
-                _phase_preflight(test_id, uyuni, target_os)
-            except RuntimeError as e:
-                failure_reason = str(e)
-                failure_phase  = "pre_check"
-                raise
-
-            # Assicura snapper installato (via UYUNI channels). Best-effort.
-            snapper_ok = uyuni.ensure_snapper(target_os)
-            if not snapper_ok and rollback_type == "snapshot":
+        for qid in queue_ids:
+            with _batches_lock:
+                cancelled = batch_id in _cancel_flags
+            if cancelled:
                 logger.info(
-                    f"TestEngine: [{system_name}] snapper not available "
-                    f"— switching to package rollback"
+                    f"Batch {batch_id}: cancellation requested "
+                    f"— stopping after current test"
                 )
-                rollback_type = "package"
+                break
 
-            # ① SNAPSHOT — best-effort, fallback a package rollback se fallisce
-            try:
-                snapshot_id = _phase_snapshot(test_id, uyuni, errata_id)
-            except RuntimeError as e:
-                logger.warning(
-                    f"TestEngine: [{system_name}] snapshot failed, "
-                    f"switching to package rollback: {e}"
-                )
-                rollback_type = "package"
-
-            # Assicura node_exporter attivo (best-effort, per Prometheus)
-            if system_ip:
-                uyuni.ensure_node_exporter(target_os)
-
-            # Baseline metriche Prometheus (best-effort)
-            baseline_metrics = {}
-            if system_ip and prom.is_available():
-                baseline_metrics = prom.get_snapshot(system_ip)
-                _update_test_record(test_id, baseline_metrics=baseline_metrics)
-
-            # ② PATCH
-            try:
-                apply_result = _phase_patch(test_id, uyuni, errata_id, pkg_names)
-            except RuntimeError as e:
-                failure_reason = str(e)
-                failure_phase  = "patch"
-                _rollback_and_verify(
-                    test_id, uyuni, rollback_type, snapshot_id, apply_result,
-                    target_os=target_os,
-                )
-                rollback_done = True
-                raise
-
-            # ③ REBOOT (solo se requires_reboot)
-            if requires_reboot:
-                try:
-                    _phase_reboot(test_id, uyuni)
-                except RuntimeError as e:
-                    failure_reason = str(e)
-                    failure_phase  = "reboot"
-                    _rollback_and_verify(
-                        test_id, uyuni, rollback_type, snapshot_id, apply_result,
-                        target_os=target_os,
-                    )
-                    rollback_done = True
-                    raise
+            row = test_db.fetch_queue_item(qid)
+            if not row:
+                result = {
+                    "queue_id": qid,
+                    "status":   "skipped",
+                    "reason":   "Non trovato o non in stato queued",
+                }
             else:
-                wait = Config.TEST_WAIT_AFTER_PATCH
-                logger.info(
-                    f"TestEngine: [{system_name}] waiting {wait}s for stabilization"
-                )
-                time.sleep(wait)
+                with _batches_lock:
+                    if batch_id in _batches:
+                        _batches[batch_id]["current_errata_id"] = row["errata_id"]
+                        _batches[batch_id]["current_test_id"]   = None
 
-            # ④ VALIDATE metriche Prometheus
-            if system_ip and baseline_metrics and prom.is_available():
-                try:
-                    _phase_validate(test_id, prom, system_ip, baseline_metrics)
-                except RuntimeError as e:
-                    failure_reason = str(e)
-                    failure_phase  = "validate"
-                    _rollback_and_verify(
-                        test_id, uyuni, rollback_type, snapshot_id, apply_result,
-                        target_os=target_os,
-                    )
-                    rollback_done = True
-                    raise
+                # Callback che cattura batch_id dalla closure (sicuro: è un parametro
+                # di funzione, non una variabile di loop)
+                def _on_created(test_id: int, _bid: str = batch_id) -> None:
+                    _on_test_created(_bid, test_id)
 
-            # ⑤ SERVICES
-            try:
-                _phase_services(test_id, uyuni, target_os)
-            except RuntimeError as e:
-                failure_reason = str(e)
-                failure_phase  = "services"
-                _rollback_and_verify(
-                    test_id, uyuni, rollback_type, snapshot_id, apply_result,
-                    target_os=target_os,
-                )
-                rollback_done = True
-                raise
+                result = execute_test(row, on_test_created=_on_created)
+                _last_result = result
 
-            # ✓ Tutte le fasi superate
-            final_result = "pending_approval"
+                with _batches_lock:
+                    if batch_id in _batches:
+                        _batches[batch_id]["current_errata_id"] = None
+                        _batches[batch_id]["current_test_id"]   = None
 
-    except RuntimeError:
-        final_result = "failed"
+            with _batches_lock:
+                b = _batches[batch_id]
+                b["results"].append(result)
+                b["completed"] += 1
+                if result.get("status") == "pending_approval":
+                    b["passed"] += 1
+                elif result.get("status") in ("failed", "error"):
+                    b["failed"] += 1
+                completed = b["completed"]
+                passed    = b["passed"]
+                failed    = b["failed"]
+                results   = list(b["results"])
+
+            test_db.db_update_batch(batch_id, completed, passed, failed, results)
+
+        with _batches_lock:
+            was_cancelled = batch_id in _cancel_flags
+            _cancel_flags.discard(batch_id)
+
+        final_status = "cancelled" if was_cancelled else "completed"
+
+        if not was_cancelled:
+            with _batches_lock:
+                results_snapshot = list(_batches[batch_id]["results"])
+            _add_batch_note(group_name, results_snapshot, operator)
+
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with _batches_lock:
+            _batches[batch_id]["status"]       = final_status
+            _batches[batch_id]["completed_at"] = now_iso
+
+        test_db.db_complete_batch(batch_id, final_status)
+
     except Exception as e:
-        failure_reason = f"Unexpected error: {e}"
-        failure_phase  = "unknown"
-        final_result   = "error"
-        logger.exception(
-            f"TestEngine: [{system_name}] unexpected error for {errata_id!r}"
-        )
+        logger.exception(f"Batch {batch_id} background error")
+        now_iso = datetime.now(timezone.utc).isoformat()
+        with _batches_lock:
+            _batches[batch_id]["status"]       = "error"
+            _batches[batch_id]["error"]        = str(e)
+            _batches[batch_id]["completed_at"] = now_iso
+            _cancel_flags.discard(batch_id)
+        test_db.db_complete_batch(batch_id, "error", str(e))
 
-    # Finalizza record patch_tests
-    completed_at = datetime.now(timezone.utc)
-    duration_s   = int((completed_at - started_at).total_seconds())
-    # patch_tests.result non ammette 'pending_approval' → mappa a 'passed'
-    test_result = "passed" if final_result == "pending_approval" else final_result
-
-    _update_test_record(
-        test_id,
-        result             = test_result,
-        failure_reason     = failure_reason,
-        failure_phase      = failure_phase,
-        rollback_performed = rollback_done,
-        completed_at       = completed_at,
-        duration_seconds   = duration_s,
-    )
-
-    notify_test_result(
-        test_id        = test_id,
-        queue_id       = queue_id,
-        errata_id      = errata_id,
-        result         = final_result,
-        failure_phase  = failure_phase,
-        failure_reason = failure_reason,
-        system_name    = system_name,
-        duration_s     = duration_s,
-    )
-
-    logger.info(
-        f"TestEngine: [{system_name}] END {errata_id!r} → {final_result.upper()} "
-        f"({duration_s}s | rollback={rollback_done} | phase={failure_phase})"
-    )
-
-    return {
-        "result":         final_result,
-        "test_id":        test_id,
-        "system_id":      system_id,
-        "system_name":    system_name,
-        "failure_phase":  failure_phase,
-        "failure_reason": failure_reason,
-        "duration_s":     duration_s,
-        "rollback_done":  rollback_done,
-    }
-
-
-def _execute_test(queue_item: dict, batch_id: str = None) -> dict:
-    """
-    Esegue il test completo per un elemento della coda.
-    Se il gruppo UYUNI contiene più sistemi, testa su tutti in sequenza.
-    Il risultato è 'pending_approval' solo se TUTTI i sistemi passano;
-    se anche uno solo fallisce il risultato è 'failed' con dettaglio per sistema.
-    """
-    queue_id        = queue_item["id"]
-    errata_id       = queue_item["errata_id"]
-    target_os       = queue_item["target_os"]
-    requires_reboot = bool(queue_item.get("requires_reboot", False))
-    retry_count     = int(queue_item.get("retry_count", 0))
-
-    # Risolve tutti i sistemi di test per questo OS
-    systems = _resolve_test_systems(target_os)
-    if not systems:
-        err = (
-            f"No test system found for target_os={target_os!r} — "
-            f"nessun sistema nel gruppo UYUNI 'test-{target_os}*' "
-            f"e nessuna configurazione in .env"
-        )
-        logger.error(f"TestEngine: {err}")
-        return {"status": "error", "error": err, "queue_id": queue_id}
-
-    packages  = _get_packages(errata_id)
-    pkg_names = [p["name"] for p in packages if p.get("name")]
-
-    if not pkg_names:
-        logger.warning(
-            f"TestEngine: no packages found for {errata_id!r} — proceeding without pkg list"
-        )
-
-    logger.info(
-        f"TestEngine: START {errata_id!r} | OS={target_os} | "
-        f"systems={len(systems)} | reboot={requires_reboot} | packages={len(pkg_names)}"
-    )
-
-    # Segna la coda come in esecuzione
-    _set_queue_status(queue_id, "testing")
-
-    # Esegue il test su ogni sistema in sequenza
-    per_system_results = []
-    for sys_info in systems:
-        result = _execute_test_on_system(
-            queue_id, errata_id, target_os, requires_reboot, pkg_names,
-            sys_info["system_id"], sys_info["system_name"], sys_info["system_ip"],
-            batch_id=batch_id,
-        )
-        per_system_results.append(result)
-
-    # Aggrega risultati: passed solo se TUTTI i sistemi superano
-    all_passed = all(r["result"] == "pending_approval" for r in per_system_results)
-
-    if all_passed:
-        final_result   = "pending_approval"
-        failure_reason = None
-        failure_phase  = None
-    else:
-        final_result   = "failed"
-        failed_parts   = [
-            f"{r['system_name']} [{r['failure_phase']}]: {r['failure_reason']}"
-            for r in per_system_results
-            if r["result"] in ("failed", "error")
-        ]
-        failure_reason = " | ".join(failed_parts)
-        # Prima fase fallita (usata per classificazione retry)
-        first_failed  = next(
-            (r for r in per_system_results if r["result"] in ("failed", "error")), None
-        )
-        failure_phase = first_failed["failure_phase"] if first_failed else "unknown"
-
-    # test_id FK → primo test fallito, o ultimo in caso di successo totale
-    first_failed_result = next(
-        (r for r in per_system_results if r["result"] in ("failed", "error")), None
-    )
-    relevant_test_id = (
-        first_failed_result["test_id"] if first_failed_result
-        else per_system_results[-1]["test_id"]
-    )
-
-    # patch_test_queue.chk_queue_status non ammette 'error': mappa a 'failed'
-    queue_status = "failed" if final_result == "error" else final_result
-    _set_queue_status(queue_id, queue_status, test_id=relevant_test_id)
-
-    # Retry intelligente basato sul primo fallimento
-    if final_result in ("failed", "error"):
-        error_category = _classify_error(failure_phase, failure_reason)
-        retried = _maybe_retry(queue_id, retry_count, error_category)
-        if retried:
-            logger.info(
-                f"TestEngine: {errata_id!r} → retry_pending "
-                f"(category={error_category}, attempt {retry_count + 1})"
-            )
-
-    total_duration = sum(r["duration_s"] for r in per_system_results)
-    rollback_any   = any(r["rollback_done"] for r in per_system_results)
-
-    logger.info(
-        f"TestEngine: END {errata_id!r} → {final_result.upper()} "
-        f"({total_duration}s total | {len(systems)} systems | "
-        f"rollback={rollback_any} | failure_phase={failure_phase})"
-    )
-
-    return {
-        "status":         final_result,
-        "test_id":        relevant_test_id,
-        "queue_id":       queue_id,
-        "errata_id":      errata_id,
-        "systems_tested": len(systems),
-        "per_system":     per_system_results,
-        "duration_s":     total_duration,
-        "rollback":       rollback_any,
-        "failure_reason": failure_reason,
-        "failure_phase":  failure_phase,
-    }
+    finally:
+        with _testing_lock:
+            _testing = False
 
 
 # ─────────────────────────────────────────────
@@ -1133,14 +255,14 @@ def run_next_test() -> dict:
         if _testing:
             return {"status": "skipped", "reason": "test already running"}
 
-        item = _pick_next_queued()
+        item = test_db.pick_next_queued()
         if not item:
             return {"status": "skipped", "reason": "no items in queue"}
 
         _testing = True
 
     try:
-        result = _execute_test(item)
+        result = execute_test(item)
         _last_result = result
         return result
     finally:
@@ -1154,294 +276,6 @@ def get_engine_status() -> dict:
         "testing":     _testing,
         "last_result": _last_result,
     }
-
-
-def _add_batch_note(group_name: str, results: list, operator: str) -> None:
-    """
-    Aggiunge nota di riepilogo batch su TUTTI i sistemi del gruppo UYUNI.
-    Best-effort: non blocca il flusso anche se fallisce.
-    """
-    from app.services.uyuni_client import UyuniSession
-
-    try:
-        today   = date.today().isoformat()
-        passed  = sum(1 for r in results if r.get("status") == "pending_approval")
-        failed  = sum(1 for r in results if r.get("status") in ("failed", "error"))
-        total   = len(results)
-
-        lines = [
-            f"SPM Batch Test — {today} — {operator}",
-            f"Gruppo: {group_name}",
-            f"Totale: {total} | Superati: {passed} | Falliti: {failed}",
-            "",
-        ]
-        for r in results:
-            icon    = "+" if r.get("status") == "pending_approval" else "-"
-            errata  = r.get("errata_id", "?")
-            status  = r.get("status", "?")
-            dur     = r.get("duration_s", "?")
-            phase   = r.get("failure_phase") or ""
-            line    = f"{icon} {errata} [{status}] ({dur}s)"
-            if phase:
-                line += f" - fase: {phase}"
-            lines.append(line)
-
-        subject = f"SPM Test {today} [{operator}]"
-        body    = "\n".join(lines)
-
-        with UyuniSession() as session:
-            systems = session.get_systems_in_group(group_name)
-            for sys in systems:
-                sid = sys.get("id")
-                if sid:
-                    try:
-                        session.add_note(sid, subject, body)
-                        logger.info(
-                            f"TestEngine: note added to system {sid} "
-                            f"(group={group_name!r})"
-                        )
-                    except Exception as e:
-                        logger.warning(
-                            f"TestEngine: add_note failed for system {sid}: {e}"
-                        )
-
-    except Exception as e:
-        logger.warning(f"TestEngine: _add_batch_note failed: {e}")
-
-
-def _prune_old_batches() -> None:
-    """Rimuove batch completati da piu' di 24h per evitare crescita indefinita di _batches.
-    Deve essere chiamata dentro _batches_lock."""
-    cutoff = datetime.now(timezone.utc).timestamp() - 86400
-    to_delete = [
-        bid for bid, b in _batches.items()
-        if b.get("status") in ("completed", "error") and b.get("completed_at")
-        and _parse_completed_at(b["completed_at"]) < cutoff
-    ]
-    for bid in to_delete:
-        del _batches[bid]
-    if to_delete:
-        logger.debug(f"TestEngine: pruned {len(to_delete)} old batch(es) from memory")
-
-
-def _parse_completed_at(ts_str: str) -> float:
-    """Converte timestamp ISO string in Unix timestamp. Ritorna 0 su errore."""
-    try:
-        return datetime.fromisoformat(ts_str.replace("Z", "+00:00")).timestamp()
-    except Exception:
-        return 0.0
-
-
-# ─────────────────────────────────────────────
-# Batch DB helpers
-# ─────────────────────────────────────────────
-
-def _db_create_batch(
-    batch_id: str, group_name: str, operator: str, total: int
-) -> None:
-    """Crea riga in patch_test_batches."""
-    try:
-        with get_db() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                INSERT INTO patch_test_batches
-                    (batch_id, status, group_name, operator,
-                     total, completed, passed, failed, results)
-                VALUES (%s, 'running', %s, %s, %s, 0, 0, 0, '[]'::jsonb)
-                """,
-                (batch_id, group_name, operator, total),
-            )
-    except Exception as e:
-        logger.warning(f"TestEngine: _db_create_batch failed: {e}")
-
-
-def _db_update_batch(
-    batch_id: str, completed: int, passed: int, failed: int, results: list
-) -> None:
-    """Aggiorna progresso batch nel DB dopo ogni test."""
-    try:
-        with get_db() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                UPDATE patch_test_batches
-                SET completed = %s, passed = %s, failed = %s, results = %s::jsonb
-                WHERE batch_id = %s
-                """,
-                (completed, passed, failed, json.dumps(results), batch_id),
-            )
-    except Exception as e:
-        logger.warning(f"TestEngine: _db_update_batch failed: {e}")
-
-
-def _db_complete_batch(
-    batch_id: str, status: str, error: str = None
-) -> None:
-    """Chiude il batch nel DB con status finale e timestamp."""
-    try:
-        with get_db() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                UPDATE patch_test_batches
-                SET status = %s, completed_at = NOW(), error_message = %s
-                WHERE batch_id = %s
-                """,
-                (status, error, batch_id),
-            )
-    except Exception as e:
-        logger.warning(f"TestEngine: _db_complete_batch failed: {e}")
-
-
-def _db_get_batch(batch_id: str) -> Optional[dict]:
-    """
-    Legge batch dal DB. Ritorna None se non trovato.
-    Usato come fallback da get_batch_status() quando il batch non è più in memoria
-    (es. dopo un restart Flask).
-    """
-    try:
-        from app.utils.serializers import serialize_row
-        with get_db() as conn:
-            cur = conn.cursor()
-            cur.execute(
-                """
-                SELECT batch_id, status, group_name AS "group", operator,
-                       total, completed, passed, failed, results,
-                       started_at, completed_at, error_message AS error
-                FROM patch_test_batches
-                WHERE batch_id = %s
-                """,
-                (batch_id,),
-            )
-            row = cur.fetchone()
-            return serialize_row(dict(row)) if row else None
-    except Exception as e:
-        logger.warning(f"TestEngine: _db_get_batch failed: {e}")
-    return None
-
-
-def _fetch_queue_item(queue_id: int) -> Optional[dict]:
-    """Legge un item dalla coda se in stato 'queued' o 'retry_pending' pronto."""
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT
-                q.id, q.errata_id, q.target_os,
-                q.success_score, q.priority_override, q.queued_at,
-                COALESCE(rp.requires_reboot, FALSE) AS requires_reboot,
-                COALESCE(rp.affects_kernel,  FALSE) AS affects_kernel,
-                COALESCE(q.retry_count, 0)           AS retry_count
-            FROM patch_test_queue q
-            LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id
-            WHERE q.id = %s
-              AND (q.status = 'queued'
-                   OR (q.status = 'retry_pending' AND q.retry_after <= NOW()))
-            """,
-            (queue_id,),
-        )
-        row = cur.fetchone()
-        return dict(row) if row else None
-
-
-def _run_batch_background(
-    batch_id: str,
-    queue_ids: list,
-    group_name: str,
-    operator: str,
-) -> None:
-    """
-    Thread worker: esegue i test del batch e aggiorna _batches + DB in tempo reale.
-    Controlla _cancel_flags tra un test e l'altro: se il batch è stato cancellato
-    interrompe senza avviare i test rimanenti (il test in corso non viene interrotto).
-    """
-    global _testing, _last_result
-
-    try:
-        for qid in queue_ids:
-            # Controlla cancellazione tra un test e il successivo
-            with _batches_lock:
-                cancelled = batch_id in _cancel_flags
-            if cancelled:
-                logger.info(f"Batch {batch_id}: cancellation requested — stopping after current test")
-                break
-
-            row = _fetch_queue_item(qid)
-            if not row:
-                result = {
-                    "queue_id": qid,
-                    "status":   "skipped",
-                    "reason":   "Non trovato o non in stato queued",
-                }
-            else:
-                # Imposta errata corrente nel batch prima di avviare il test
-                with _batches_lock:
-                    if batch_id in _batches:
-                        _batches[batch_id]["current_errata_id"] = row["errata_id"]
-                        _batches[batch_id]["current_test_id"]   = None
-
-                result = _execute_test(row, batch_id=batch_id)
-                _last_result = result
-
-                # Pulisce il test corrente al completamento
-                with _batches_lock:
-                    if batch_id in _batches:
-                        _batches[batch_id]["current_errata_id"] = None
-                        _batches[batch_id]["current_test_id"]   = None
-
-            with _batches_lock:
-                b = _batches[batch_id]
-                b["results"].append(result)
-                b["completed"] += 1
-                if result.get("status") == "pending_approval":
-                    b["passed"] += 1
-                elif result.get("status") in ("failed", "error"):
-                    b["failed"] += 1
-                completed = b["completed"]
-                passed    = b["passed"]
-                failed    = b["failed"]
-                results   = list(b["results"])
-
-            # Aggiorna DB ad ogni test completato
-            _db_update_batch(batch_id, completed, passed, failed, results)
-
-        # Determina stato finale
-        with _batches_lock:
-            was_cancelled = batch_id in _cancel_flags
-            _cancel_flags.discard(batch_id)
-
-        if was_cancelled:
-            final_status = "cancelled"
-        else:
-            final_status = "completed"
-
-        # Nota UYUNI su tutti i sistemi del gruppo (solo se non cancellato)
-        if not was_cancelled:
-            with _batches_lock:
-                results_snapshot = list(_batches[batch_id]["results"])
-            _add_batch_note(group_name, results_snapshot, operator)
-
-        now_iso = datetime.now(timezone.utc).isoformat()
-        with _batches_lock:
-            _batches[batch_id]["status"]       = final_status
-            _batches[batch_id]["completed_at"] = now_iso
-
-        _db_complete_batch(batch_id, final_status)
-
-    except Exception as e:
-        logger.exception(f"Batch {batch_id} background error")
-        now_iso = datetime.now(timezone.utc).isoformat()
-        with _batches_lock:
-            _batches[batch_id]["status"]       = "error"
-            _batches[batch_id]["error"]        = str(e)
-            _batches[batch_id]["completed_at"] = now_iso
-            _cancel_flags.discard(batch_id)
-        _db_complete_batch(batch_id, "error", str(e))
-
-    finally:
-        with _testing_lock:
-            _testing = False
 
 
 def start_batch(
@@ -1462,7 +296,6 @@ def start_batch(
             return None
         _testing = True
 
-    # Cleanup batch vecchi (>24h) prima di aggiungerne uno nuovo
     with _batches_lock:
         _prune_old_batches()
 
@@ -1485,8 +318,7 @@ def start_batch(
             "current_errata_id": None,
         }
 
-    # Persiste su DB: sopravvive al restart Flask
-    _db_create_batch(batch_id, group_name, operator, len(queue_ids))
+    test_db.db_create_batch(batch_id, group_name, operator, len(queue_ids))
 
     threading.Thread(
         target=_run_batch_background,
@@ -1505,16 +337,15 @@ def start_batch(
 def get_batch_status(batch_id: str) -> Optional[dict]:
     """
     Ritorna lo stato corrente del batch.
-    Prova prima la cache in memoria (batch attivo); fallback al DB
-    per batch completati o dopo restart Flask.
+    Prima dalla cache in memoria (batch attivo);
+    fallback al DB per batch completati o dopo restart Flask.
     Ritorna None se non trovato né in memoria né nel DB.
     """
     with _batches_lock:
         b = _batches.get(batch_id)
         if b:
             return dict(b)
-    # Fallback DB: batch non più in memoria (restart Flask o batch >24h)
-    return _db_get_batch(batch_id)
+    return test_db.db_get_batch(batch_id)
 
 
 def cancel_batch(batch_id: str) -> dict:
@@ -1525,9 +356,8 @@ def cancel_batch(batch_id: str) -> dict:
 
     Ritorna:
       {"cancelled": True}  → flag impostato, batch si fermerà al prossimo intertest
-      {"cancelled": False, "reason": "..."}  → batch non cancellabile (già terminato, non trovato)
+      {"cancelled": False, "reason": "..."}  → batch non cancellabile
     """
-    # Verifica stato corrente (memoria + DB)
     b = get_batch_status(batch_id)
     if not b:
         return {"cancelled": False, "reason": "batch not found"}
