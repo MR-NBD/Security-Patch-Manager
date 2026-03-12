@@ -210,22 +210,26 @@ with sc2:
         st.error(err)
     elif cs:
         bysev = cs.get("by_severity", {})
-        e1, e2, e3 = st.columns(3)
-        e1.metric("Errata totali", cs.get("total", 0))
-        e2.metric(
-            "Critical+High", (bysev.get("critical") or 0) + (bysev.get("high") or 0)
+        byos  = cs.get("by_os", {})
+        e1, e2 = st.columns(2)
+        e1.metric(
+            "Patch applicabili",
+            cs.get("total", 0),
+            help="Patch applicabili ai sistemi test, sincronizzate da UYUNI ogni 30 min",
         )
-
-        # Sistemi monitorati = sistemi unici in tutti i gruppi test-*
-        _org_id = st.session_state.get("selected_org_id")
-        gdata, _ = api.groups_list(_org_id)
-        _groups = (gdata or {}).get("groups", [])
-        _sys_ids = set()
-        for g in _groups:
-            for s in g.get("systems", []):
-                _sys_ids.add(s.get("id") or s.get("name"))
-        e3.metric("Sistemi monitorati", len(_sys_ids))
-
+        e2.metric(
+            "Critical+High",
+            (bysev.get("critical") or 0) + (bysev.get("high") or 0),
+        )
+        _ubuntu = byos.get("ubuntu", 0)
+        _rhel   = byos.get("rhel", 0)
+        _os_parts = []
+        if _ubuntu:
+            _os_parts.append(f"Ubuntu: **{_ubuntu}**")
+        if _rhel:
+            _os_parts.append(f"RHEL: **{_rhel}**")
+        if _os_parts:
+            st.caption("  |  ".join(_os_parts))
         if cs.get("last_synced"):
             st.caption(f"Aggiornato: {str(cs['last_synced'])[:16].replace('T',' ')}")
 

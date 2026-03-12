@@ -502,6 +502,8 @@ def get_queue(
             q.test_id,
             q.created_by,
             q.notes,
+            q.retry_count,
+            q.retry_after,
             e.synopsis,
             e.severity,
             e.type          AS errata_type,
@@ -510,8 +512,10 @@ def get_queue(
             rp.requires_reboot,
             rp.times_tested,
             rp.times_failed,
-            t.result        AS test_result,
-            t.duration_seconds AS test_duration
+            t.result           AS test_result,
+            t.duration_seconds AS test_duration,
+            t.failure_phase,
+            t.failure_reason
         FROM patch_test_queue q
         LEFT JOIN errata_cache e  ON q.errata_id = e.errata_id
         LEFT JOIN patch_risk_profile rp ON q.errata_id = rp.errata_id

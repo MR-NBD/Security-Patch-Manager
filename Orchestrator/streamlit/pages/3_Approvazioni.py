@@ -24,7 +24,7 @@ auth_guard.require_auth()
 
 st.title("Approvazioni Patch")
 
-tab_pending, tab_history = st.tabs(["In attesa", "Storico"])
+tab_pending, tab_failed, tab_history = st.tabs(["In attesa", "Fallite & Retry", "Storico"])
 
 
 # ════════════════════════════════════════════════════════════════
@@ -193,6 +193,87 @@ with tab_pending:
             ):
                 st.session_state["pending_page"] = _cur_page + 1
                 st.rerun()
+
+
+# ════════════════════════════════════════════════════════════════
+# TAB: FALLITE & RETRY
+# ════════════════════════════════════════════════════════════════
+with tab_failed:
+    _sev_icons = {"Critical": "🔴", "High": "🟠", "Medium": "🟡", "Low": "🔵"}
+
+    # ── Patch fallite ─────────────────────────────────────────────
+    failed_data, ferr = api.queue_list(status="failed", limit=100)
+    failed_items = (failed_data or {}).get("items", []) if not ferr else []
+
+    # ── Patch in retry ────────────────────────────────────────────
+    retry_data, rerr = api.queue_list(status="retry_pending", limit=100)
+    retry_items = (retry_data or {}).get("items", []) if not rerr else []
+
+    if ferr:
+        st.error(f"Errore caricamento fallite: {ferr}")
+    if rerr:
+        st.error(f"Errore caricamento retry: {rerr}")
+
+    # ── Sezione retry pending ─────────────────────────────────────
+    if retry_items:
+        st.subheader(f"In retry ({len(retry_items)})")
+        st.caption("Queste patch hanno fallito per un errore infrastrutturale/transiente e verranno ritentate automaticamente.")
+        rows_r = []
+        for it in retry_items:
+            retry_after = str(it.get("retry_after") or "")[:16].replace("T", " ")
+            rows_r.append({
+                "Errata":       it.get("errata_id", "?"),
+                "OS":           it.get("target_os", "?"),
+                "Gravità":      f"{_sev_icons.get(it.get('severity',''), '⚪')} {it.get('severity','?')}",
+                "Score":        it.get("success_score"),
+                "Retry #":      it.get("retry_count", 0),
+                "Prossimo retry": retry_after,
+                "Motivo":       (it.get("failure_reason") or "")[:80],
+            })
+        st.dataframe(pd.DataFrame(rows_r), use_container_width=True, hide_index=True)
+        st.divider()
+
+    # ── Sezione patch fallite ─────────────────────────────────────
+    if not failed_items:
+        st.success("Nessuna patch fallita.")
+    else:
+        st.subheader(f"Fallite ({len(failed_items)})")
+        st.caption("Queste patch hanno fallito il test e non verranno ritentate automaticamente. Richiede analisi manuale.")
+
+        for it in failed_items:
+            queue_id   = it.get("queue_id")
+            errata_id  = it.get("errata_id", "?")
+            severity   = it.get("severity", "?")
+            synopsis   = it.get("synopsis") or "—"
+            target_os  = it.get("target_os", "?")
+            score      = it.get("success_score", "?")
+            fail_phase = it.get("failure_phase") or "?"
+            fail_reason = it.get("failure_reason") or "—"
+            test_id    = it.get("test_id")
+            sev_icon   = _sev_icons.get(severity, "⚪")
+
+            with st.expander(
+                f"❌ {sev_icon} **{errata_id}** — {synopsis[:60]} "
+                f"| OS: {target_os} | Fase: {fail_phase}",
+                expanded=False,
+            ):
+                c_info, c_fail = st.columns([3, 3])
+                with c_info:
+                    st.markdown(f"**Synopsis:** {synopsis}")
+                    st.markdown(f"**Severity:** {severity} | **Score:** {score}")
+                    st.markdown(f"**OS:** {target_os}")
+
+                with c_fail:
+                    st.markdown("**Dettaglio fallimento**")
+                    st.markdown(f"Fase: `{fail_phase}`")
+                    if fail_reason and fail_reason != "—":
+                        st.error(fail_reason)
+
+                if test_id:
+                    test_data, _ = api.test_detail(test_id)
+                    if test_data:
+                        st.divider()
+                        tr.render_test_detail(test_data)
 
 
 # ════════════════════════════════════════════════════════════════

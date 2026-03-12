@@ -161,8 +161,8 @@ Sistemi di test:
 - [x] `app.py` — Azure AD SSO (MSAL OAuth2/OIDC), `st.navigation()`, sidebar multi-org
 - [x] `0_Home.py` — Health componenti, notifiche non lette, stats coda/test, sync manuale; **"Avviato il"** (data/ora avvio servizio) invece di uptime in minuti; **"Patch pendenti"** = queued+retry_pending+pending_approval+failed (patch che richiedono azione, non il totale storico)
 - [x] `1_Gruppi_UYUNI.py` — Gruppi test-* per org, patch con colonna **Reboot** e **Stato** (🟢 Ultima / ⬜ Superata), toggle "Solo patch più recenti", aggiunta in coda
-- [x] `2_Test_Batch.py` — Selezione patch queued, avvio batch, monitor live 5s, annullamento; family color grouping righe USN correlate; bottoni quick-select per famiglia; rendering fasi delegato a `test_render.py`
-- [x] `3_Approvazioni.py` — Pending (20/pagina) + storico paginato (25/50/100, filtro azione); **pipeline visuale + tabella fasi + Prometheus + failure_reason** nell'expander di ogni patch
+- [x] `2_Test_Batch.py` — Tab **"Panoramica"** (stats engine, 6 metriche status, stats 24h, tabella completa tutte le patch con stato/fase KO/motivo/durata/data ordinata per data decrescente) + Tab **"Avvia Batch"** (selezione + lancio); family color grouping; rendering fasi delegato a `test_render.py`
+- [x] `3_Approvazioni.py` — Tab **"In attesa"** (approve/reject/snooze con pipeline visuale) + Tab **"Fallite & Retry"** (tabella retry_pending con retry countdown + expander fallite con failure_reason e test detail) + Tab **"Storico"** paginato
 - [x] `test_render.py` — modulo condiviso rendering test: `render_pipeline()`, `render_phases_table()`, `render_prometheus_section()`, `render_test_detail()`
 - [x] `api_client.py` — Wrapper REST, ritorna `(data, error_str)`
 
@@ -176,6 +176,25 @@ Sistemi di test:
 - [x] `PrometheusClient` con graceful degradation completa
 - [x] `GET /api/v1/prometheus/targets` — HTTP Service Discovery dinamico da UYUNI
 - [x] `is_available()` usa `Config.PROMETHEUS_TIMEOUT` (non hardcoded 5s)
+
+#### Sessione 16 — Dashboard UX, dati coerenti, patch fallite visibili (2026-03-12)
+
+**Backend**
+- [x] **`queue_manager.reset_stale_testing()`**: nuova funzione — resetta `testing → queued` all'avvio. Chiama `main.py` dopo `init_db()` con log warning. Risolve patch bloccate in "In test" dopo riavvio Flask.
+- [x] **`queue_manager.get_queue_stats()`**: `ubuntu` e `rhel` ora contano solo patch in stati attivi (`queued + retry_pending + testing + failed`), non più tutta la coda storica (incluse `pending_approval`, `approved`, ecc.).
+- [x] **`queue_manager.get_queue()`**: aggiunto `t.failure_reason`, `t.failure_phase` (da `patch_tests`) e `q.retry_count`, `q.retry_after` in ogni item restituito dalla lista coda.
+
+**Frontend `0_Home.py`**
+- [x] **"Errata totali" → "Patch applicabili"** con help tooltip. Rimossa chiamata lenta a UYUNI (`groups_list`) per il conteggio sistemi. Caption mostra `Ubuntu: X | RHEL: Y` da `errata_cache.by_os`.
+- [x] **Caption coda**: rimossa metrica `passed` (sempre 0 — le patch passate vanno in `pending_approval`). Sostituita con `In retry`. Mostra solo i valori > 0: `Ubuntu | RHEL | In retry | Falliti`.
+
+**Frontend `2_Test_Batch.py`**
+- [x] **Ristrutturato con due tab**: "Panoramica" e "Avvia Batch".
+- [x] **Tab "Panoramica"**: stato engine, 6 metriche (queued/retry/testing/pending_approval/failed/approved), stats ultime 24h, tabella completa di tutte le patch in ogni stato con colonne Stato, Errata, OS, Gravità, Score, Reboot, Fase KO, Motivo, Durata, Data — ordinata per data decrescente.
+- [x] **Tab "Avvia Batch"**: identico a prima (selezione + family grouping + lancio).
+
+**Frontend `3_Approvazioni.py`**
+- [x] **Nuovo tab "Fallite & Retry"**: tabella `retry_pending` con retry #, prossimo tentativo, motivo; expander per ogni patch `failed` con failure_phase, failure_reason e `tr.render_test_detail()` completo.
 
 #### Sessione 15 — `3_Approvazioni.py` arricchimento + refactoring rendering (2026-03-12)
 - [x] **Nuovo modulo `streamlit/test_render.py`**: estratte le funzioni di rendering test da `2_Test_Batch.py` in modulo condiviso (`render_pipeline`, `render_phases_table`, `render_prometheus_section`, `render_test_detail`, `fmt_duration`, `elapsed`, `phase_detail`)
@@ -420,11 +439,6 @@ il payload su istanze UYUNI con molte azioni storiche.
 ---
 
 ## 8. Backlog
-
-### [COMPLETATO] Migliorare `3_Approvazioni.py`
-
-Pipeline visuale, tabella fasi, Prometheus e failure_reason ora visibili nell'expander
-di ogni patch pending. Rendering delegato a `streamlit/test_render.py` (modulo condiviso).
 
 ### [CODICE — priorità media] Refactoring `test_engine.py`
 

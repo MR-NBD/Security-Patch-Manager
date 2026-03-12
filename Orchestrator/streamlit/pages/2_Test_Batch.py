@@ -234,7 +234,7 @@ if "active_batch_id" in st.session_state:
 
 
 # ─────────────────────────────────────────────────────────────────
-# FORM: selezione patch + lancio
+# Dati comuni (usati da entrambi i tab)
 # ─────────────────────────────────────────────────────────────────
 
 ts, ts_err = api.tests_status()
@@ -242,196 +242,309 @@ if ts_err:
     st.error(f"Errore API: {ts_err}")
     st.stop()
 
-if ts.get("engine_running"):
-    st.warning("Test engine già in esecuzione. Attendi il completamento.")
-
-# ── Patch in coda ─────────────────────────────────────────────────
-st.subheader("Patch in coda (status: queued)")
-
-qdata, qerr = api.queue_list(status="queued", limit=100)
-if qerr:
-    st.error(f"Errore coda: {qerr}")
-    st.stop()
-
-items = (qdata or {}).get("items", [])
-if not items:
-    st.info("Nessuna patch in coda. Aggiungile dalla pagina **Gruppi UYUNI**.")
-    st.page_link("pages/1_Gruppi_UYUNI.py", label="→ Vai a Gruppi UYUNI")
-    st.stop()
-
 _SEV_ICON = {"Critical": "🔴", "High": "🟠", "Medium": "🟡", "Low": "🔵"}
 
-_n_reboot    = sum(1 for it in items if it.get("requires_reboot") is True)
-_n_no_reboot = sum(1 for it in items if it.get("requires_reboot") is False)
-_n_unknown   = len(items) - _n_reboot - _n_no_reboot
-
-if _n_reboot > 0:
-    st.warning(
-        f"**{_n_reboot}** patch richiedono riavvio del sistema test — "
-        f"**{_n_no_reboot}** applicabili a caldo"
-        + (f" — {_n_unknown} non ancora analizzate" if _n_unknown else ""),
-        icon="⚠",
-    )
-else:
-    st.info(
-        f"Tutte le patch ({_n_no_reboot}) sono applicabili senza riavvio."
-        + (f" ({_n_unknown} non ancora analizzate)" if _n_unknown else ""),
-        icon="✅",
-    )
-
-st.caption("Ordine di test: **no-reboot prima** → score → data accodamento")
-
-# ── Rilevamento famiglie USN correlate ───────────────────────────
-_fam_counter  = Counter()
-_errata_family: dict = {}
-for it in items:
-    eid = it.get("errata_id", "")
-    fam = _advisory_family(eid)
-    if fam:
-        _errata_family[eid] = fam
-        _fam_counter[fam] += 1
-
-# Solo famiglie con più di 1 patch in coda
-_multi_families = sorted(f for f, cnt in _fam_counter.items() if cnt > 1)
-_fam_color = {
-    fam: _FAMILY_COLORS[i % len(_FAMILY_COLORS)]
-    for i, fam in enumerate(_multi_families)
+_STATUS_ICON = {
+    "queued":           "⏳",
+    "retry_pending":    "🔄",
+    "testing":          "⚙",
+    "failed":           "❌",
+    "pending_approval": "✅",
+    "approved":         "✅",
+    "snoozed":          "💤",
+    "rejected":         "🚫",
+    "completed":        "☑",
+    "rolled_back":      "↩",
+    "superseded":       "⏭",
 }
 
-# ── Legenda + bottoni selezione rapida per famiglia ──────────────
-if _multi_families:
-    st.caption(
-        "Righe dello stesso colore appartengono alla stessa famiglia USN. "
-        "Usa i bottoni per selezionarle tutte insieme."
-    )
-    fam_btn_cols = st.columns(min(len(_multi_families), 4))
-    for i, fam in enumerate(_multi_families):
-        cnt = _fam_counter[fam]
-        with fam_btn_cols[i % len(fam_btn_cols)]:
-            if st.button(
-                f"{fam} ({cnt})",
-                key=f"famsel_{fam}",
-                help=f"Aggiunge tutte le patch della famiglia {fam} alla selezione",
-            ):
-                fam_errata = [
-                    it["errata_id"] for it in items
-                    if _errata_family.get(it.get("errata_id", "")) == fam
-                ]
-                current = st.session_state.get("queue_multiselect", [])
-                st.session_state["queue_multiselect"] = list(
-                    dict.fromkeys(current + fam_errata)
-                )
-                st.rerun()
-
-# ── Tabella con righe colorate per famiglia ──────────────────────
-rows = []
-_row_bg: list = []
-for it in items:
-    eid = it.get("errata_id", "")
-    fam = _errata_family.get(eid)
-    sev = it.get("severity") or "?"
-    rb  = it.get("requires_reboot")
-    rb_label = "⚠ Si" if rb is True else ("✅ No" if rb is False else "— ?")
-    rows.append({
-        "QID":      it.get("queue_id"),
-        "Errata":   eid,
-        "Famiglia": fam if fam and fam in _fam_color else "",
-        "Severity": f"{_SEV_ICON.get(sev, '⚪')} {sev}",
-        "Reboot":   rb_label,
-        "Score":    it.get("success_score"),
-        "Synopsis": (it.get("synopsis") or "")[:55],
-    })
-    _row_bg.append(_fam_color.get(fam) if fam and fam in _fam_color else None)
-
-_df = pd.DataFrame(rows)
+tab_overview, tab_batch = st.tabs(["Panoramica", "Avvia Batch"])
 
 
-def _apply_row_colors(row):
-    bg = _row_bg[row.name]
-    return [f"background-color: {bg}" if bg else ""] * len(row)
-
-
-st.dataframe(
-    _df.style.apply(_apply_row_colors, axis=1),
-    use_container_width=True,
-    hide_index=True,
-    column_config={
-        "Famiglia": st.column_config.TextColumn("Famiglia", width="medium"),
-        "Reboot":   st.column_config.TextColumn("Reboot", width="small"),
-        "Score":    st.column_config.ProgressColumn(
-            "Score", min_value=0, max_value=100, format="%d"
-        ),
-    },
-)
-
-# ── Selezione patch tramite multiselect ─────────────────────────
-errata_options = [it.get("errata_id", "?") for it in items]
-selected_errata = st.multiselect(
-    "Seleziona patch da testare",
-    options=errata_options,
-    default=[e for e in st.session_state.get("queue_multiselect", [])
-             if e in errata_options],
-    key="queue_multiselect",
-    placeholder="Cerca advisory per nome o seleziona dalla lista...",
-)
-
-_errata_to_qid = {it.get("errata_id"): it.get("queue_id") for it in items}
-selected_qids  = [_errata_to_qid[e] for e in selected_errata if e in _errata_to_qid]
-
-if selected_qids:
-    # Mostra quante sono correlate tra quelle selezionate
-    sel_families = Counter(
-        _errata_family[e] for e in selected_errata if e in _errata_family
-    )
-    multi_sel = {f for f, c in sel_families.items() if c > 1}
-    msg = f"**{len(selected_qids)}** patch selezionate"
-    if multi_sel:
-        msg += f" — di cui {sum(sel_families[f] for f in multi_sel)} correlate " \
-               f"in {len(multi_sel)} famiglie"
-    st.success(msg)
-else:
-    st.caption("Seleziona le patch da testare oppure usa i bottoni famiglia.")
-
-st.divider()
-
-# ── Avvio batch ───────────────────────────────────────────────────
-st.subheader("Avvio")
-
-org_id = st.session_state.get("selected_org_id")
-gdata, _ = api.groups_list(org_id)
-group_names = [g["name"] for g in (gdata or {}).get("groups", [])]
-
-group_name = (
-    st.selectbox("Gruppo UYUNI target", group_names)
-    if group_names
-    else st.text_input("Gruppo UYUNI target", placeholder="test-ubuntu-2404")
-)
-
-operator = st.session_state.get("user_upn", "")
-st.info(
-    f"Operazione avviata da **{st.session_state.get('user_name', operator)}** "
-    f"({operator}) — registrato nel log SPM.",
-    icon="🔑",
-)
-
-can_run = bool(selected_qids) and bool(group_name) and not ts.get("engine_running")
-
-if st.button(
-    f"▶ Avvia batch ({len(selected_qids)} patch)",
-    type="primary",
-    disabled=not can_run,
-    use_container_width=True,
-):
-    with st.spinner("Avvio batch..."):
-        bdata, berr = api.start_batch(selected_qids, group_name, operator)
-
-    if berr:
-        st.error(f"Errore avvio batch: {berr}")
-        st.stop()
-
-    bid = (bdata or {}).get("batch_id")
-    if bid:
-        st.session_state["active_batch_id"] = bid
-        st.rerun()
+# ════════════════════════════════════════════════════════════════
+# TAB: PANORAMICA
+# ════════════════════════════════════════════════════════════════
+with tab_overview:
+    # ── Stato engine ─────────────────────────────────────────────
+    if ts.get("engine_running"):
+        st.warning("Test engine in esecuzione...")
     else:
-        st.error((bdata or {}).get("error", "Errore sconosciuto nell'avvio"))
+        st.success("Engine inattivo")
+
+    # ── Stats coda ───────────────────────────────────────────────
+    stats, serr = api.queue_stats()
+    if not serr and stats:
+        s1, s2, s3, s4, s5, s6 = st.columns(6)
+        s1.metric("In coda",       stats.get("queued", 0))
+        s2.metric("In retry",      stats.get("retry_pending", 0))
+        s3.metric("In test",       stats.get("testing", 0))
+        s4.metric("Da approvare",  stats.get("pending_approval", 0))
+        s5.metric("Fallite",       stats.get("failed", 0))
+        s6.metric("Approvate",     stats.get("approved", 0))
+
+    # ── Statistiche ultime 24h ───────────────────────────────────
+    stats24 = ts.get("stats_24h", {}) or {}
+    if any(stats24.get(k, 0) for k in ("passed_24h", "failed_24h", "error_24h")):
+        st.caption(
+            f"Ultime 24h — "
+            f"Passate: **{stats24.get('passed_24h', 0)}**  |  "
+            f"Fallite: **{stats24.get('failed_24h', 0)}**  |  "
+            f"Errori: **{stats24.get('error_24h', 0)}**  |  "
+            f"Durata media: **{stats24.get('avg_duration_s') or 0}s**"
+        )
+
+    st.divider()
+
+    # ── Storico completo patch ────────────────────────────────────
+    st.subheader("Stato patch")
+
+    all_data, allerr = api.queue_list(limit=200)
+    if allerr:
+        st.error(f"Errore caricamento storico: {allerr}")
+    else:
+        all_items = (all_data or {}).get("items", [])
+        if not all_items:
+            st.info("Nessuna patch nella coda.")
+        else:
+            # Ordina per data più recente (completed_at → started_at → queued_at)
+            def _sort_date(it):
+                return (
+                    it.get("completed_at") or
+                    it.get("started_at") or
+                    it.get("queued_at") or ""
+                )
+            all_items_sorted = sorted(all_items, key=_sort_date, reverse=True)
+
+            hist_rows = []
+            for it in all_items_sorted:
+                status    = it.get("status", "?")
+                icon      = _STATUS_ICON.get(status, "·")
+                sev       = it.get("severity") or "?"
+                fail_ph   = it.get("failure_phase") or ""
+                fail_why  = (it.get("failure_reason") or "")[:70]
+                dur       = it.get("test_duration")
+                # Data più significativa per quell'item
+                date_raw  = (
+                    it.get("completed_at") or
+                    it.get("started_at") or
+                    it.get("queued_at") or ""
+                )
+                date_str  = str(date_raw)[:16].replace("T", " ")
+                hist_rows.append({
+                    "Stato":     f"{icon} {status}",
+                    "Errata":    it.get("errata_id", "?"),
+                    "OS":        it.get("target_os", "?"),
+                    "Gravità":   f"{_SEV_ICON.get(sev, '⚪')} {sev}",
+                    "Score":     it.get("success_score"),
+                    "Reboot":    "Sì" if it.get("requires_reboot") else "No",
+                    "Fase KO":   fail_ph,
+                    "Motivo":    fail_why,
+                    "Durata":    tr.fmt_duration(dur) if dur else "—",
+                    "Data":      date_str,
+                })
+
+            st.dataframe(
+                pd.DataFrame(hist_rows),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Score":   st.column_config.ProgressColumn(
+                        "Score", min_value=0, max_value=100, format="%d"
+                    ),
+                    "Motivo":  st.column_config.TextColumn("Motivo", width="large"),
+                    "Stato":   st.column_config.TextColumn("Stato", width="medium"),
+                },
+            )
+            st.caption(f"Mostrate **{len(hist_rows)}** patch — ordinate per data decrescente")
+
+
+# ════════════════════════════════════════════════════════════════
+# TAB: AVVIA BATCH
+# ════════════════════════════════════════════════════════════════
+with tab_batch:
+    if ts.get("engine_running"):
+        st.warning("Test engine già in esecuzione. Attendi il completamento.")
+
+    # ── Patch in coda ─────────────────────────────────────────────
+    st.subheader("Patch in coda (status: queued)")
+
+    qdata, qerr = api.queue_list(status="queued", limit=100)
+    if qerr:
+        st.error(f"Errore coda: {qerr}")
+    else:
+        items = (qdata or {}).get("items", [])
+        if not items:
+            st.info("Nessuna patch in coda. Aggiungile dalla pagina **Gruppi UYUNI**.")
+            st.page_link("pages/1_Gruppi_UYUNI.py", label="→ Vai a Gruppi UYUNI")
+        else:
+            _n_reboot    = sum(1 for it in items if it.get("requires_reboot") is True)
+            _n_no_reboot = sum(1 for it in items if it.get("requires_reboot") is False)
+            _n_unknown   = len(items) - _n_reboot - _n_no_reboot
+
+            if _n_reboot > 0:
+                st.warning(
+                    f"**{_n_reboot}** patch richiedono riavvio del sistema test — "
+                    f"**{_n_no_reboot}** applicabili a caldo"
+                    + (f" — {_n_unknown} non ancora analizzate" if _n_unknown else ""),
+                    icon="⚠",
+                )
+            else:
+                st.info(
+                    f"Tutte le patch ({_n_no_reboot}) sono applicabili senza riavvio."
+                    + (f" ({_n_unknown} non ancora analizzate)" if _n_unknown else ""),
+                    icon="✅",
+                )
+
+            st.caption("Ordine di test: **no-reboot prima** → score → data accodamento")
+
+            # ── Rilevamento famiglie USN correlate ───────────────
+            _fam_counter  = Counter()
+            _errata_family: dict = {}
+            for it in items:
+                eid = it.get("errata_id", "")
+                fam = _advisory_family(eid)
+                if fam:
+                    _errata_family[eid] = fam
+                    _fam_counter[fam] += 1
+
+            _multi_families = sorted(f for f, cnt in _fam_counter.items() if cnt > 1)
+            _fam_color = {
+                fam: _FAMILY_COLORS[i % len(_FAMILY_COLORS)]
+                for i, fam in enumerate(_multi_families)
+            }
+
+            if _multi_families:
+                st.caption(
+                    "Righe dello stesso colore appartengono alla stessa famiglia USN. "
+                    "Usa i bottoni per selezionarle tutte insieme."
+                )
+                fam_btn_cols = st.columns(min(len(_multi_families), 4))
+                for i, fam in enumerate(_multi_families):
+                    cnt = _fam_counter[fam]
+                    with fam_btn_cols[i % len(fam_btn_cols)]:
+                        if st.button(
+                            f"{fam} ({cnt})",
+                            key=f"famsel_{fam}",
+                            help=f"Aggiunge tutte le patch della famiglia {fam} alla selezione",
+                        ):
+                            fam_errata = [
+                                it["errata_id"] for it in items
+                                if _errata_family.get(it.get("errata_id", "")) == fam
+                            ]
+                            current = st.session_state.get("queue_multiselect", [])
+                            st.session_state["queue_multiselect"] = list(
+                                dict.fromkeys(current + fam_errata)
+                            )
+                            st.rerun()
+
+            # ── Tabella con righe colorate per famiglia ──────────
+            rows = []
+            _row_bg: list = []
+            for it in items:
+                eid = it.get("errata_id", "")
+                fam = _errata_family.get(eid)
+                sev = it.get("severity") or "?"
+                rb  = it.get("requires_reboot")
+                rb_label = "⚠ Sì" if rb is True else ("✅ No" if rb is False else "— ?")
+                rows.append({
+                    "QID":      it.get("queue_id"),
+                    "Errata":   eid,
+                    "Famiglia": fam if fam and fam in _fam_color else "",
+                    "Severity": f"{_SEV_ICON.get(sev, '⚪')} {sev}",
+                    "Reboot":   rb_label,
+                    "Score":    it.get("success_score"),
+                    "Synopsis": (it.get("synopsis") or "")[:55],
+                })
+                _row_bg.append(_fam_color.get(fam) if fam and fam in _fam_color else None)
+
+            _df = pd.DataFrame(rows)
+
+            def _apply_row_colors(row):
+                bg = _row_bg[row.name]
+                return [f"background-color: {bg}" if bg else ""] * len(row)
+
+            st.dataframe(
+                _df.style.apply(_apply_row_colors, axis=1),
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Famiglia": st.column_config.TextColumn("Famiglia", width="medium"),
+                    "Reboot":   st.column_config.TextColumn("Reboot", width="small"),
+                    "Score":    st.column_config.ProgressColumn(
+                        "Score", min_value=0, max_value=100, format="%d"
+                    ),
+                },
+            )
+
+            # ── Selezione patch ───────────────────────────────────
+            errata_options = [it.get("errata_id", "?") for it in items]
+            selected_errata = st.multiselect(
+                "Seleziona patch da testare",
+                options=errata_options,
+                default=[e for e in st.session_state.get("queue_multiselect", [])
+                         if e in errata_options],
+                key="queue_multiselect",
+                placeholder="Cerca advisory per nome o seleziona dalla lista...",
+            )
+
+            _errata_to_qid = {it.get("errata_id"): it.get("queue_id") for it in items}
+            selected_qids  = [_errata_to_qid[e] for e in selected_errata if e in _errata_to_qid]
+
+            if selected_qids:
+                sel_families = Counter(
+                    _errata_family[e] for e in selected_errata if e in _errata_family
+                )
+                multi_sel = {f for f, c in sel_families.items() if c > 1}
+                msg = f"**{len(selected_qids)}** patch selezionate"
+                if multi_sel:
+                    msg += (
+                        f" — di cui {sum(sel_families[f] for f in multi_sel)} correlate "
+                        f"in {len(multi_sel)} famiglie"
+                    )
+                st.success(msg)
+            else:
+                selected_qids = []
+                st.caption("Seleziona le patch da testare oppure usa i bottoni famiglia.")
+
+            st.divider()
+
+            # ── Avvio batch ───────────────────────────────────────
+            st.subheader("Avvio")
+
+            org_id = st.session_state.get("selected_org_id")
+            gdata, _ = api.groups_list(org_id)
+            group_names = [g["name"] for g in (gdata or {}).get("groups", [])]
+
+            group_name = (
+                st.selectbox("Gruppo UYUNI target", group_names)
+                if group_names
+                else st.text_input("Gruppo UYUNI target", placeholder="test-ubuntu-2404")
+            )
+
+            operator = st.session_state.get("user_upn", "")
+            st.info(
+                f"Operazione avviata da **{st.session_state.get('user_name', operator)}** "
+                f"({operator}) — registrato nel log SPM.",
+                icon="🔑",
+            )
+
+            can_run = bool(selected_qids) and bool(group_name) and not ts.get("engine_running")
+
+            if st.button(
+                f"▶ Avvia batch ({len(selected_qids)} patch)",
+                type="primary",
+                disabled=not can_run,
+                use_container_width=True,
+            ):
+                with st.spinner("Avvio batch..."):
+                    bdata, berr = api.start_batch(selected_qids, group_name, operator)
+
+                if berr:
+                    st.error(f"Errore avvio batch: {berr}")
+                else:
+                    bid = (bdata or {}).get("batch_id")
+                    if bid:
+                        st.session_state["active_batch_id"] = bid
+                        st.rerun()
+                    else:
+                        st.error((bdata or {}).get("error", "Errore sconosciuto nell'avvio"))
