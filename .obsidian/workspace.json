@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Update/25-2-2026.md",
+                "file": "Update/12-3-2026.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "25-2-2026"
+              "title": "12-3-2026"
             }
           }
         ]
@@ -208,8 +208,11 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "f76e3691fbfccb78",
+  "active": "259498039fcab34e",
   "lastOpenFiles": [
+    "Update/12-3-2026.md",
+    "Update/25-2-2026.md",
+    "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Orchestrator/PROJECT-STATUS.md.tmp.17849.1773304679376",
     "Orchestrator/PROJECT-STATUS.md.tmp.17849.1773304674615",
     "Orchestrator/PROJECT-STATUS.md.tmp.17849.1773304655849",
@@ -218,11 +221,8 @@
     "Orchestrator/streamlit/pages/3_Approvazioni.py.tmp.17849.1773304369282",
     "Orchestrator/streamlit/pages/0_Home.py.tmp.17849.1773304364946",
     "Orchestrator/app/services/queue_manager.py.tmp.17849.1773303572592",
-    "Update/12-3-2026.md",
-    "Update/25-2-2026.md",
     "Orchestrator/streamlit/pages/0_Home.py.tmp.17849.1773303330532",
     "Orchestrator/streamlit/pages/0_Home.py.tmp.17849.1773303319842",
-    "Orchestrator/app/main.py.tmp.17849.1773303311563",
     "Orchestrator/README.md",
     "Orchestrator/PROJECT-STATUS.md",
     "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
@@ -243,7 +243,6 @@
     "tools/GUIDA.md",
     "GeneralDocumentation_TESI/Tabella_Comparativa.md",
     "GeneralDocumentation_TESI/Patch Management Metrics.md",
-    "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
     "Errata-Parser/pytest-cache-files-lds417bs/README.md",
     "Errata-Parser/README.md",
     "Senza nome.canvas",
