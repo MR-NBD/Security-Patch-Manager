@@ -20,7 +20,7 @@ def _load_groups_summary(org_id):
     return api.groups_summary(org_id)
 
 
-st.title("Pivi Orchestrator Patch Manager")
+st.title("Security Patch Manager")
 
 # ── Verifica connessione ─────────────────────────────────────────
 health, err = api.health_detail()
