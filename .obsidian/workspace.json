@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Update/12-3-2026.md",
+                "file": "Uyuni/Deployment/AzureAD-SAML-Authentication.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "12-3-2026"
+              "title": "AzureAD-SAML-Authentication"
             }
           },
           {
@@ -210,20 +210,20 @@
   },
   "active": "259498039fcab34e",
   "lastOpenFiles": [
+    "Orchestrator/app/services/queue_manager.py.tmp.17849.1773303572592",
+    "Update/12-3-2026.md",
+    "Update/25-2-2026.md",
     "Orchestrator/streamlit/pages/0_Home.py.tmp.17849.1773303330532",
     "Orchestrator/streamlit/pages/0_Home.py.tmp.17849.1773303319842",
     "Orchestrator/app/main.py.tmp.17849.1773303311563",
     "Orchestrator/app/main.py.tmp.17849.1773303305124",
     "Orchestrator/app/services/queue_manager.py.tmp.17849.1773303298504",
-    "Update/25-2-2026.md",
-    "Update/12-3-2026.md",
     "Orchestrator/README.md",
     "Orchestrator/PROJECT-STATUS.md.tmp.17849.1773302899458",
     "Orchestrator/streamlit/pages/2_Test_Batch.py.tmp.17849.1773302864847",
     "Orchestrator/streamlit/pages/3_Approvazioni.py.tmp.17849.1773302851319",
     "Orchestrator/streamlit/pages/3_Approvazioni.py.tmp.17849.1773302842840",
     "Orchestrator/streamlit/pages/2_Test_Batch.py.tmp.17849.1773302823984",
-    "Orchestrator/streamlit/pages/2_Test_Batch.py.tmp.17849.1773302817790",
     "Orchestrator/PROJECT-STATUS.md",
     "Uyuni/Teoria/Analisi-Risorse-Sizing-Uyuni.md",
     "Orchestrator/pytest-cache-files-iczdgc6m/README.md",

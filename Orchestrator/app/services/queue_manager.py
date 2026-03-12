@@ -650,7 +650,7 @@ def reset_stale_testing() -> int:
         cur = conn.cursor()
         cur.execute("""
             UPDATE patch_test_queue
-               SET status = 'queued', updated_at = NOW()
+               SET status = 'queued'
              WHERE status = 'testing'
         """)
         return cur.rowcount
