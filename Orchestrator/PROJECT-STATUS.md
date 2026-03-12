@@ -1,7 +1,7 @@
 # SPM-Orchestrator — Project Status & Development Notes
 
 > Documento vivente. Aggiornare ad ogni sessione di sviluppo.
-> Ultima modifica: 2026-03-10 (sessione 11)
+> Ultima modifica: 2026-03-12 (sessione 14)
 
 ---
 
@@ -67,7 +67,7 @@ Sistemi di test:
 
 ## 3. Stato implementazione
 
-### Versione corrente: 1.2.1
+### Versione corrente: 1.3.0
 
 ### COMPLETATO
 
@@ -78,7 +78,7 @@ Sistemi di test:
 - [x] Logging JSON strutturato (stdout + file `/var/log/spm-orchestrator/app.log`)
 - [x] Config centralizzata da `.env` con defaults sicuri
 - [x] ThreadedConnectionPool PostgreSQL (1-10 connessioni) con keepalive
-- [x] Reconnect automatico su connessioni stale
+- [x] Reconnect automatico su connessioni stale (fix double-putconn: `returned=True` prima del putconn per evitare corruzione pool)
 
 #### UYUNI Integration
 - [x] `UyuniSession` — sessione thread-safe (1 login/logout per ciclo, non per call)
@@ -159,10 +159,11 @@ Sistemi di test:
 
 #### Dashboard Streamlit (4 pagine)
 - [x] `app.py` — Azure AD SSO (MSAL OAuth2/OIDC), `st.navigation()`, sidebar multi-org
-- [x] `0_Home.py` — Health componenti, notifiche non lette, stats coda/test, sync manuale
+- [x] `0_Home.py` — Health componenti, notifiche non lette, stats coda/test, sync manuale; **"Avviato il"** (data/ora avvio servizio) invece di uptime in minuti; **"Patch pendenti"** = queued+retry_pending+pending_approval+failed (patch che richiedono azione, non il totale storico)
 - [x] `1_Gruppi_UYUNI.py` — Gruppi test-* per org, patch con colonna **Reboot** e **Stato** (🟢 Ultima / ⬜ Superata), toggle "Solo patch più recenti", aggiunta in coda
-- [x] `2_Test_Batch.py` — Selezione patch queued, avvio batch, monitor live 5s, annullamento
-- [x] `3_Approvazioni.py` — Pending (20/pagina) + storico paginato (25/50/100, filtro azione)
+- [x] `2_Test_Batch.py` — Selezione patch queued, avvio batch, monitor live 5s, annullamento; family color grouping righe USN correlate; bottoni quick-select per famiglia; rendering fasi delegato a `test_render.py`
+- [x] `3_Approvazioni.py` — Pending (20/pagina) + storico paginato (25/50/100, filtro azione); **pipeline visuale + tabella fasi + Prometheus + failure_reason** nell'expander di ogni patch
+- [x] `test_render.py` — modulo condiviso rendering test: `render_pipeline()`, `render_phases_table()`, `render_prometheus_section()`, `render_test_detail()`
 - [x] `api_client.py` — Wrapper REST, ritorna `(data, error_str)`
 
 #### Groups API
@@ -175,6 +176,25 @@ Sistemi di test:
 - [x] `PrometheusClient` con graceful degradation completa
 - [x] `GET /api/v1/prometheus/targets` — HTTP Service Discovery dinamico da UYUNI
 - [x] `is_available()` usa `Config.PROMETHEUS_TIMEOUT` (non hardcoded 5s)
+
+#### Sessione 15 — `3_Approvazioni.py` arricchimento + refactoring rendering (2026-03-12)
+- [x] **Nuovo modulo `streamlit/test_render.py`**: estratte le funzioni di rendering test da `2_Test_Batch.py` in modulo condiviso (`render_pipeline`, `render_phases_table`, `render_prometheus_section`, `render_test_detail`, `fmt_duration`, `elapsed`, `phase_detail`)
+- [x] **`3_Approvazioni.py`**: sostituito display minimale fasi (icone + caption) con `tr.render_test_detail()` — pipeline visuale, tabella fasi con durate e dettaglio, metriche Prometheus, motivo fallimento
+- [x] **`2_Test_Batch.py`**: rimosse definizioni locali di funzioni ora in `test_render.py`; rimosso import `datetime`/`timezone` (non più usati direttamente); chiamate aggiornate a `tr.*`
+
+#### Sessione 14 — Bug fix, refactoring, UX (2026-03-12)
+- [x] **Bug fix — `db.py`**: double-putconn nel path di riconnessione: se `conn.closed=True` e il secondo `getconn()` fallisce, la vecchia connessione già restituita al pool veniva messa nel `finally` una seconda volta → corruzione pool. Fix: `returned=True` prima del primo putconn.
+- [x] **Bug fix — `test_engine.py`**: import `get_test_system_for_os` presente ma mai usato → rimosso
+- [x] **Bug fix — `uyuni_patch_client.py`**: variabile `arch` assegnata ma mai usata nel calcolo versione → rimossa
+- [x] **Bug fix — `api/sync.py`**: `import psycopg2` (intero modulo) solo per `psycopg2.ProgrammingError` → sostituito con `from psycopg2 import ProgrammingError`
+- [x] **Bug fix — `api/health.py`**: `serialize_row` importata ma mai usata → rimossa
+- [x] **Bug fix — test suite**: 2 test legacy `priority_override` rimasti dalla sessione 13 → rimossi (276/276 ✓)
+- [x] **Docstring stale**: `queue_manager.py` e `api/queue.py` citavano ancora `priority_override` in `update_queue_item` → aggiornati
+- [x] **Dead code — `2_Test_Batch.py`**: condizione `s not in ("reboot", "rollback")` in `_render_pipeline` — "rollback" non è mai in `_PIPELINE_STEPS` → semplificato a `s != "reboot"`
+- [x] **Versione**: bump `1.2.1` → `1.3.0` in `config.py`
+- [x] **UX — Home — Avviato il**: metric "Uptime (min)" sostituito con "Avviato il" (data) + caption "alle HH:MM UTC". Nuovo campo `started_at` in `/api/v1/health/detail` (ISO UTC). Dopo una settimana di uptime i minuti non hanno senso.
+- [x] **UX — Home — Patch pendenti**: metric "Totale" (accumulava anche `passed`/`approved` → sempre crescente) sostituito con **"Patch pendenti"** = `queued + retry_pending + pending_approval + failed`. Solo patch che richiedono ancora azione operatore. Tooltip spiega la formula.
+- [x] **Migration 006** applicata sul VM: `retry_count`, `retry_after`, `superseded_by` in `patch_test_queue`
 
 #### Azure AD SSO
 - [x] Tenant: fae8df93-7cf5-40da-b480-f272e15b6242
@@ -190,7 +210,7 @@ Sistemi di test:
 | Metodo | Path | Descrizione |
 |---|---|---|
 | GET | `/api/v1/health` | Ping rapido |
-| GET | `/api/v1/health/detail` | Health check con DB/UYUNI/Prometheus |
+| GET | `/api/v1/health/detail` | Health check con DB/UYUNI/Prometheus; include `started_at` (ISO UTC) |
 | GET | `/api/v1/notifications` | Notifiche non lette |
 | POST | `/api/v1/notifications/mark-read` | Marca come lette (body: `{ids: [...]}`) |
 
@@ -210,7 +230,7 @@ Sistemi di test:
 | POST | `/api/v1/queue` | Aggiungi errata(s); risposta include `superseded: [...]` |
 | GET | `/api/v1/queue/stats` | Aggregati (include retry_pending, superseded) |
 | GET | `/api/v1/queue/<id>` | Dettaglio elemento |
-| PATCH | `/api/v1/queue/<id>` | Aggiorna priority_override / notes |
+| PATCH | `/api/v1/queue/<id>` | Aggiorna notes |
 | DELETE | `/api/v1/queue/<id>` | Rimuovi (solo se status='queued') |
 
 ### Test Engine
@@ -278,7 +298,7 @@ Sistemi di test:
 | `003_simplify_notifications.sql` | Fix constraint `channel` (bug critico) | ✅ APPLICATA |
 | `004_batch_persistence.sql` | Tabella `patch_test_batches` | ✅ APPLICATA |
 | `005_critical_services_config.sql` | Configurazione runtime servizi critici | ✅ APPLICATA |
-| `006_retry_grouping.sql` | retry_count, retry_after, superseded_by; stati retry_pending, superseded | ⚠ DA APPLICARE |
+| `006_retry_grouping.sql` | retry_count, retry_after, superseded_by; stati retry_pending, superseded | ✅ APPLICATA |
 
 ### Views
 
@@ -401,19 +421,19 @@ il payload su istanze UYUNI con molte azioni storiche.
 
 ## 8. Backlog
 
-### [VM] Da applicare — ALTA PRIORITÀ
+### [COMPLETATO] Migliorare `3_Approvazioni.py`
 
-```bash
-# Migration 006: retry_count, retry_after, superseded_by + stati retry_pending/superseded
-psql -h localhost -U spm_orch -d spm_orchestrator \
-    -f /opt/Security-Patch-Manager/Orchestrator/sql/migrations/006_retry_grouping.sql
+Pipeline visuale, tabella fasi, Prometheus e failure_reason ora visibili nell'expander
+di ogni patch pending. Rendering delegato a `streamlit/test_render.py` (modulo condiviso).
 
-# Poi deployare il codice aggiornato
-cd /opt/Security-Patch-Manager && git pull origin main
-cp -r /opt/Security-Patch-Manager/Orchestrator/app /opt/spm-orchestrator/
-sudo systemctl restart spm-orchestrator
-sudo systemctl restart spm-dashboard
-```
+### [CODICE — priorità media] Refactoring `test_engine.py`
+
+Il file è 1200+ righe. Può essere spezzato in moduli separati senza cambiare il comportamento:
+- `app/services/test_phases.py` — le funzioni `_phase_*` (snapshot, patch, reboot, validate, services, rollback)
+- `app/services/test_batch.py` — batch asincrono: `start_batch`, `get_batch_status`, `cancel_batch`, `_run_batch_background`
+- `app/services/test_engine.py` — solo: retry/classificazione errori, `run_next_test`, `get_engine_status`
+
+Prerequisito: nessuna modifica funzionale, solo riorganizzazione file.
 
 ### [COMPLETATO] NVD Enrichment severity — integrazione con Errata-Parser
 

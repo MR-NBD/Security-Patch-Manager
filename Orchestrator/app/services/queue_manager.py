@@ -639,17 +639,36 @@ def remove_from_queue(queue_id: int) -> bool:
         return cur.fetchone() is not None
 
 
-def get_queue_stats() -> dict:
-    """Statistiche aggregate della coda (esclude completed/rolled_back/rejected)."""
+def reset_stale_testing() -> int:
+    """
+    Resetta le patch bloccate in stato 'testing' riportandole a 'queued'.
+    Chiamata all'avvio dell'applicazione: se Flask crasha durante un test,
+    la patch resta in 'testing' indefinitamente senza che nessuno la processi.
+    Ritorna il numero di patch resettate.
+    """
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("""
+            UPDATE patch_test_queue
+               SET status = 'queued', updated_at = NOW()
+             WHERE status = 'testing'
+        """)
+        return cur.rowcount
+
+
+def get_queue_stats() -> dict:
+    """Statistiche aggregate della coda (esclude completed/rolled_back/rejected)."""
+    # Stati "attivi" = patch che richiedono ancora azione (da testare o da analizzare)
+    _ACTIVE = "('queued', 'retry_pending', 'testing', 'failed')"
+
+    with get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(f"""
             SELECT
                 COUNT(*)                                              AS total,
                 COUNT(*) FILTER (WHERE q.status = 'queued')            AS queued,
                 COUNT(*) FILTER (WHERE q.status = 'retry_pending')     AS retry_pending,
                 COUNT(*) FILTER (WHERE q.status = 'testing')           AS testing,
-                COUNT(*) FILTER (WHERE q.status = 'passed')            AS passed,
                 COUNT(*) FILTER (WHERE q.status = 'failed')            AS failed,
                 COUNT(*) FILTER (WHERE q.status = 'pending_approval')  AS pending_approval,
                 COUNT(*) FILTER (WHERE q.status = 'approved')          AS approved,
@@ -657,8 +676,15 @@ def get_queue_stats() -> dict:
                 COUNT(*) FILTER (
                     WHERE q.status IN ('prod_applied', 'completed')
                 )                                                        AS deployed,
-                COUNT(*) FILTER (WHERE q.target_os = 'ubuntu')          AS ubuntu,
-                COUNT(*) FILTER (WHERE q.target_os = 'rhel')            AS rhel,
+                -- ubuntu/rhel: solo patch attive che richiedono azione
+                COUNT(*) FILTER (
+                    WHERE q.target_os = 'ubuntu'
+                    AND q.status IN {_ACTIVE}
+                )                                                        AS ubuntu,
+                COUNT(*) FILTER (
+                    WHERE q.target_os = 'rhel'
+                    AND q.status IN {_ACTIVE}
+                )                                                        AS rhel,
                 AVG(q.success_score)                                     AS avg_score,
                 COUNT(*) FILTER (
                     WHERE rp.requires_reboot = TRUE

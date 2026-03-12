@@ -13,26 +13,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import re
 import time
 from collections import Counter
-from datetime import datetime, timezone
 import streamlit as st
 import pandas as pd
 import api_client as api
 import auth_guard
+import test_render as tr
 
 auth_guard.require_auth()
 
 st.title("Test Batch")
-
-# ─────────────────────────────────────────────────────────────────
-# Helpers rendering fasi
-# ─────────────────────────────────────────────────────────────────
-
-_PHASE_ICON = {
-    "completed":   "✅",
-    "failed":      "❌",
-    "skipped":     "—",
-    "in_progress": "⏳",
-}
 
 # ── Famiglie USN ──────────────────────────────────────────────────
 # Palette colori pastello per evidenziare righe della stessa famiglia
@@ -55,227 +44,6 @@ def _advisory_family(name: str):
     m = re.match(r'^(USN-\d+)-\d+$', name)
     return m.group(1) if m else None
 
-_PHASE_LABEL = {
-    "pre_check":    "⓪ Pre-check",
-    "snapshot":     "① Snapshot",
-    "patch":        "② Patch",
-    "reboot":       "③ Reboot",
-    "validate":     "④ Validate (Prometheus)",
-    "services":     "⑤ Service check",
-    "rollback":     "↩ Rollback",
-    "post_rollback": "↩✓ Post-rollback verify",
-}
-
-_PIPELINE_STEPS = [
-    "pre_check", "snapshot", "patch", "reboot",
-    "validate", "services",
-]
-
-
-def _elapsed(iso_start: str) -> str:
-    """Calcola tempo trascorso da un timestamp ISO."""
-    try:
-        start = datetime.fromisoformat(iso_start.replace("Z", "+00:00"))
-        delta = datetime.now(timezone.utc) - start
-        s = int(delta.total_seconds())
-        if s < 60:
-            return f"{s}s"
-        return f"{s // 60}m {s % 60}s"
-    except Exception:
-        return "?"
-
-
-def _fmt_duration(seconds) -> str:
-    if seconds is None:
-        return "—"
-    s = int(seconds)
-    if s < 60:
-        return f"{s}s"
-    return f"{s // 60}m {s % 60}s"
-
-
-def _phase_detail(phase: dict) -> str:
-    """Estrae stringa di dettaglio leggibile dall'output JSON della fase."""
-    name   = phase.get("phase_name", "")
-    output = phase.get("output") or {}
-    err    = phase.get("error_message") or ""
-
-    if name == "pre_check":
-        disk  = output.get("disk_available_mb")
-        svcs  = output.get("failed_services") or []
-        rpend = output.get("reboot_pending")
-        parts = []
-        if disk is not None:
-            parts.append(f"Disco: {disk} MB liberi")
-        parts.append("Servizi OK" if not svcs else f"Servizi KO: {', '.join(svcs)}")
-        if rpend:
-            parts.append("Reboot pendente")
-        return " | ".join(parts) if parts else err
-
-    if name == "snapshot":
-        snap = output.get("snapshot_id")
-        return f"Snapshot ID: **{snap}**" if snap else err
-
-    if name == "patch":
-        count = output.get("count")
-        return f"{count} pacchetti applicati" if count is not None else err
-
-    if name == "reboot":
-        return "Reboot eseguito, sistema tornato online" if not err else err
-
-    if name == "validate":
-        if output.get("skipped"):
-            return "Prometheus non disponibile — validazione saltata"
-        cd  = output.get("cpu_delta")
-        md  = output.get("memory_delta")
-        cok = output.get("cpu_ok")
-        mok = output.get("memory_ok")
-        parts = []
-        if cd is not None:
-            icon = "✅" if cok else "❌"
-            parts.append(f"CPU Δ={cd:+.1f}% {icon}")
-        if md is not None:
-            icon = "✅" if mok else "❌"
-            parts.append(f"MEM Δ={md:+.1f}% {icon}")
-        return " | ".join(parts) if parts else err
-
-    if name == "services":
-        checked = output.get("checked") or []
-        failed  = output.get("failed")  or []
-        if not failed:
-            return f"Tutti OK ({len(checked)} servizi controllati)"
-        return f"DOWN: {', '.join(failed)}"
-
-    if name == "rollback":
-        rtype = output.get("rollback_type", "?")
-        snap  = output.get("snapshot_id")
-        base  = f"Rollback tipo: **{rtype}**"
-        return f"{base} | Snapshot ID: {snap}" if snap else base
-
-    if name == "post_rollback":
-        ok = output.get("rollback_verified")
-        if ok:
-            return "Servizi verificati OK dopo rollback"
-        failed = output.get("failed_services") or []
-        return f"Servizi ancora DOWN: {', '.join(failed)}" if failed else err
-
-    return err or "—"
-
-
-def _render_pipeline(phases: list) -> None:
-    """Mostra la pipeline di esecuzione come riga di badge colorati."""
-    phase_map = {p["phase_name"]: p for p in phases}
-    cols = st.columns(len(_PIPELINE_STEPS) + 2)  # +2 per rollback e esito finale
-
-    step_cols = _PIPELINE_STEPS[:]
-
-    for i, step in enumerate(step_cols):
-        p = phase_map.get(step)
-        if not p:
-            label = _PHASE_LABEL.get(step, step).split(" ", 1)[-1]
-            cols[i].markdown(f"· *{label}*")
-        else:
-            status = p.get("status", "")
-            icon   = _PHASE_ICON.get(status, "·")
-            label  = _PHASE_LABEL.get(step, step).split(" ", 1)[-1]
-            cols[i].markdown(f"{icon} **{label}**")
-
-    # Rollback (opzionale)
-    rb = phase_map.get("rollback")
-    if rb:
-        icon = _PHASE_ICON.get(rb["status"], "·")
-        cols[-2].markdown(f"{icon} **Rollback**")
-    else:
-        cols[-2].markdown("· *Rollback*")
-
-    # Esito finale
-    all_done = all(
-        phase_map.get(s, {}).get("status") in ("completed", "skipped")
-        for s in _PIPELINE_STEPS
-        if s in phase_map or s != "reboot"
-    )
-    if rb:
-        cols[-1].markdown("❌ **Fallita**")
-    elif all_done and phase_map:
-        cols[-1].markdown("✅ **Approvazione**")
-    else:
-        cols[-1].markdown("· *Esito*")
-
-
-def _render_prometheus_section(test: dict) -> None:
-    """Mostra sezione metriche Prometheus con baseline, post-patch e delta."""
-    baseline = test.get("baseline_metrics") or {}
-    post     = test.get("post_patch_metrics") or {}
-    delta    = test.get("metrics_delta") or {}
-    evalu    = test.get("metrics_evaluation") or {}
-
-    if not baseline.get("available") and not post.get("available"):
-        st.caption("Prometheus non disponibile per questo test.")
-        return
-
-    cpu_base = baseline.get("cpu_percent")
-    mem_base = baseline.get("memory_percent")
-    cpu_post = post.get("cpu_percent")
-    mem_post = post.get("memory_percent")
-    cpu_d    = delta.get("cpu_delta")
-    mem_d    = delta.get("memory_delta")
-    cpu_ok   = evalu.get("cpu_ok")
-    mem_ok   = evalu.get("memory_ok")
-
-    def _fmt(v):
-        return f"{v:.1f}%" if v is not None else "—"
-
-    def _fmt_delta(v, ok):
-        if v is None:
-            return "—"
-        icon = " ✅" if ok else (" ❌" if ok is False else "")
-        return f"{v:+.1f}%{icon}"
-
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("CPU baseline",  _fmt(cpu_base))
-    c2.metric("CPU post-patch", _fmt(cpu_post),
-              delta=_fmt_delta(cpu_d, cpu_ok),
-              delta_color="inverse" if cpu_ok is False else "normal")
-    c3.metric("MEM baseline",  _fmt(mem_base))
-    c4.metric("MEM post-patch", _fmt(mem_post),
-              delta=_fmt_delta(mem_d, mem_ok),
-              delta_color="inverse" if mem_ok is False else "normal")
-
-    if evalu.get("skipped"):
-        st.caption("Validazione Prometheus saltata (dati non disponibili al momento del test).")
-
-
-def _render_phases_table(phases: list) -> None:
-    """Tabella dettagliata di tutte le fasi."""
-    if not phases:
-        st.caption("Nessuna fase registrata.")
-        return
-
-    rows = []
-    for p in phases:
-        name   = p.get("phase_name", "?")
-        status = p.get("status", "?")
-        icon   = _PHASE_ICON.get(status, "⬜")
-        dur    = _fmt_duration(p.get("duration_seconds"))
-        detail = _phase_detail(p)
-        started = (p.get("started_at") or "")[:19].replace("T", " ")
-        rows.append({
-            "Fase":    _PHASE_LABEL.get(name, name),
-            "Stato":   f"{icon} {status}",
-            "Inizio":  started,
-            "Durata":  dur,
-            "Dettaglio": detail,
-        })
-
-    st.dataframe(
-        pd.DataFrame(rows),
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Dettaglio": st.column_config.TextColumn("Dettaglio", width="large"),
-        },
-    )
-
 
 def _render_live_test(batch_id: str, current_test_id: int, current_errata_id: str) -> None:
     """
@@ -297,18 +65,18 @@ def _render_live_test(batch_id: str, current_test_id: int, current_errata_id: st
     snap_type = t.get("snapshot_type") or "—"
     snap_id   = t.get("snapshot_id")
     col_snap.metric("Snapshot", f"#{snap_id}" if snap_id else snap_type)
-    col_elapsed.metric("Tempo trascorso", _elapsed(t.get("started_at") or ""))
+    col_elapsed.metric("Tempo trascorso", tr.elapsed(t.get("started_at") or ""))
 
     st.caption("**Pipeline di esecuzione:**")
-    _render_pipeline(phases)
+    tr.render_pipeline(phases)
 
     st.divider()
 
     tab_fasi, tab_prom = st.tabs(["Fasi", "Prometheus"])
     with tab_fasi:
-        _render_phases_table(phases)
+        tr.render_phases_table(phases)
     with tab_prom:
-        _render_prometheus_section(t)
+        tr.render_prometheus_section(t)
 
 
 def _render_completed_results(results: list) -> None:
@@ -329,7 +97,7 @@ def _render_completed_results(results: list) -> None:
         errata  = r.get("errata_id") or r.get("queue_id", "?")
         status  = r.get("status", "?")
         icon    = _RES_ICON.get(status, "⬜")
-        dur     = _fmt_duration(r.get("duration_s"))
+        dur     = tr.fmt_duration(r.get("duration_s"))
         phase   = r.get("failure_phase") or "—"
         test_id = r.get("test_id")
 
@@ -348,14 +116,14 @@ def _render_completed_results(results: list) -> None:
 
                     c1, c2, c3 = st.columns(3)
                     c1.metric("Sistema", t.get("test_system_name") or "?")
-                    c2.metric("Durata",  _fmt_duration(t.get("duration_seconds")))
+                    c2.metric("Durata",  tr.fmt_duration(t.get("duration_seconds")))
                     c3.metric("Esito",   f"{icon} {status}")
 
                     tab_f, tab_p = st.tabs(["Fasi", "Prometheus"])
                     with tab_f:
-                        _render_phases_table(phases)
+                        tr.render_phases_table(phases)
                     with tab_p:
-                        _render_prometheus_section(t)
+                        tr.render_prometheus_section(t)
 
                     if r.get("failure_reason"):
                         st.error(f"**Motivo fallimento:** {r['failure_reason']}")

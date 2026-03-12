@@ -117,12 +117,17 @@ with left:
 
         ubuntu = stats.get("ubuntu", 0)
         rhel   = stats.get("rhel", 0)
-        passed = stats.get("passed", 0)
-        st.caption(
-            f"Ubuntu: **{ubuntu}**  |  RHEL: **{rhel}**  |  "
-            f"Superati: **{passed}**"
-            + (f"  |  Falliti: **{_failed}**" if _failed else "")
-        )
+        parts  = []
+        if ubuntu:
+            parts.append(f"Ubuntu: **{ubuntu}**")
+        if rhel:
+            parts.append(f"RHEL: **{rhel}**")
+        if _retry:
+            parts.append(f"In retry: **{_retry}**")
+        if _failed:
+            parts.append(f"Falliti: **{_failed}**")
+        if parts:
+            st.caption("  |  ".join(parts))
 
 with right:
     st.subheader("Test Engine — ultime 24h")
@@ -205,13 +210,22 @@ with sc2:
         st.error(err)
     elif cs:
         bysev = cs.get("by_severity", {})
-        byos = cs.get("by_os", {})
         e1, e2, e3 = st.columns(3)
         e1.metric("Errata totali", cs.get("total", 0))
         e2.metric(
             "Critical+High", (bysev.get("critical") or 0) + (bysev.get("high") or 0)
         )
-        e3.metric("Ubuntu", byos.get("ubuntu", 0))
+
+        # Sistemi monitorati = sistemi unici in tutti i gruppi test-*
+        _org_id = st.session_state.get("selected_org_id")
+        gdata, _ = api.groups_list(_org_id)
+        _groups = (gdata or {}).get("groups", [])
+        _sys_ids = set()
+        for g in _groups:
+            for s in g.get("systems", []):
+                _sys_ids.add(s.get("id") or s.get("name"))
+        e3.metric("Sistemi monitorati", len(_sys_ids))
+
         if cs.get("last_synced"):
             st.caption(f"Aggiornato: {str(cs['last_synced'])[:16].replace('T',' ')}")
 

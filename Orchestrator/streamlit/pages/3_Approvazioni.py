@@ -18,6 +18,7 @@ import pandas as pd
 import streamlit as st
 import api_client as api
 import auth_guard
+import test_render as tr
 
 auth_guard.require_auth()
 
@@ -167,26 +168,8 @@ with tab_pending:
             if test_id:
                 test_data, _ = api.test_detail(test_id)
                 if test_data:
-                    phases = test_data.get("phases", [])
-                    if phases:
-                        st.markdown("**Fasi test:**")
-                        phase_icons = {
-                            "completed": "✅",
-                            "failed": "❌",
-                            "skipped": "⏭",
-                            "in_progress": "🔄",
-                        }
-                        cols = st.columns(len(phases))
-                        for i, ph in enumerate(phases):
-                            pname = ph.get("phase_name", "?")
-                            pstat = ph.get("status", "?")
-                            pdur = ph.get("duration_seconds")
-                            icon = phase_icons.get(pstat, "⬜")
-                            dur_s = f" ({pdur}s)" if pdur else ""
-                            with cols[i]:
-                                st.caption(f"{icon} **{pname}**{dur_s}")
-                                if ph.get("error_message"):
-                                    st.caption(f"⚠ {ph['error_message'][:60]}")
+                    st.divider()
+                    tr.render_test_detail(test_data)
 
     # ── Navigazione pagine pending ────────────────────────────────
     if _tot_pages > 1:

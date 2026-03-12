@@ -15,6 +15,7 @@ from app.services.db import init_db, close_db
 from app.services.poller import init_scheduler
 from app.services.test_engine import init_test_scheduler
 from app.services.approval_manager import process_snoozed
+from app.services.queue_manager import reset_stale_testing
 from app.api.health import health_bp
 from app.api.sync import sync_bp
 from app.api.queue import queue_bp
@@ -120,6 +121,11 @@ def main():
         raise SystemExit(1)
 
     logger.info("Database connected successfully")
+
+    # Reset patch bloccate in 'testing' (succede se Flask crasha durante un test)
+    stale = reset_stale_testing()
+    if stale:
+        logger.warning(f"Reset {stale} patch bloccate in stato 'testing' → 'queued'")
 
     # Avvia scheduler UYUNI poller + Test Engine + snooze processor
     scheduler = init_scheduler()
