@@ -11,7 +11,8 @@
       "Bash(python -m pytest tests/ -q --tb=short 2>&1 | tail -20)",
       "Bash(python3 -m pytest tests/ -q --tb=short 2>&1 | tail -20)",
       "Bash(python3 -m pytest tests/ -q --tb=short 2>&1 | tail -10)",
-      "Bash(git -C /mnt/c/Users/alber/Documents/GitHub/Security-Patch-Manager diff --stat HEAD)"
+      "Bash(git -C /mnt/c/Users/alber/Documents/GitHub/Security-Patch-Manager diff --stat HEAD)",
+      "Bash(git -C /mnt/c/Users/alber/Documents/GitHub/Security-Patch-Manager diff HEAD -- Orchestrator/app/config.py Orchestrator/app/services/db.py Orchestrator/app/services/test_engine.py Orchestrator/streamlit/pages/2_Test_Batch.py Orchestrator/tests/test_api_queue.py Orchestrator/app/api/queue.py Orchestrator/app/services/queue_manager.py)"
     ]
   }
 }
