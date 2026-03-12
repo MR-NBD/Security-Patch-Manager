@@ -156,6 +156,90 @@ def list_groups():
 
 
 # ─────────────────────────────────────────────
+# GET /api/v1/groups/summary
+# ─────────────────────────────────────────────
+
+@groups_bp.route("/groups/summary", methods=["GET"])
+def groups_summary():
+    """
+    Sommario aggregato per la Home page: patch uniche e sistemi nei gruppi test-*.
+    Parametro opzionale: org_id (int) — filtra per organizzazione.
+
+    Risposta:
+    {
+      "total_patches": 125,
+      "total_systems": 2,
+      "by_severity": {"critical": 10, "high": 15, "medium": 30, "low": 5}
+    }
+    """
+    org_id_filter = None
+    raw = request.args.get("org_id")
+    if raw:
+        try:
+            org_id_filter = int(raw)
+        except ValueError:
+            return jsonify({"error": "org_id must be an integer"}), 400
+
+    try:
+        all_errata_ids: set = set()
+        all_system_ids: set = set()
+
+        with _uyuni_session_from_request() as session:
+            groups = session.get_test_groups()
+            for group in groups:
+                if org_id_filter is not None and group.get("org_id") != org_id_filter:
+                    continue
+                group_name = group.get("name", "")
+                systems = session.get_systems_in_group(group_name)
+                for sys in systems:
+                    sid = sys.get("id")
+                    if not sid:
+                        continue
+                    all_system_ids.add(sid)
+                    for e in session.get_relevant_errata(sid):
+                        name = _normalize_advisory_name(
+                            e.get("advisory_name") or e.get("errata_id", "")
+                        )
+                        if name:
+                            all_errata_ids.add(name)
+
+        by_severity = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+        if all_errata_ids:
+            with get_db() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    SELECT
+                        COUNT(*) FILTER (WHERE severity = 'Critical') AS critical,
+                        COUNT(*) FILTER (WHERE severity = 'High')     AS high,
+                        COUNT(*) FILTER (WHERE severity = 'Medium')   AS medium,
+                        COUNT(*) FILTER (WHERE severity = 'Low')      AS low
+                    FROM errata_cache
+                    WHERE errata_id = ANY(%s)
+                    """,
+                    (list(all_errata_ids),),
+                )
+                row = cur.fetchone()
+                if row:
+                    by_severity = {
+                        "critical": row["critical"] or 0,
+                        "high":     row["high"]     or 0,
+                        "medium":   row["medium"]   or 0,
+                        "low":      row["low"]      or 0,
+                    }
+
+        return jsonify({
+            "total_patches": len(all_errata_ids),
+            "total_systems": len(all_system_ids),
+            "by_severity":   by_severity,
+        })
+
+    except Exception as e:
+        logger.error(f"GET /groups/summary failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ─────────────────────────────────────────────
 # DB helper: reboot enrichment
 # ─────────────────────────────────────────────
 

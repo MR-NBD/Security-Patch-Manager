@@ -229,6 +229,14 @@ def groups_list(org_id: int = None):
     return _get("/api/v1/groups", params=params)
 
 
+def groups_summary(org_id: int = None):
+    """Sommario aggregato (total_patches, total_systems, by_severity) per org."""
+    params = {}
+    if org_id is not None:
+        params["org_id"] = org_id
+    return _get("/api/v1/groups/summary", params=params)
+
+
 def group_patches(group_name: str):
     return _get(f"/api/v1/groups/{group_name}/patches")
 

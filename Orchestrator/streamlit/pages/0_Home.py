@@ -13,6 +13,13 @@ import auth_guard
 
 auth_guard.require_auth()
 
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_groups_summary(org_id):
+    """Cache di 5 min: evita UYUNI XML-RPC ad ogni rerun della Home."""
+    return api.groups_summary(org_id)
+
+
 st.title("Security Patch Manager")
 
 # ── Verifica connessione ─────────────────────────────────────────
@@ -90,34 +97,42 @@ if notif_data and notif_data.get("total_unread", 0) > 0:
         st.rerun()
 
 # ── Coda e test stats ────────────────────────────────────────────
+stats, queue_err = api.queue_stats()
+ts, ts_err = api.tests_status()
+
 left, right = st.columns(2)
 
 with left:
     st.subheader("Coda patch")
-    stats, err = api.queue_stats()
-    if err:
-        st.error(err)
+    if queue_err:
+        st.error(queue_err)
     elif stats:
-        _queued     = stats.get("queued", 0)
-        _retry      = stats.get("retry_pending", 0)
-        _testing    = stats.get("testing", 0)
-        _approval   = stats.get("pending_approval", 0)
-        _failed     = stats.get("failed", 0)
+        _queued = stats.get("queued", 0)
+        _retry = stats.get("retry_pending", 0)
+        _testing = stats.get("testing", 0)
+        _approval = stats.get("pending_approval", 0)
+        _failed = stats.get("failed", 0)
         # Patch che richiedono ancora azione: da testare + in approvazione + fallite
-        _pendenti   = _queued + _retry + _approval + _failed
+        _pendenti = _queued + _retry + _approval + _failed
 
         s1, s2, s3, s4 = st.columns(4)
-        s1.metric("Patch pendenti", _pendenti,
-                  help="Da testare + in approvazione + fallite (richiedono azione)")
-        s2.metric("In coda", _queued,
-                  help=f"Pronte al test: {_queued}"
-                       + (f" + {_retry} in retry" if _retry else ""))
+        s1.metric(
+            "Patch pendenti",
+            _pendenti,
+            help="Da testare + in approvazione + fallite (richiedono azione)",
+        )
+        s2.metric(
+            "In coda",
+            _queued,
+            help=f"Pronte al test: {_queued}"
+            + (f" + {_retry} in retry" if _retry else ""),
+        )
         s3.metric("In test", _testing)
         s4.metric("Da approvare", _approval)
 
         ubuntu = stats.get("ubuntu", 0)
-        rhel   = stats.get("rhel", 0)
-        parts  = []
+        rhel = stats.get("rhel", 0)
+        parts = []
         if ubuntu:
             parts.append(f"Ubuntu: **{ubuntu}**")
         if rhel:
@@ -130,24 +145,29 @@ with left:
             st.caption("  |  ".join(parts))
 
 with right:
-    st.subheader("Test Engine — ultime 24h")
-    ts, err = api.tests_status()
-    if err:
-        st.error(err)
+    st.subheader("Test Engine")
+    if ts_err:
+        st.error(ts_err)
     elif ts:
         running = ts.get("engine_running", False)
-        stats24 = ts.get("stats_24h", {}) or {}
 
         if running:
             st.info("Test in corso...")
         else:
             st.success("Engine inattivo")
 
-        t1, t2, t3, t4 = st.columns(4)
-        t1.metric("Passati", stats24.get("passed_24h", 0))
-        t2.metric("Falliti", stats24.get("failed_24h", 0))
-        t3.metric("Errori", stats24.get("error_24h", 0))
-        t4.metric("Durata media", f"{stats24.get('avg_duration_s') or 0}s")
+        if not queue_err and stats:
+            ta, tb = st.columns(2)
+            ta.metric(
+                "Da approvare",
+                stats.get("pending_approval", 0),
+                help="Patch che hanno superato il test e attendono approvazione",
+            )
+            tb.metric(
+                "Fallite",
+                stats.get("failed", 0),
+                help="Patch con test fallito — visibili in Test Batch",
+            )
 
         last = ts.get("last_result")
         if last and isinstance(last, dict):
@@ -205,33 +225,27 @@ with sc1:
             st.rerun()
 
 with sc2:
-    cs, err = api.errata_cache_stats()
-    if err:
-        st.error(err)
-    elif cs:
-        bysev = cs.get("by_severity", {})
-        byos  = cs.get("by_os", {})
-        e1, e2 = st.columns(2)
+    _org_id = st.session_state.get("selected_org_id")
+    gs, gs_err = _load_groups_summary(_org_id)
+    if gs_err:
+        st.error(gs_err)
+    elif gs:
+        bysev = gs.get("by_severity", {})
+        e1, e2, e3 = st.columns(3)
         e1.metric(
             "Patch applicabili",
-            cs.get("total", 0),
-            help="Patch applicabili ai sistemi test, sincronizzate da UYUNI ogni 30 min",
+            gs.get("total_patches", 0),
+            help="Patch applicabili ai sistemi nei gruppi test-* dell'organizzazione selezionata",
         )
         e2.metric(
             "Critical+High",
             (bysev.get("critical") or 0) + (bysev.get("high") or 0),
         )
-        _ubuntu = byos.get("ubuntu", 0)
-        _rhel   = byos.get("rhel", 0)
-        _os_parts = []
-        if _ubuntu:
-            _os_parts.append(f"Ubuntu: **{_ubuntu}**")
-        if _rhel:
-            _os_parts.append(f"RHEL: **{_rhel}**")
-        if _os_parts:
-            st.caption("  |  ".join(_os_parts))
-        if cs.get("last_synced"):
-            st.caption(f"Aggiornato: {str(cs['last_synced'])[:16].replace('T',' ')}")
+        e3.metric(
+            "Sistemi",
+            gs.get("total_systems", 0),
+            help="Sistemi unici nei gruppi test-* dell'organizzazione",
+        )
 
 
 st.divider()
@@ -241,8 +255,7 @@ st.subheader("Azioni rapide")
 ac1, ac2 = st.columns(2)
 
 with ac1:
-    ts_check = api.tests_status()[0]
-    engine_running = ts_check.get("engine_running", False) if ts_check else False
+    engine_running = ts.get("engine_running", False) if ts else False
 
     if st.button(
         "▶ Esegui prossimo test",

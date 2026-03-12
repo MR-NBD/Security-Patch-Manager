@@ -256,8 +256,9 @@ POST /api/v1/approvals/<queue_id>/snooze
 
 # Organizzazioni e Gruppi UYUNI
 GET  /api/v1/orgs                  → lista organizzazioni UYUNI (satellite admin)
-GET  /api/v1/groups[?org_id=N]     → lista gruppi test-* con sistemi e patch (filtro org)
-GET  /api/v1/groups/<name>/patches → patch applicabili per gruppo (credenziali via X-UYUNI-*)
+GET  /api/v1/groups[?org_id=N]          → lista gruppi test-* con sistemi e patch (filtro org)
+GET  /api/v1/groups/summary[?org_id=N]  → aggregato Home: total_patches, total_systems, by_severity
+GET  /api/v1/groups/<name>/patches      → patch applicabili per gruppo (credenziali via X-UYUNI-*)
 
 # Prometheus HTTP Service Discovery
 GET  /api/v1/prometheus/targets    → target dinamici (tutti i sistemi in gruppi test-*)
